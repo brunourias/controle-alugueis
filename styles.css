@@ -281,6 +281,27 @@ tbody th {
     font-weight: 800;
 }
 
+.status-inactive {
+    display: grid;
+	place-items: center;
+	min-width: 52px;
+	min-height: 42px;
+	padding: 4px 2px;
+	border-radius: 11px;
+	color: #9aa9ad;
+	background: #f1f4f4;
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+.status-inactive span {
+    display: block;
+    margin-top: 2px;
+    font-size: .55rem;
+    line-height: 1.05;
+    font-weight: 700;
+}
+
 .status-btn.chip-pago {
     color: var(--paid);
     background: #cdf3e9;
