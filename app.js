@@ -1,282 +1,405 @@
 (function () {
-"use strict";
+    "use strict";
 
-var STORAGE_KEY = "controle-alugueis-v1";
-var months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-var statusOrder = ["pendente", "pago", "atrasado"];
-var state = loadState();
-var selectedYear = new Date().getFullYear();
-var editingId = null;
+    var STORAGE_KEY = "controle-alugueis-v1";
+    var months = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+    ];
+    var statusOrder = ["pendente", "pago", "atrasado"];
+    var state = loadState();
+    var selectedYear = new Date().getFullYear();
+    var editingId = null;
 
-var grid = document.getElementById("grid");
-var empty = document.getElementById("empty");
-var summary = document.getElementById("summary");
-var modal = document.getElementById("modal");
-var unitName = document.getElementById("unitName");
-var unitRent = document.getElementById("unitRent");
+    var grid = document.getElementById("grid");
+    var empty = document.getElementById("empty");
+    var summary = document.getElementById("summary");
+    var modal = document.getElementById("modal");
+    var unitName = document.getElementById("unitName");
+    var unitRent = document.getElementById("unitRent");
 
-function loadState() {
-    try {
-        var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-        if (saved && Array.isArray(saved.units)) {
-            saved.units.forEach(function (unit) {
-                unit.status = unit.status && typeof unit.status === "object" ? unit.status : {};
+    function loadState() {
+        try {
+            var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+            if (saved && Array.isArray(saved.units)) {
+                saved.units.forEach(function (unit) {
+                    unit.status =
+                        unit.status && typeof unit.status === "object"
+                            ? unit.status
+                            : {};
+                });
+                return saved;
+            }
+        } catch (error) {
+            /* use a clean state when storage is unavailable or malformed */
+        }
+        return { units: [] };
+    }
+
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function money(value) {
+        return Number(value || 0).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        });
+    }
+
+    function monthKey(month) {
+        return selectedYear + "-" + String(month + 1).padStart(2, "0");
+    }
+
+    function statusFor(unit, month) {
+        return statusOrder.indexOf(unit.status[monthKey(month)]) >= 0
+            ? unit.status[monthKey(month)]
+            : "pendente";
+    }
+
+    function render() {
+        document.getElementById("yearLabel").textContent = selectedYear;
+        var hasUnits = state.units.length > 0;
+        grid.hidden = !hasUnits;
+        empty.hidden = hasUnits;
+        renderGrid();
+        renderSummary();
+    }
+
+    function renderGrid() {
+        var currentMonth =
+            new Date().getFullYear() === selectedYear
+                ? new Date().getMonth()
+                : -1;
+        var head =
+            '<tr><th scope="col">Unidade</th>' +
+            months
+                .map(function (month, i) {
+                    return (
+                        '<th scope="col" class="' +
+                        (i === currentMonth ? "month-current" : "") +
+                        '">' +
+                        month +
+                        "</th>"
+                    );
+                })
+                .join("") +
+            "</tr>";
+        grid.querySelector("thead").innerHTML = head;
+        grid.querySelector("tbody").innerHTML = state.units
+            .map(function (unit) {
+                var cells = months
+                    .map(function (_, i) {
+                        var status = statusFor(unit, i);
+                        var icon =
+                            status === "pago"
+                                ? "☑"
+                                : status === "atrasado"
+                                ? "!"
+                                : "⏳";
+                        var label =
+                            status === "pago"
+                                ? "Pago"
+                                : status === "atrasado"
+                                ? "Atrasado"
+                                : "Pendente";
+                        return (
+                            '<td class="' +
+                            (i === currentMonth ? "month-current" : "") +
+                            '"><button class="status-btn chip-' +
+                            status +
+                            '" data-unit="' +
+                            unit.id +
+                            '" data-month="' +
+                            i +
+                            '" aria-label="' +
+                            label +
+                            '">' +
+                            icon +
+                            '<span class="status-label">' +
+                            label +
+                            "</span></button></td>"
+                        );
+                    })
+                    .join("");
+                return (
+                    '<tr><th scope="row"><button class="unit-cell" data-edit="' +
+                    unit.id +
+                    '"><span class="unit-name">' +
+                    escapeHtml(unit.name) +
+                    '</span><span class="rent">' +
+                    money(unit.rent) +
+                    "</span></button></th>" +
+                    cells +
+                    "</tr>"
+                );
+            })
+            .join("");
+
+        grid.querySelector("tfoot").innerHTML =
+            '<tr><th scope="row">Total recebido</th>' +
+            months
+                .map(function (_, i) {
+                    var total = state.units.reduce(function (sum, unit) {
+                        return (
+                            sum +
+                            (statusFor(unit, i) === "pago"
+                                ? Number(unit.rent)
+                                : 0)
+                        );
+                    }, 0);
+                    return "<td>" + money(total) + "</td>";
+                })
+                .join("") +
+            "</tr>";
+
+        grid.querySelectorAll(".unit-cell").forEach(function (button) {
+            button.addEventListener("click", function () {
+                openModal(button.dataset.edit);
             });
-            return saved;
-        }
-    } catch (error) { /* use a clean state when storage is unavailable or malformed */ }
-    return { units: [] };
-}
-
-function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-function money(value) {
-    return Number(value || 0).toLocaleString("pt-BR", {style: "currency", currency: "BRL"});
-}
-
-function monthKey(month) {
-    return selectedYear + "-" + String(month + 1).padStart(2, "0");
-}
-
-function statusFor(unit, month) {
-    return statusOrder.indexOf(unit.status[monthKey(month)]) >= 0 ? unit.status[monthKey(month)] : "pendente";}
-
-
-function render() {
-    document.getElementById("yearLabel").textContent = selectedYear;
-    var hasUnits = state.units.length > 0;
-    grid.hidden = !hasUnits;
-    empty.hidden = hasUnits;
-    renderGrid();
-    renderSummary();
-}
-
-function renderGrid() {
-    var currentMonth = new Date().getFullYear() === selectedYear ? new Date().getMonth() : -1;
-    var head = "<tr><th scope=\"col\">Unidade</th>" + months.map(function (month, i) {
-        return "<th scope=\"col\" class=\"" + (i === currentMonth ? "month-current" : "") + "\">" + month + "</th>";
-    }).join("") + "</tr>";
-    grid.querySelector("thead").innerHTML = head;
-    grid.querySelector("tbody").innerHTML = state.units.map(function (unit) {
-        var cells = months.map(function (_, i) {
-            var status = statusFor(unit, i);
-            var icon = status === "pago" ? "☑" : status === "atrasado" ? "!" : "⏳";
-            var label = status === "pago" ? "Pago" : status === "atrasado" ? "Atrasado" : "Pendente";
-            return "<td class=\"" + (i === currentMonth ? "month-current" : "") + "\"><button class=\"status-btn chip-" + status + "\" data-unit=\"" + unit.id + "\" data-month=\"" + i + "\" aria-label=\"" + label + "\">" +
-                icon + "<span class=\"status-label\">" + label +
-                "</span></button></td>";
-        }).join("");
-        return "<tr><th scope=\"row\"><button class=\"unit-cell\" data-edit=\"" +
-            unit.id + "\"><span class=\"unit-name\">" +
-            escapeHtml(unit.name) +
-            "</span><span class=\"rent\">" +
-            money(unit.rent) +
-            "</span></button></th>" +
-            cells + "</tr>";
-    }).join("");
-
-    grid.querySelector("tfoot").innerHTML =
-        "<tr><th scope=\"row\">Total recebido</th>" +
-        months.map(function (_, i) {
-            var total = state.units.reduce(function (sum, unit) {
-                return sum + (statusFor(unit, i) === "pago" ? Number(unit.rent) : 0);
-            }, 0);
-            return "<td>" + money(total) + "</td>";
-        }).join("") +
-        "</tr>";
-
-    grid.querySelectorAll(".unit-cell").forEach(function (button) {
-        button.addEventListener("click", function () {
-            openModal(button.dataset.edit);
         });
-    });
 
-    grid.querySelectorAll(".status-btn").forEach(function (button) {
-        button.addEventListener("click", function () {
-            toggleStatus(button.dataset.unit, Number(button.dataset.month));
+        grid.querySelectorAll(".status-btn").forEach(function (button) {
+            button.addEventListener("click", function () {
+                toggleStatus(button.dataset.unit, Number(button.dataset.month));
+            });
         });
-    });
-}
+    }
 
-function renderSummary() {
-    var annual = state.units.reduce(function (sum, unit) {
-        return sum + months.reduce(function (monthSum, _, i) {
-            return monthSum + (statusFor(unit, i) === "pago" ? Number(unit.rent) : 0);
+    function renderSummary() {
+        var annual = state.units.reduce(function (sum, unit) {
+            return (
+                sum +
+                months.reduce(function (monthSum, _, i) {
+                    return (
+                        monthSum +
+                        (statusFor(unit, i) === "pago" ? Number(unit.rent) : 0)
+                    );
+                }, 0)
+            );
         }, 0);
-    }, 0);
 
-    var now = new Date();
-    var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
+        var now = new Date();
+        var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
 
-    var received = current < 0 ? 0 : state.units.reduce(function (sum, unit) {
-        return sum + (statusFor(unit, current) === "pago" ? Number(unit.rent) : 0);
-    }, 0);
+        var received =
+            current < 0
+                ? 0
+                : state.units.reduce(function (sum, unit) {
+                      return (
+                          sum +
+                          (statusFor(unit, current) === "pago"
+                              ? Number(unit.rent)
+                              : 0)
+                      );
+                  }, 0);
+	    
+		var atrasado =
+            current < 0
+                ? 0
+                : state.units.reduce(function (sum, unit) {
+                      return (
+                          sum +
+                          (statusFor(unit, current) === "atrasado"
+                              ? Number(unit.rent)
+                              : 0)
+                      );
+                  }, 0);
 
-    var pending = current < 0 ? 0 : state.units.reduce(function (sum, unit) {
-        return sum + (statusFor(unit, current) === "pendente" ? Number(unit.rent) : 0);
-    }, 0);
+        var pending =
+            current < 0
+                ? 0
+                : state.units.reduce(function (sum, unit) {
+                      return (
+                          sum +
+                          (statusFor(unit, current) === "pendente"
+                              ? Number(unit.rent)
+                              : 0)
+                      );
+                  }, 0);
 
-    summary.innerHTML =
-        "<div class=\"summary-card\"><div class=\"summary-label\">Total recebido em "
-        + selectedYear
-        + "</div><div class=\"summary-value\">"
-        + money(annual)
-        + "</div><div class=\"summary-detail\">Soma dos pagamentos marcados como recebidos</div></div>"
-        + "<div class=\"summary-card\"><div class=\"summary-label\">Recebido neste mês</div><div class=\"summary-value\">"
-        + money(received)
-        + "</div><div class=\"summary-detail\">"
-        + (current < 0 ? "Visualizando outro ano" : months[current] + " de " + selectedYear)
-        + "</div></div>"
-        + "<div class=\"summary-card\"><div class=\"summary-label\">Pendente neste mês</div><div class=\"summary-value\">"
-        + money(pending)
-        + "</div><div class=\"summary-detail\">Valores ainda não recebidos</div></div>";
-}
-
-function toggleStatus(id, month) {
-    var unit = state.units.find(function (item) {
-        return item.id === id;
-    });
-
-    if (!unit) return;
-
-    var current = statusFor(unit, month);
-    unit.status[monthKey(month)] =
-        statusOrder[(statusOrder.indexOf(current) + 1) % statusOrder.length];
-
-    saveState();
-    render();
-}
-
-function openModal(id) {
-    editingId = id || null;
-
-    var unit = state.units.find(function (item) {
-        return item.id === editingId;
-    });
-
-    document.getElementById("modalTitle").textContent =
-        unit ? "Editar unidade" : "Nova unidade";
-
-    unitName.value = unit ? unit.name : "";
-    unitRent.value = unit ? unit.rent : "";
-
-    document.getElementById("deleteUnit").hidden = !unit;
-
-    modal.hidden = false;
-
-    setTimeout(function () {
-        unitName.focus();
-    }, 0);
-}
-
-function closeModal() {
-    modal.hidden = true;
-    editingId = null;
-}
-
-function saveUnit() {
-    var name = unitName.value.trim();
-    var rent = Number(unitRent.value);
-
-    if (!name) {
-        unitName.focus();
-        return;
+        summary.innerHTML =
+            '<div class="summary-card"><div class="summary-label">Total recebido em ' + selectedYear + '</div><div class="summary-value">' + money(annual) +
+            '</div><div class="summary-detail">Soma dos pagamentos marcados como recebidos</div></div>' +
+            
+			'<div class="summary-card"><div class="summary-label">Recebido neste mês</div><div class="summary-value">' + money(received) + '</div><div class="summary-detail">' +
+            (current < 0
+                ? "Visualizando outro ano"
+                : months[current] + " de " + selectedYear) +
+            "</div></div>" +
+			
+			'<div class="summary-card"><div class="summary-label">Atrasado neste mês</div><div class="summary-value">' + money(atrasado) + '</div><div class="summary-detail">' +
+            (current < 0
+                ? "Visualizando outro ano"
+                : months[current] + " de " + selectedYear) +
+            "</div></div>" +
+			
+            '<div class="summary-card"><div class="summary-label">Pendente neste mês</div><div class="summary-value">' + money(pending) +
+            '</div><div class="summary-detail">Valores ainda não recebidos</div></div>';
     }
 
-    if (!Number.isFinite(rent) || rent < 0) {
-        unitRent.focus();
-        return;
-    }
-
-    if (editingId) {
-        var existing = state.units.find(function (unit) {
-            return unit.id === editingId;
+    function toggleStatus(id, month) {
+        var unit = state.units.find(function (item) {
+            return item.id === id;
         });
 
-        if (existing) {
-            existing.name = name;
-            existing.rent = rent;
+        if (!unit) return;
+
+        var current = statusFor(unit, month);
+        unit.status[monthKey(month)] =
+            statusOrder[
+                (statusOrder.indexOf(current) + 1) % statusOrder.length
+            ];
+
+        saveState();
+        render();
+    }
+
+    function openModal(id) {
+        editingId = id || null;
+
+        var unit = state.units.find(function (item) {
+            return item.id === editingId;
+        });
+
+        document.getElementById("modalTitle").textContent = unit
+            ? "Editar unidade"
+            : "Nova unidade";
+
+        unitName.value = unit ? unit.name : "";
+        unitRent.value = unit ? unit.rent : "";
+
+        document.getElementById("deleteUnit").hidden = !unit;
+
+        modal.hidden = false;
+
+        setTimeout(function () {
+            unitName.focus();
+        }, 0);
+    }
+
+    function closeModal() {
+        modal.hidden = true;
+        editingId = null;
+    }
+
+    function saveUnit() {
+        var name = unitName.value.trim();
+        var rent = Number(unitRent.value);
+
+        if (!name) {
+            unitName.focus();
+            return;
         }
-    } else {
-        state.units.push({
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-            name: name,
-            rent: rent,
-            status: {}
+
+        if (!Number.isFinite(rent) || rent < 0) {
+            unitRent.focus();
+            return;
+        }
+
+        if (editingId) {
+            var existing = state.units.find(function (unit) {
+                return unit.id === editingId;
+            });
+
+            if (existing) {
+                existing.name = name;
+                existing.rent = rent;
+            }
+        } else {
+            state.units.push({
+                id:
+                    Date.now().toString(36) +
+                    Math.random().toString(36).slice(2),
+                name: name,
+                rent: rent,
+                status: {},
+            });
+        }
+
+        saveState();
+        closeModal();
+        render();
+    }
+
+    function deleteUnit() {
+        if (
+            !editingId ||
+            !window.confirm("Excluir esta unidade e seus registros?")
+        ) {
+            return;
+        }
+
+        state.units = state.units.filter(function (unit) {
+            return unit.id !== editingId;
+        });
+
+        saveState();
+        closeModal();
+        render();
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (character) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;",
+            }[character];
         });
     }
 
-    saveState();
-    closeModal();
-    render();
-}
-
-function deleteUnit() {
-    if (!editingId || !window.confirm("Excluir esta unidade e seus registros?")) {
-        return;
-    }
-
-    state.units = state.units.filter(function (unit) {
-        return unit.id !== editingId;
+    document.getElementById("prevYear").addEventListener("click", function () {
+        selectedYear -= 1;
+        render();
     });
 
-    saveState();
-    closeModal();
-    render();
-}
-
-function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, function (character) {
-        return ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            "\"": "&quot;",
-            "'": "&#039;"
-        })[character];
+    document.getElementById("nextYear").addEventListener("click", function () {
+        selectedYear += 1;
+        render();
     });
-}
 
-document.getElementById("prevYear").addEventListener("click", function () {
-    selectedYear -= 1;
-    render();
-});
-
-document.getElementById("nextYear").addEventListener("click", function () {
-    selectedYear += 1;
-    render();
-});
-
-document.getElementById("addUnit").addEventListener("click", function () {
-    openModal();
-});
-
-document.getElementById("cancelModal").addEventListener("click", closeModal);
-
-document.getElementById("saveUnit").addEventListener("click", saveUnit);
-
-document.getElementById("deleteUnit").addEventListener("click", deleteUnit);
-
-modal.addEventListener("click", function (event) {
-    if (event.target === modal) {
-        closeModal();
-    }
-});
-
-document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && !modal.hidden) {
-        closeModal();
-    }
-});
-
-render();
-
-if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-        navigator.serviceWorker.register("sw.js").catch(function () {});
+    document.getElementById("addUnit").addEventListener("click", function () {
+        openModal();
     });
-}
 
+    document
+        .getElementById("cancelModal")
+        .addEventListener("click", closeModal);
+
+    document.getElementById("saveUnit").addEventListener("click", saveUnit);
+
+    document.getElementById("deleteUnit").addEventListener("click", deleteUnit);
+
+    modal.addEventListener("click", function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !modal.hidden) {
+            closeModal();
+        }
+    });
+
+    render();
+
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+            navigator.serviceWorker.register("sw.js").catch(function () {});
+        });
+    }
 })();
