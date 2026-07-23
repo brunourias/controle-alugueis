@@ -194,6 +194,18 @@
     function monthKey(month) {
         return selectedYear + "-" + String(month + 1).padStart(2, "0");
     }
+	
+	function isValidStartYm(value) {
+
+	  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+
+	}
+
+	function isActive(unit, month) {
+
+	  return !isValidStartYm(unit.startYm) || monthKey(month) >= unit.startYm;
+
+	}	
 
     function statusFor(unit, month) {
         return statusOrder.indexOf(unit.status[monthKey(month)]) >= 0
@@ -217,7 +229,7 @@
     function daysOverdue(unit, month) {
         var dueDate = dueDateFor(unit, month);
 
-        if (!dueDate) return null;
+        if (!isActive(unit, month)) return null;
 
         var today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -240,13 +252,17 @@
         );
     }
 
-    function effectiveStatus(unit, month) {
-        var storedStatus = statusFor(unit, month);
+	function effectiveStatus(unit, month) {
 
-        if (storedStatus !== "pendente") return storedStatus;
+	  if (!isActive(unit, month)) return null;
 
-        return daysOverdue(unit, month) !== null ? "atrasado" : "pendente";
-    }
+	  var storedStatus = statusFor(unit, month);
+
+	  if (storedStatus !== "pendente") return storedStatus;
+
+	  return daysOverdue(unit, month) !== null ? "atrasado" : "pendente";
+
+	}
 
     function isPaidLate(unit, month) {
         return (
@@ -299,6 +315,11 @@
             .map(function (unit) {
                 var cells = months
                     .map(function (_, i) {
+						if (!isActive(unit, i)) {
+
+						  return "<td class=\"" + (i === currentMonth ? "month-current" : "") + "\"><div class=\"status-inactive\" aria-label=\"Fora do período\">—<span>Fora do período</span></div></td>";
+
+						}
                         var status = displayStatus(unit, i);
 
                         var icon =
@@ -602,7 +623,7 @@
             return item.id === id;
         });
 
-        if (!unit) return;
+        if (!unit || !isActive(unit, month)) return;
 
         var current = statusFor(unit, month);
 
@@ -735,6 +756,8 @@
 
         var dueDay = dueDayValue === "" ? null : Number(dueDayValue);
 
+		var startYm = unitStartYm.value || null;
+		
         if (!name) {
             unitName.focus();
             return;
@@ -771,6 +794,7 @@
                 existing.name = name;
                 existing.rent = rent;
                 existing.dueDay = dueDay;
+				existing.startYm = startYm;
             }
         } else {
             state.units.push({
