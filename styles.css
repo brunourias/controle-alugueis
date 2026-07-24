@@ -312,8 +312,8 @@ thead th:first-child {
     z-index: 5;
 }
 
-tbody tr,
-tfoot tr {
+tbody th,
+tfoot th {
     position: sticky;
     background: var(--surface);
 }
@@ -324,7 +324,7 @@ tbody tr:last-child td {
 }
 
 tbody td {
-    padding: 12px;
+    padding: 11px 12px;
     font-size: .84rem;
     font-weight: 700;
 }
