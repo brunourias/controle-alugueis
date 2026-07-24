@@ -287,7 +287,7 @@ td {
     border-right: 1px solid #edf3f2;
 }
 
-thead td {
+thead th {
     position: sticky;
     top: 0;
     z-index: 3;
@@ -1214,20 +1214,20 @@ tfoot td {
         flex: 1;
     }
 
-    .expense-header {
+    .expenses-header {
         align-items: stretch;
         flex-wrap: wrap;
     }
 
-    .expense-header > div {
+    .expenses-header > div {
         flex-basis: calc(100% - 90px);
     }
 
-    .expense-header > strong {
+    .expenses-header > strong {
         align-self: center;
     }
 
-    .expense-header .btn {
+    .expenses-header .btn {
         flex: 1;
     }
 	}
