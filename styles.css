@@ -305,6 +305,7 @@ tfoot th {
     z-index: 4;
     min-width: 140px;
     text-align: left;
+	position: sticky;
 }
 
 thead th:first-child {
