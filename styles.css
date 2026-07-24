@@ -116,6 +116,11 @@ h1 {
     background: #c9f2e9;
 }
 
+.chip-pago-atrasado {
+    color: #8d5105;
+    background: #ffe8b3;
+}
+
 .chip-atrasado {
     color: #a52d3b;
     background: #ffd9dc;
