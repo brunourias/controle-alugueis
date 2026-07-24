@@ -1,101 +1,111 @@
-const CACHE_NAME = "controle-alugueis-v3";
+const CACHE_NAME = "controle-alugueis-v12";
 
 const APP_SHELL = [
-    "./index.html",
 
-    "./styles.css",
+  "./index.html",
 
-    "./app.js",
+  "./styles.css",
 
-    "./manifest.json",
+  "./app.js",
+
+  "./manifest.json"
+
 ];
 
-const ICONS = ["./icons/icon-192.png", "./icons/icon-512.png"];
+const ICONS = [
+
+  "./icons/icon-192.png",
+
+  "./icons/icon-512.png"
+
+];
+
+ 
 
 self.addEventListener("install", (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) =>
-            Promise.all(
-                APP_SHELL.concat(ICONS).map((asset) => {
-                    return fetch(asset, { cache: "no-store" }).then(
-                        (response) => {
-                            if (!response.ok)
-                                throw new Error("Falha ao armazenar " + asset);
 
-                            return cache.put(asset, response);
-                        }
-                    );
-                })
-            ).then(() => self.skipWaiting())
-        )
-    );
+  event.waitUntil(
+
+    caches.open(CACHE_NAME).then((cache) => Promise.all(APP_SHELL.concat(ICONS).map((asset) => {
+
+      return fetch(asset, { cache: "no-store" }).then((response) => {
+
+        if (!response.ok) throw new Error("Falha ao armazenar " + asset);
+
+        return cache.put(asset, response);
+
+      });
+
+    })).then(() => self.skipWaiting()))
+
+  );
+
 });
+
+ 
 
 self.addEventListener("activate", (event) => {
-    event.waitUntil(
-        caches
-            .keys()
-            .then((keys) =>
-                Promise.all(
-                    keys
-                        .filter((key) => key !== CACHE_NAME)
-                        .map((key) => caches.delete(key))
-                )
-            )
-            .then(() => self.clients.claim())
-    );
+
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
+
 });
+
+ 
 
 self.addEventListener("fetch", (event) => {
-    if (event.request.method !== "GET") return;
 
-    var isIcon = new URL(event.request.url).pathname.includes("/icons/");
+  if (event.request.method !== "GET") return;
 
-    event.respondWith(
-        isIcon ? cacheFirst(event.request) : networkFirst(event.request)
-    );
+  var isIcon = new URL(event.request.url).pathname.includes("/icons/");
+
+  event.respondWith(isIcon ? cacheFirst(event.request) : networkFirst(event.request));
+
 });
 
+ 
+
 function cacheFirst(request) {
-    return caches
-        .match(request)
-        .then((cached) => cached || fetchAndCache(request));
+
+  return caches.match(request).then((cached) => cached || fetchAndCache(request));
+
 }
+
+ 
 
 function networkFirst(request) {
-    return fetch(request)
-        .then((response) => {
-            if (response.ok) {
-                var copy = response.clone();
 
-                caches
-                    .open(CACHE_NAME)
-                    .then((cache) => cache.put(request, copy));
-            }
+  return fetch(request).then((response) => {
 
-            return response;
-        })
-        .catch(() =>
-            caches
-                .match(request)
-                .then(
-                    (cached) =>
-                        cached ||
-                        (request.mode === "navigate"
-                            ? caches.match("./index.html")
-                            : Response.error())
-                )
-        );
+    if (response.ok) {
+
+      var copy = response.clone();
+
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+
+    }
+
+    return response;
+
+  }).catch(() => caches.match(request).then((cached) => cached || (request.mode === "navigate" ? caches.match("./index.html") : Response.error())));
+
 }
 
+ 
+
 function fetchAndCache(request) {
-    return fetch(request).then((response) => {
-        if (response.ok) {
-            var copy = response.clone();
 
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
+  return fetch(request).then((response) => {
 
-        return response;
-    });
+    if (response.ok) {
+
+      var copy = response.clone();
+
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+
+    }
+
+    return response;
+
+  });
+
 }
