@@ -23,6 +23,7 @@
     var editingId = null;
 
     var grid = document.getElementById("grid");
+    var tableWrap = grid.parentElement;
     var empty = document.getElementById("empty");
     var summary = document.getElementById("summary");
     var modal = document.getElementById("modal");
@@ -270,6 +271,11 @@
             unit.paidLate[monthKey(month)] === true
         );
     }
+	
+    function logicalStatus(unit, month) {
+		var storedStatus = statusFor(unit, month);
+		return storedStatus === "pago" && isPaidLate(unit, month) ? "pago-atrasado" : storedStatus;
+    }	
 
     function displayStatus(unit, month) {
         return isPaidLate(unit, month)
@@ -447,8 +453,35 @@
                 toggleStatus(button.dataset.unit, Number(button.dataset.month));
             });
         });
+		scrollToCurrentMonth(currentMonth);
     }
+	
+	function scrollToCurrentMonth(currentMonth) {
 
+	  if (currentMonth < 0) {
+
+		tableWrap.scrollLeft = 0;
+
+		return;
+
+	  }
+
+	  var currentCell = grid.querySelector("thead th.month-current");
+
+	  if (!currentCell) return;
+
+	  var containerRect = tableWrap.getBoundingClientRect();
+
+	  var cellRect = currentCell.getBoundingClientRect();
+
+	  var targetScroll = tableWrap.scrollLeft + cellRect.left - containerRect.left - (containerRect.width - cellRect.width) / 2;
+
+	  var maxScroll = tableWrap.scrollWidth - tableWrap.clientWidth;
+
+	  tableWrap.scrollLeft = Math.max(0, Math.min(maxScroll, targetScroll));
+
+	}
+	
     function renderSummary() {
         var annual = state.units.reduce(function (sum, unit) {
             return (
@@ -619,35 +652,17 @@
     }
 
     function toggleStatus(id, month) {
-        var unit = state.units.find(function (item) {
-            return item.id === id;
-        });
-
+        var unit = state.units.find(function (item) { return item.id === id; });
         if (!unit || !isActive(unit, month)) return;
-
+		var cycle = ["pendente", "pago", "pago-atrasado", "atrasado"];
         var current = statusFor(unit, month);
-
         var key = monthKey(month);
-
-        var wasOverdue = effectiveStatus(unit, month) === "atrasado";
-
-        var next =
-            statusOrder[
-                (statusOrder.indexOf(current) + 1) % statusOrder.length
-            ];
-
-        unit.status[key] = next;
-
-        unit.paidLate =
-            unit.paidLate && typeof unit.paidLate === "object"
-                ? unit.paidLate
-                : {};
-
-        if (next === "pago" && wasOverdue) unit.paidLate[key] = true;
+        var next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
+        unit.status[key] = next === "pago-atrasado" || next === "pago" ? "pago" : next;
+        unit.paidLate = unit.paidLate && typeof unit.paidLate === "object" ? unit.paidLate : {};
+        if (next === "pago-atrasado") unit.paidLate[key] = true;
         else delete unit.paidLate[key];
-
         saveState();
-
         render();
     }
 
