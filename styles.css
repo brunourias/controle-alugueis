@@ -672,36 +672,36 @@ tfoot td {
     box-shadow: 0 5px 18px #2046420b;
 }
 
-.expenses-header {
+.expense-header {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.expenses-header > div {
+.expense-header > div {
     min-width: 0;
     flex: 1;
 }
 
-.expenses-header h2 {
+.expense-header h2 {
     margin: 0;
     color: var(--teal-dark);
     font-size: 1rem;
 }
 
-.expenses-header p {
+.expense-header p {
     margin: 4px 0 0;
     color: var(--muted);
     font-size: .72rem;
 }
 
-.expenses-header > strong {
+.expense-header > strong {
     color: var(--teal-dark);
     font-size: .9rem;
     white-space: nowrap;
 }
 
-.expenses-header .btn {
+.expense-header .btn {
     min-height: 40px;
     padding: 0 11px;
     font-size: .74rem;
