@@ -35,6 +35,8 @@
     var finePercent = document.getElementById("finePercent");
     var dailyInterestPercent = document.getElementById("dailyInterestPercent");
     var backupFile = document.getElementById("backupFile");
+	var unitStartYm = document.getElementById("unitStartYm");
+	var didInitialScroll = false;
 
     function normalizeSettings(settings) {
         return {
@@ -453,8 +455,8 @@
                 toggleStatus(button.dataset.unit, Number(button.dataset.month));
             });
         });
-		if (!didInitalScroll) {
-			didInitalScroll = true;
+		if (!didInitialScroll) {
+			didInitialScroll = true;
 		window.requestAnimationFrame(function () { scrollToCurrentMonth(currentMonth); });
 		}
     }
@@ -693,7 +695,9 @@
         unitDueDay.value =
             unit && Number.isInteger(unit.dueDay) ? unit.dueDay : "";
 
-        unitDueDay.setCustomValidity("");
+        unitStartYm.value = unit && isValidStartYm(unit.startYm) ? unit.startYm : "";
+        
+		unitDueDay.setCustomValidity("");
 
         document.getElementById("deleteUnit").hidden = !unit;
 
@@ -828,6 +832,7 @@
                 name: name,
                 rent: rent,
                 dueDay: dueDay,
+				startYm: startYm,
                 status: {},
                 paidLate: {},
             });
