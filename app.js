@@ -665,7 +665,7 @@
     function toggleStatus(id, month) {
         var unit = state.units.find(function (item) { return item.id === id; });
         if (!unit || !isActive(unit, month)) return;
-		var cycle = ["pendente", "pago", "pago-atrasado", "atrasado"];
+		var cycle = ["pendente", "pago", "pago-atrasado"];
         var current = statusFor(unit, month);
         var key = monthKey(month);
         var next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
