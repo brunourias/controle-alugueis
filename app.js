@@ -643,7 +643,8 @@ function renderSummary() {
     });
     return { name: unit.name, openLate: openLate, paidLate: paidLate, total: openLate + paidLate };
   }).sort(function (a, b) { return b.total - a.total || a.name.localeCompare(b.name, "pt-BR"); });
-  var report = "<section class=\"summary-report\"><h3>Atrasos no ano</h3><p class=\"summary-report-intro\">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>" +
+  var report = 
+  "<section class=\"summary-report\"><h3>Atrasos no ano</h3><p class=\"summary-report-intro\">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>" +
     (reportRows.length ? "<div class=\"late-list\">" + reportRows.map(function (row) {
       var detail = row.total ? row.openLate + " em atraso " + row.paidLate + " pago" + (row.paidLate === 1 ? "" : "s") + " com atraso" : "Sempre em dia";
       return "<div class=\"late-row\"><div><strong>" + escapeHtml(row.name) + "</strong><span>" + detail + "</span></div><b class=\"" + (row.total ? "late-count" : "on-time") + "\">" + row.total + "</b></div>";
