@@ -453,7 +453,10 @@
                 toggleStatus(button.dataset.unit, Number(button.dataset.month));
             });
         });
-		scrollToCurrentMonth(currentMonth);
+		if (!didInitalScroll) {
+			didInitalScroll = true;
+		window.requestAnimationFrame(function () { scrollToCurrentMonth(currentMonth); });
+		}
     }
 	
 	function scrollToCurrentMonth(currentMonth) {
@@ -468,13 +471,19 @@
 
 	  var currentCell = grid.querySelector("thead th.month-current");
 
-	  if (!currentCell) return;
+	  var firstColumn = grid.querySelector("thead th:first-child");
 
-	  var containerRect = tableWrap.getBoundingClientRect();
+	  if (!currentCell || !firstColumn) return;
 
-	  var cellRect = currentCell.getBoundingClientRect();
+	  var stickyWidth = firstColumn.offsetWidth;
 
-	  var targetScroll = tableWrap.scrollLeft + cellRect.left - containerRect.left - (containerRect.width - cellRect.width) / 2;
+	  var visibleWidth = tableWrap.clientWidth - stickyWidth;
+
+	  var currentCenter = currentCell.offsetLeft + currentCell.offsetWidth / 2;
+
+	  var visibleCenter = firstColumn.offsetLeft + stickyWidth + visibleWidth / 2;
+
+	  var targetScroll = currentCenter - visibleCenter;
 
 	  var maxScroll = tableWrap.scrollWidth - tableWrap.clientWidth;
 
