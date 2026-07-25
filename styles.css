@@ -168,7 +168,7 @@ tfoot td { min-width: 82px; }
 }
 .modal {
     width: min(100%, 440px);
-    max-height: calc(100dvh - 32px);
+    max-height: min(calc(100dvh - 32px), 700px);
     overflow-y: auto;
     padding: 22px;
     border-radius: 22px;
