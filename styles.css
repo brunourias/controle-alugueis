@@ -175,7 +175,12 @@ tfoot td { min-width: 82px; }
     background: var(--surface);
     box-shadow: 0 16px 50px #123b3a36;
 }
-.settings-modal { max-height: calc(100vh - 32px); overflow: auto; }
+.settings-modal {
+    width: min(100%, 440px);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
 .modal h2 { margin: 0 0 19px; font-size: 1.25rem; }
 .settings-note { margin: -8px 0 17px; color: var(--muted); font-size: .76rem; line-height: 1.45; }
 .modal label { display: block; margin: 14px 0; color: var(--muted); font-size: .82rem; font-weight: 700; }
