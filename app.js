@@ -986,7 +986,7 @@ function openSettings() {
   confirmPin.value = "";
   currentPinLabel.hidden = !lockConfig;
   removePinButton.hidden = !lockConfig;
-  securityStatus.textContent = lockConfig ? "Um PIN protege o acesso neste dispositivo." : "Nenhum PIN configurado neste dispositivo.";
+  //securityStatus.textContent = lockConfig ? "Um PIN protege o acesso neste dispositivo." : "Nenhum PIN configurado neste dispositivo.";
   securityStatus.style.color = "";
   renderCategoryManager();
   setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
@@ -1222,8 +1222,8 @@ function receiptMarkup(data) {
     "<div class=\"receipt-line\"><strong>Referência</strong><span>" + data.monthName + " de " + data.year + "</span></div>" +
     "<div class=\"receipt-line\"><strong>Data de emissão</strong><span>" + data.issuedAt + "</span></div>" +
     "<p class=\"receipt-text\">Recebi de forma integral a importância de " + money(data.amount) + " referente ao aluguel da " + escapeHtml(data.unit.name) + " no mês de " + data.monthName + " de " + data.year + ".</p>" +
-    lateNote + "<div class=\"receipt-signature\">________________________________________<br><span>Assinatura do recebedor</span></div></div>";
-}
+    lateNote + "<div class=\"receipt-signature\">______________Bruno Urias_______________<br><span>Assinatura do recebedor</span></div></div>";
+}                                                                                        
 
 function openReceipt(id, month) {
   var unit = state.units.find(function (item) { return item.id === id; });
