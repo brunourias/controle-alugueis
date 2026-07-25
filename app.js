@@ -1314,9 +1314,19 @@ function drawReceiptCanvas(data) {
 //--------------------------------------------------------------------------------------------
 context.lineTo(left + 480, 1190);
   context.stroke();
-  context.font = "400 24px sans-serif";
-  context.fillStyle = "#647979";
-  context.fillText("Assinatura do recebedor", left, 1235);
+// Nome sobre a linha
+context.font = "italic 34px cursive";
+context.fillStyle = "#173333";
+context.textAlign = "center";
+context.fillText("Bruno Urias", left + 240, 1180);
+
+// Legenda
+context.font = "400 24px sans-serif";
+context.fillStyle = "#647979";
+context.fillText("Assinatura do recebedor", left + 240, 1235);
+
+// Volta ao alinhamento padrão
+context.textAlign = "left";
   return canvas;
 }
 
