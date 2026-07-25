@@ -52,11 +52,11 @@ h1 { font-size: clamp(1.2rem, 5vw, 1.65rem); margin: 0; letter-spacing: -0.025em
 .hint { max-width: 1180px; margin: 14px auto 0; color: #d6f3ed; font-size: .83rem; line-height: 1.7; }
 .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .chip-pago { color: #076b63; background: #c9f2e9; }
-.chip-pago-atrasado { color: #d5105; background: #ffe8b3; }
+.chip-pago-atrasado { color: #A45B48; background: #FFEDC2; }
 .chip-atrasado { color: #a52d3b; background: #ffd9dc; }
 .chip-pendente { color: #53636b; background: #e4eaed; }
 main { max-width: 1180px; margin: 0 auto; padding: 18px; }
-.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: #ffffffa8; }
+.filter-bar { display: none !important; align-items: center; gap: 10px; margin-bottom: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: #ffffffa8; }
 .filter-bar label { display: block; flex: 1; color: var(--muted); font-size: .76rem; font-weight: 700; }
 .filter-bar input, .filter-bar select { display: block; width: 100%; min-height: 42px; margin-top: 5px; padding: 0 11px; border: 1px solid #c5d9d6; border-radius: 11px; color: var(--ink); background: #fbfefd; outline: none; }
 .filter-bar input:focus, .filter-bar select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px #0f766e1c; }
@@ -207,7 +207,7 @@ tfoot td { min-width: 82px; }
 .btn-primary { color: white; background: var(--teal); }
 .btn-ghost { color: var(--muted); background: #edf3f2; }
 .btn-danger { color: #a52d3b; background: #ffe8e9; }
-.security-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.security-section { display: none !important; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 .security-section h3 { margin: 0 0 7px; color: var(--teal-dark); font-size: 1rem; }
 .security-section .settings-note { margin: 0 0 10px; }
 .category-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
