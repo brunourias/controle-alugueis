@@ -1354,7 +1354,12 @@ function drawReceiptCanvas(data) {
     context.fillText("Pagamento efetuado em atraso.", left, y);
   }
 
-  // ================= ASSINATURA =================
+    // ================= ASSINATURA =================
+
+  var signatureWidth = 320;
+  var signatureCenter = left + (width / 2);
+  var signatureLeft = signatureCenter - (signatureWidth / 2);
+  var signatureRight = signatureCenter + (signatureWidth / 2);
 
   context.textAlign = "center";
 
@@ -1363,7 +1368,7 @@ function drawReceiptCanvas(data) {
   context.fillStyle = "#173333";
   context.fillText(
     state.settings.receiverName || "Recebedor",
-    left + 240,
+    signatureCenter,
     1160
   );
 
@@ -1371,8 +1376,8 @@ function drawReceiptCanvas(data) {
   context.strokeStyle = "#b7cfcb";
   context.lineWidth = 2;
   context.beginPath();
-  context.moveTo(left + 80, 1185);
-  context.lineTo(left + 400, 1185);
+  context.moveTo(signatureLeft, 1185);
+  context.lineTo(signatureRight, 1185);
   context.stroke();
 
   // Legenda
@@ -1380,7 +1385,7 @@ function drawReceiptCanvas(data) {
   context.fillStyle = "#647979";
   context.fillText(
     "Assinatura do recebedor",
-    left + 240,
+    signatureCenter,
     1235
   );
 
