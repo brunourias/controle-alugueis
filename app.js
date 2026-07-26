@@ -1411,9 +1411,16 @@ function downloadReceipt() {
 
 function printReceiptDocument() {
   if (!receiptContext) return;
+
   printReceipt.innerHTML = receiptMarkup(receiptContext);
-  window.print();
-  setTimeout(function () { printReceipt.innerHTML = ""; }, 0);
+
+  setTimeout(function () {
+    window.print();
+
+    setTimeout(function () {
+      printReceipt.innerHTML = "";
+    }, 1000);
+  }, 300);
 }
 
 document.getElementById("prevYear").addEventListener("click", function () { selectedYear -= 1; render(); });
