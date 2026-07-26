@@ -237,15 +237,17 @@ tfoot td { min-width: 82px; }
 }
 
 .signature-line{
-    width:320px;
+    width:260px;      /* ajuste a largura desejada */
     margin:0 auto;
+    text-align:center;
 }
 
 .signature-name{
     display:block;
+    width:100%;       /* ocupa a mesma largura da linha */
+    text-align:center;
     font-family:"Brush Script MT","Segoe Script","Lucida Handwriting",cursive;
     font-size:30px;
-    color:#173333;
     margin-bottom:8px;
 }
 
@@ -253,6 +255,7 @@ tfoot td { min-width: 82px; }
     content:"";
     display:block;
     width:100%;
+    margin:0 auto;
     border-top:2px solid #b7cfcb;
 }
 
