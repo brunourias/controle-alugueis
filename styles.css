@@ -231,7 +231,37 @@ tfoot td { min-width: 82px; }
 .receipt-line span { text-align: right; }
 .receipt-text { margin: 22px 0; color: var(--ink); font-size: .84rem; line-height: 1.6; }
 .receipt-note { margin: -10px 0 26px; color: #a45b05; font-size: .76rem; font-weight: 700; }
-.receipt-signature { margin-top: 48px; color: var(--muted); text-align: center; font-size: .76rem; line-height: 1.5; }
+.receipt-signature{
+    margin-top:32px;
+    text-align:center;
+}
+
+.signature-line{
+    width:320px;
+    margin:0 auto;
+}
+
+.signature-name{
+    display:block;
+    font-family:"Brush Script MT","Segoe Script","Lucida Handwriting",cursive;
+    font-size:30px;
+    color:#173333;
+    margin-bottom:8px;
+}
+
+.signature-line::after{
+    content:"";
+    display:block;
+    width:100%;
+    border-top:2px solid #b7cfcb;
+}
+
+.signature-label{
+    display:block;
+    margin-top:10px;
+    font-size:14px;
+    color:#647979;
+}
 .-print-receipt { display: none; }
 [hidden] { display: none !important; }
 @media (min-width: 700px) {
