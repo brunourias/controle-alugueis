@@ -1214,16 +1214,31 @@ function receiptData(unit, month) {
 }
 
 function receiptMarkup(data) {
-  var receiver = state.settings.receiverName ? "<div class=\"receipt-line\"><strong>Recebedor</strong><span>" + escapeHtml(state.settings.receiverName) + "</span></div>" : "";
-  var lateNote = data.status === "pago-atrasado" ? "<p class=\"receipt-note\">Pagamento efetuado em atraso.</p>" : "";
+  var receiver = state.settings.receiverName
+    ? "<div class=\"receipt-line\"><strong>Recebedor</strong><span>" + escapeHtml(state.settings.receiverName) + "</span></div>"
+    : "";
+
+  var lateNote = data.status === "pago-atrasado"
+    ? "<p class=\"receipt-note\">Pagamento efetuado em atraso.</p>"
+    : "";
+
   return "<div class=\"receipt-paper\"><h3>Recibo de Aluguel</h3>" + receiver +
     "<div class=\"receipt-line\"><strong>Unidade</strong><span>" + escapeHtml(data.unit.name) + "</span></div>" +
     "<div class=\"receipt-line\"><strong>Valor do aluguel</strong><span>" + money(data.amount) + "</span></div>" +
     "<div class=\"receipt-line\"><strong>Referência</strong><span>" + data.monthName + " de " + data.year + "</span></div>" +
     "<div class=\"receipt-line\"><strong>Data de emissão</strong><span>" + data.issuedAt + "</span></div>" +
     "<p class=\"receipt-text\">Recebi de forma integral a importância de " + money(data.amount) + " referente ao aluguel da " + escapeHtml(data.unit.name) + " no mês de " + data.monthName + " de " + data.year + ".</p>" +
-    lateNote + "<div class=\"receipt-signature\">______________Bruno Urias_______________<br><span>Assinatura do recebedor</span></div></div>";
-}                                                                                        
+	lateNote +
+	"<div class=\"receipt-signature\">" +
+	  "<div class=\"signature-line\">" +
+		"<span class=\"signature-name\">" +
+		  escapeHtml(state.settings.receiverName || "Recebedor") +
+		"</span>" +
+	  "</div>" +
+	  "<span class=\"signature-label\">Assinatura do recebedor</span>" +
+	"</div>" +
+	"</div>";
+}                                                                                      
 
 function openReceipt(id, month) {
   var unit = state.units.find(function (item) { return item.id === id; });
@@ -1263,26 +1278,36 @@ function drawReceiptCanvas(data) {
   var canvas = document.createElement("canvas");
   canvas.width = 1000;
   canvas.height = 1400;
+
   var context = canvas.getContext("2d");
   var left = 90;
   var width = canvas.width - left * 2;
+
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
+
   context.fillStyle = "#115e59";
   context.fillRect(0, 0, canvas.width, 24);
+
   context.fillStyle = "#173333";
   context.font = "700 46px sans-serif";
   context.fillText("Recibo de Aluguel", left, 120);
+
   var y = 205;
+
   context.font = "700 25px sans-serif";
   context.fillStyle = "#647979";
+
   if (state.settings.receiverName) {
     context.fillText("Recebedor", left, y);
+
     context.font = "400 28px sans-serif";
     context.fillStyle = "#173333";
     context.fillText(state.settings.receiverName, left + 250, y);
+
     y += 62;
   }
+
   [
     ["Unidade", data.unit.name],
     ["Valor do aluguel", money(data.amount)],
@@ -1292,41 +1317,75 @@ function drawReceiptCanvas(data) {
     context.font = "700 25px sans-serif";
     context.fillStyle = "#647979";
     context.fillText(line[0], left, y);
+
     context.font = "400 28px sans-serif";
     context.fillStyle = "#173333";
     context.fillText(line[1], left + 250, y);
+
     y += 62;
   });
+
   y += 35;
+
   context.font = "400 31px sans-serif";
   context.fillStyle = "#173333";
-  y = wrapCanvasText(context, "Recebi de forma integral a importância de " + money(data.amount) + " referente ao aluguel da " + data.unit.name + " no mês de " + data.monthName + " de " + data.year + ".", left, y, width, 48);
+
+  y = wrapCanvasText(
+    context,
+    "Recebi de forma integral a importância de " +
+      money(data.amount) +
+      " referente ao aluguel da " +
+      data.unit.name +
+      " no mês de " +
+      data.monthName +
+      " de " +
+      data.year +
+      ".",
+    left,
+    y,
+    width,
+    48
+  );
+
   if (data.status === "pago-atrasado") {
     y += 20;
     context.font = "700 26px sans-serif";
     context.fillStyle = "#a45b05";
     context.fillText("Pagamento efetuado em atraso.", left, y);
   }
+
+  // ================= ASSINATURA =================
+
+  context.textAlign = "center";
+
+  // Nome do recebedor
+  context.font = "italic 34px serif";
+  context.fillStyle = "#173333";
+  context.fillText(
+    state.settings.receiverName || "Recebedor",
+    left + 240,
+    1160
+  );
+
+  // Linha abaixo do nome
   context.strokeStyle = "#b7cfcb";
   context.lineWidth = 2;
   context.beginPath();
-  context.moveTo(left, 1190);
-//--------------------------------------------------------------------------------------------
-context.lineTo(left + 480, 1190);
+  context.moveTo(left + 80, 1185);
+  context.lineTo(left + 400, 1185);
   context.stroke();
-// Nome sobre a linha
-context.font = "italic 34px cursive";
-context.fillStyle = "#173333";
-context.textAlign = "center";
-context.fillText("Bruno Urias", left + 240, 1180);
 
-// Legenda
-context.font = "400 24px sans-serif";
-context.fillStyle = "#647979";
-context.fillText("Assinatura do recebedor", left + 240, 1235);
+  // Legenda
+  context.font = "400 24px sans-serif";
+  context.fillStyle = "#647979";
+  context.fillText(
+    "Assinatura do recebedor",
+    left + 240,
+    1235
+  );
 
-// Volta ao alinhamento padrão
-context.textAlign = "left";
+  context.textAlign = "left";
+
   return canvas;
 }
 
