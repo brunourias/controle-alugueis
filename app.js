@@ -168,15 +168,22 @@ function loadState() {
       saved.expenses = normalizeExpenses(saved.expenses);
       return saved;
     }
-  } catch (error) { /* use a clean state when storage is unavailable or malformed */ }
+  } catch (error) {
+    // fall back to a clean state when storage is unavailable or malformed
+    console.warn("Não foi possível carregar os dados salvos; iniciando com um estado limpo.", error);
+  }
   return { units: [], settings: normalizeSettings(), expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(), expenses: [] };
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-
-
-//--------------------------------------------------------------------------------------------
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch (error) {
+    console.error("Não foi possível salvar os dados localmente.", error);
+    window.alert("Não foi possível salvar as alterações. O armazenamento do navegador pode estar cheio ou indisponível.");
+    return false;
+  }
 }
 
 function hasSubtleCrypto() {
@@ -193,7 +200,9 @@ function loadLockConfig() {
         credentialId: typeof saved.credentialId === "string" ? saved.credentialId : null
       };
     }
-  } catch (error) {}
+  } catch (error) {
+    console.warn("Não foi possível ler a configuração de bloqueio; ignorando.", error);
+  }
   return null;
 }
 
@@ -231,10 +240,14 @@ async function verifyPin(pin, config) {
 }
 
 function saveLockConfig(config) {
+  try {
+    if (config) localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(config));
+    else localStorage.removeItem(LOCK_STORAGE_KEY);
+  } catch (error) {
+    console.error("Não foi possível salvar a configuração de bloqueio.", error);
+    throw error;
+  }
   lockConfig = config;
-  if (config) localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(config));
-  else localStorage.removeItem(LOCK_STORAGE_KEY);
-//--------------------------------------------------------------------------------------------
 }
 
 async function isBiometricAvailable() {
@@ -308,6 +321,7 @@ async function unlockWithBiometric() {
     hideLockScreen();
     render();
   } catch (error) {
+    console.warn("Falha ao desbloquear com biometria.", error);
     showLockError("Não foi possível confirmar a biometria. Use o PIN.");
   }
 }
@@ -1048,7 +1062,13 @@ async function savePin() {
   }
   var salt = bytesToBase64Url(randomBytes(16));
   var config = { salt: salt, hash: await hashPin(newPin.value, salt), credentialId: lockConfig ? lockConfig.credentialId : null };
-  saveLockConfig(config);
+  try {
+    saveLockConfig(config);
+  } catch (error) {
+    securityStatus.textContent = "Não foi possível salvar o PIN. O armazenamento do navegador pode estar indisponível.";
+    securityStatus.style.color = "#a52d3b";
+    return;
+  }
   currentPin.value = "";
   newPin.value = "";
   confirmPin.value = "";
@@ -1067,7 +1087,13 @@ async function removePin() {
     currentPin.focus();
     return;
   }
-  saveLockConfig(null);
+  try {
+    saveLockConfig(null);
+  } catch (error) {
+    securityStatus.textContent = "Não foi possível remover o PIN. Tente novamente.";
+    securityStatus.style.color = "#a52d3b";
+    return;
+  }
   if (navigator.credentials && navigator.credentials.preventSilentAccess) navigator.credentials.preventSilentAccess().catch(function () {});
   currentPin.value = "";
   newPin.value = "";
@@ -1476,9 +1502,13 @@ if ("serviceWorker" in navigator) {
   });
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (registration) {
-      registration.update();
-      setInterval(function () { registration.update(); }, 60 * 60 * 1000);
-    }).catch(function () {});
+      registration.update().catch(function (error) { console.warn("Falha ao verificar atualização do service worker.", error); });
+      setInterval(function () {
+        registration.update().catch(function (error) { console.warn("Falha ao verificar atualização do service worker.", error); });
+      }, 60 * 60 * 1000);
+    }).catch(function (error) {
+      console.error("Não foi possível registrar o service worker; o modo offline ficará indisponível.", error);
+    });
   });
 }
 })();

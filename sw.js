@@ -80,7 +80,7 @@ function networkFirst(request) {
 
       var copy = response.clone();
 
-      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch((error) => console.warn("Falha ao atualizar o cache para " + request.url, error));
 
     }
 
@@ -100,7 +100,7 @@ function fetchAndCache(request) {
 
       var copy = response.clone();
 
-      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch((error) => console.warn("Falha ao armazenar " + request.url + " no cache", error));
 
     }
 
