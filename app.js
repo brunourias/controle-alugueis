@@ -3,6 +3,8 @@
 
 var STORAGE_KEY = "controle-alugueis-v1";
 var LOCK_STORAGE_KEY = "controle-alugueis-lock";
+var PBKDF2_ITERATIONS = 210000;
+var UNLOCK_FAILURE_DELAY_MS = 400;
 var DEFAULT_SETTINGS = { finePercent: 10, dailyInterestPercent: 0.3, receiverName: "" };
 var months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 var fullMonths = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -187,9 +189,11 @@ function loadLockConfig() {
   try {
     var saved = JSON.parse(localStorage.getItem(LOCK_STORAGE_KEY) || "null");
     if (saved && typeof saved === "object" && typeof saved.salt === "string" && typeof saved.hash === "string") {
+      var iterations = Number(saved.iterations);
       return {
         salt: saved.salt,
         hash: saved.hash,
+        iterations: Number.isInteger(iterations) && iterations > 0 ? iterations : 0,
         credentialId: typeof saved.credentialId === "string" ? saved.credentialId : null
       };
     }
@@ -208,13 +212,31 @@ function base64UrlToBytes(value) {
   return Uint8Array.from(binary, function (character) { return character.charCodeAt(0); });
 }
 
-async function hashPin(pin, salt) {
+async function legacyHashPin(pin, salt) {
   var pinBytes = new TextEncoder().encode(pin);
   var saltBytes = base64UrlToBytes(salt);
   var combined = new Uint8Array(saltBytes.length + pinBytes.length);
   combined.set(saltBytes);
   combined.set(pinBytes, saltBytes.length);
   return bytesToBase64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", combined)));
+}
+
+async function hashPin(pin, salt, iterations) {
+  var key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  var bits = await crypto.subtle.deriveBits({
+    name: "PBKDF2",
+    hash: "SHA-256",
+    salt: base64UrlToBytes(salt),
+    iterations: iterations
+  }, key, 256);
+  return bytesToBase64Url(new Uint8Array(bits));
+}
+
+function constantTimeEquals(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 function isValidPin(pin) {
@@ -224,10 +246,25 @@ function isValidPin(pin) {
 async function verifyPin(pin, config) {
   if (!hasSubtleCrypto() || !config) return false;
   try {
-    return (await hashPin(pin, config.salt)) === config.hash;
+    if (!config.iterations) {
+      if (!constantTimeEquals(await legacyHashPin(pin, config.salt), config.hash)) return false;
+      await upgradeLockConfig(pin, config);
+      return true;
+    }
+    return constantTimeEquals(await hashPin(pin, config.salt, config.iterations), config.hash);
   } catch (error) {
     return false;
   }
+}
+
+async function upgradeLockConfig(pin, config) {
+  var salt = bytesToBase64Url(randomBytes(16));
+  saveLockConfig({
+    salt: salt,
+    hash: await hashPin(pin, salt, PBKDF2_ITERATIONS),
+    iterations: PBKDF2_ITERATIONS,
+    credentialId: config.credentialId
+  });
 }
 
 function saveLockConfig(config) {
@@ -257,6 +294,11 @@ function hideLockScreen() {
   appUnlocked = true;
 }
 
+function showLockScreen() {
+  lockScreen.hidden = false;
+  appUnlocked = false;
+}
+
 function showLockError(message) {
   lockError.textContent = message;
 }
@@ -267,10 +309,12 @@ async function unlockWithPin(pin) {
     return false;
   }
   if (!(await verifyPin(pin, lockConfig))) {
+    await new Promise(function (resolve) { setTimeout(resolve, UNLOCK_FAILURE_DELAY_MS); });
     showLockError("PIN incorreto. Tente novamente.");
     unlockPin.select();
     return false;
   }
+  unlockPin.value = "";
   hideLockScreen();
   render();
   return true;
@@ -327,6 +371,7 @@ async function initializeLock() {
     render();
     return;
   }
+  showLockScreen();
   if (!hasSubtleCrypto()) {
     showLockError("Este navegador não oferece criptografia segura para desbloquear.");
     return;
@@ -1047,7 +1092,12 @@ async function savePin() {
     return;
   }
   var salt = bytesToBase64Url(randomBytes(16));
-  var config = { salt: salt, hash: await hashPin(newPin.value, salt), credentialId: lockConfig ? lockConfig.credentialId : null };
+  var config = {
+    salt: salt,
+    hash: await hashPin(newPin.value, salt, PBKDF2_ITERATIONS),
+    iterations: PBKDF2_ITERATIONS,
+    credentialId: lockConfig ? lockConfig.credentialId : null
+  };
   saveLockConfig(config);
   currentPin.value = "";
   newPin.value = "";

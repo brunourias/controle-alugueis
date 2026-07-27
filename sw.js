@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-alugueis-v14";
+const CACHE_NAME = "controle-alugueis-v15";
 
 const APP_SHELL = [
 
@@ -56,7 +56,11 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.method !== "GET") return;
 
-  var isIcon = new URL(event.request.url).pathname.includes("/icons/");
+  var url = new URL(event.request.url);
+
+  if (url.origin !== self.location.origin) return;
+
+  var isIcon = url.pathname.includes("/icons/");
 
   event.respondWith(isIcon ? cacheFirst(event.request) : networkFirst(event.request));
 
