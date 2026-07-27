@@ -63,7 +63,19 @@
       <div class="header-controls">
 
         <button id="settingsButton" class="icon-btn" type="button" aria-label="Configurações" title="Configurações">⚙</button>
+		
 
+		<label class="enterprise-selector">Empreendimento
+    <select id="empreendimentoFilter">
+        <option value="todos">Todos</option>
+    </select>
+</label>
+
+
+
+
+
+		
         <div class="year-nav">
 
           <button id="prevYear" class="icon-btn" aria-label="Ano anterior">‹</button>
@@ -221,6 +233,14 @@
 
       </label>
 
+
+      <label>Empreendimento
+	  <select id="unitEmpreendimento"></select>
+	  </label>
+
+
+
+
       <label>Valor do aluguel (R$)
 
         <input type="number" id="unitRent" placeholder="Ex.: 1200" inputmode="decimal" min="0" step="0.01" />
@@ -334,6 +354,10 @@
         <input type="month" id="expenseYm" />
 
       </label>
+	  
+	  <label>Empreendimento
+	  <select id="expenseEmpreendimento"></select>
+	  </label>
 
       <label>Categoria
 
@@ -442,6 +466,30 @@
         </div>
 
       </section>
+
+
+
+
+
+<section class="enterprise-section">
+  <h3>Empreendimentos</h3>
+  <p id="enterpriseStatus" class="settings-note">
+    Organize unidades e gastos por empreendimento.
+  </p>
+  <div id="enterpriseList"></div>
+  <div class="category-add">
+    <input id="newEnterprise" type="text" maxlength="80" placeholder="Novo empreendimento" autocomplete="off" />
+    <button id="addEnterprise" class="btn btn-ghost" type="button">Adicionar</button>
+  </div>
+</section>
+
+
+
+
+
+
+
+
 
       <section class="security-section">
 
