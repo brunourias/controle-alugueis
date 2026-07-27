@@ -3,6 +3,10 @@
 
 var STORAGE_KEY = "controle-alugueis-v1";
 var LOCK_STORAGE_KEY = "controle-alugueis-lock";
+
+var ENTERPRISE_SELECTION_KEY = "controle-alugueis-empreendimento";
+var DEFAULT_ENTERPRISE_NAME = "Meu empreendimento";
+
 var DEFAULT_SETTINGS = { finePercent: 10, dailyInterestPercent: 0.3, receiverName: "" };
 var months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 var fullMonths = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -10,6 +14,7 @@ var DEFAULT_EXPENSE_CATEGORIES = ["Manutenção", "Mão de obra", "IPTU", "Água
 var statusOrder = ["pendente", "pago", "atrasado"];
 var state = loadState();
 var expenseCategories = state.expenseCategories;
+var selectedEmpreendimentoId = loadSelectedEmpreendimento();
 var selectedYear = new Date().getFullYear();
 var editingId = null;
 var pendingRentChanges = [];
@@ -45,6 +50,7 @@ var unitRent = document.getElementById("unitRent");
 var unitDueDay = document.getElementById("unitDueDay");
 var unitStartYm = document.getElementById("unitStartYm");
 var unitEndYm = document.getElementById("unitEndYm");
+var unitEmpreendimento = document.getElementById("unitEmpreendimento");
 var tenantName = document.getElementById("tenantName");
 var tenantPhone = document.getElementById("tenantPhone");
 var tenantEmail = document.getElementById("tenantEmail");
@@ -73,6 +79,7 @@ var backupFile = document.getElementById("backupFile");
 var expenseModal = document.getElementById("expenseModal");
 var expenseModalTitle = document.getElementById("expenseModalTitle");
 var expenseYm = document.getElementById("expenseYm");
+var expenseEmpreendimento = document.getElementById("expenseEmpreendimento");
 var expenseCategory = document.getElementById("expenseCategory");
 var expenseAmount = document.getElementById("expenseAmount");
 var expenseDescription = document.getElementById("expenseDescription");
@@ -84,6 +91,104 @@ var categoryList = document.getElementById("categoryList");
 var newCategory = document.getElementById("newCategory");
 var addCategoryButton = document.getElementById("addCategory");
 var categoryStatus = document.getElementById("categoryStatus");
+var empreendimentoFilter = document.getElementById("empreendimentoFilter");
+var enterpriseList = document.getElementById("enterpriseList");
+var newEnterprise = document.getElementById("newEnterprise");
+var addEnterpriseButton = document.getElementById("addEnterprise");
+var enterpriseStatus = document.getElementById("enterpriseStatus");
+
+function newEnterpriseId() {
+    return "emp-" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function normalizeEmpreendimentos(empreendimentos) {
+    var result = [];
+    var ids = [];
+    if (Array.isArray(empreendimentos)) empreendimentos.forEach(function (item) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return;
+        var name = typeof item.name === "string" ? item.name.trim() : "";
+        if (!name || result.some(function (existing) { return normalizeText(existing.name) === normalizeText(name); })) return;
+        var id = typeof item.id === "string" && item.id.trim() && ids.indexOf(item.id) < 0 ? item.id : newEnterpriseId();
+        ids.push(id);
+        result.push({ id: id, name: name });
+    });
+    if (!result.length) result.push({ id: newEnterpriseId(), name: DEFAULT_ENTERPRISE_NAME });
+    return result;
+}
+
+function normalizeState(saved) {
+    saved = saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+    saved.empreendimentos = normalizeEmpreendimentos(saved.empreendimentos);
+    var validIds = saved.empreendimentos.map(function (item) { return item.id; });
+    saved.units = Array.isArray(saved.units) ? saved.units.filter(function (unit) {
+        return unit && typeof unit === "object" && !Array.isArray(unit);
+    }) : [];
+    saved.units.forEach(function (unit) {
+        normalizeUnit(unit);
+        if (validIds.indexOf(unit.empreendimentoId) < 0) unit.empreendimentoId = validIds[0];
+    });
+    saved.settings = normalizeSettings(saved.settings);
+    saved.expenseCategories = normalizeCategories(saved.expenseCategories);
+    saved.expenses = normalizeExpenses(saved.expenses);
+    saved.expenses.forEach(function (expense) {
+        if (validIds.indexOf(expense.empreendimentoId) < 0) expense.empreendimentoId = validIds[0];
+    });
+    return saved;
+}
+
+function loadSelectedEmpreendimento() {
+    var value = localStorage.getItem(ENTERPRISE_SELECTION_KEY);
+
+    if (state.empreendimentos.some(function (item) {
+        return item.id === value;
+    })) {
+        return value;
+    }
+
+    return state.empreendimentos.length
+        ? state.empreendimentos[0].id
+        : null;
+}
+
+function saveSelectedEmpreendimento() {
+    localStorage.setItem(ENTERPRISE_SELECTION_KEY, selectedEmpreendimentoId);
+}
+
+function scopedUnits() {
+    return selectedEmpreendimentoId === "todos" ? state.units : state.units.filter(function	(unit) { return unit.empreendimentoId === selectedEmpreendimentoId; });
+}
+
+function scopedExpenses() {
+    return selectedEmpreendimentoId === "todos" ? state.expenses : state.expenses.filter
+    (function (expense) { return expense.empreendimentoId === selectedEmpreendimentoId; });
+}
+
+function empreendimentoName(id) {
+    var item = state.empreendimentos.find(function (enterprise) { return enterprise.id === id; });
+    return item ? item.name : DEFAULT_ENTERPRISE_NAME;
+}
+
+function populateEmpreendimentoSelect(select, selected, allowTodos) {
+    var options = allowTodos ? [{ id: "todos", name: "Todos" }] : (selected ? [] : [{ id: "", name: "Selecione um empreendimento" }]);
+    options = options.concat(state.empreendimentos);
+    select.innerHTML = options.map(function (item) {
+        return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.name) + '</option>';
+    }).join("");
+    if (selected && options.some(function (item) { return item.id === selected; })) select.value = selected;
+    else if (allowTodos) select.value = "todos";
+    else select.value = "";
+}
+
+function renderEmpreendimentoFilter() {
+    populateEmpreendimentoSelect(empreendimentoFilter, selectedEmpreendimentoId, true);
+}
+
+
+
+
+
+
+
 
 function normalizeSettings(settings) {
   return {
@@ -117,8 +222,9 @@ function normalizeExpense(expense) {
     id: typeof expense.id === "string" && expense.id.trim() ? expense.id : newExpenseId(),
 	
 //--------------------------------------------------------------------------------------------
-ym: expense.ym,
-    category: typeof expense.category === "string" && expense.category.trim() ? expense.category.trim() : "Outros",
+    ym: expense.ym,
+    empreendimentoId: typeof expense.empreendimentoId === "string" ? expense.empreendimentoId : null,
+	category: typeof expense.category === "string" && expense.category.trim() ? expense.category.trim() : "Outros",
     description: typeof expense.description === "string" ? expense.description.trim() : "",
     amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
     recurrenceId: typeof expense.recurrenceId === "string" && expense.recurrenceId.trim() ? expense.recurrenceId : null
@@ -155,21 +261,27 @@ function normalizeUnit(unit) {
   unit.tenantPhone = typeof unit.tenantPhone === "string" ? unit.tenantPhone.trim() : "";
   unit.tenantEmail = typeof unit.tenantEmail === "string" ? unit.tenantEmail.trim() : "";
   unit.tenantNotes = typeof unit.tenantNotes === "string" ? unit.tenantNotes.trim() : "";
+  unit.empreendimentoId = typeof unit.empreendimentoId === "string" ? unit.empreendimentoId : null;
 }
 
 function loadState() {
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved && Array.isArray(saved.units)) {
-      saved.units = saved.units.filter(function (unit) { return unit && typeof unit === "object" && !Array.isArray(unit); });
-      saved.units.forEach(normalizeUnit);
-      saved.settings = normalizeSettings(saved.settings);
-      saved.expenseCategories = normalizeCategories(saved.expenseCategories);
-      saved.expenses = normalizeExpenses(saved.expenses);
-      return saved;
+
+    if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+      return normalizeState(saved);
     }
-  } catch (error) { /* use a clean state when storage is unavailable or malformed */ }
-  return { units: [], settings: normalizeSettings(), expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(), expenses: [] };
+  } catch (error) {
+    // Usa um estado limpo quando o armazenamento estiver inválido
+  }
+
+  return normalizeState({
+    units: [],
+    empreendimentos: [],
+    settings: DEFAULT_SETTINGS,
+    expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(),
+    expenses: []
+  });
 }
 
 function saveState() {
@@ -376,9 +488,11 @@ var file = event.target.files[0];
     imported.settings = normalizeSettings(imported.settings);
     imported.expenseCategories = normalizeCategories(imported.expenseCategories);
     imported.expenses = normalizeExpenses(imported.expenses);
-    state = imported;
+    state = normalizeState(imported);
+	selectedEmpreendimentoId = loadSelectedEmpreendimento();
     saveState();
-    render();
+    renderEmpreendimentoFilter();
+	render();
   };
   reader.onerror = function () {
     window.alert("Não foi possível ler o arquivo de backup.");
@@ -491,10 +605,12 @@ function matchesStatusFilter(unit) {
 }
 
 function filteredUnits() {
-  var query = normalizeText(unitSearch.value);
-  return state.units.filter(function (unit) {
-    return normalizeText(unit.name).includes(query) && matchesStatusFilter(unit);
-  });
+    var query = normalizeText(unitSearch.value);
+
+    return scopedUnits().filter(function (unit) {
+        return normalizeText(unit.name).includes(query) &&
+               matchesStatusFilter(unit);
+    });
 }
 
 function whatsappUrl(phone) {
@@ -518,8 +634,9 @@ function tenantActions(unit) {
 function render() {
   if (tableWrap.scrollLeft > 0) lastGridScrollLeft = tableWrap.scrollLeft;
 //--------------------------------------------------------------------------------------------
-document.getElementById("yearLabel").textContent = selectedYear;
-  var hasUnits = state.units.length > 0;
+  document.getElementById("yearLabel").textContent = selectedYear;
+  renderEmpreendimentoFilter();
+  var hasUnits = scopedUnits().length > 0;
   var visibleUnits = filteredUnits();
   grid.hidden = !hasUnits || visibleUnits.length === 0;
   empty.hidden = hasUnits;
@@ -559,7 +676,15 @@ function renderGrid(visibleUnits) {
     var tenant = unit.tenantName ? "<span class=\"tenant-name\">" + escapeHtml(unit.tenantName) + "</span>" : "";
     var now = new Date();
     var currentRent = rentForMonth(unit, now.getFullYear(), now.getMonth());
-    return "<tr><th scope=\"row\"><div class=\"unit-cell\" data-edit=\"" + escapeHtml(unit.id) + "\" role=\"button\" tabindex=\"0\"><span class=\"unit-name\">" + escapeHtml(unit.name) + "</span>" + tenant + "<span class=\"rent\">" + money(currentRent) + "</span>" + dueDay + "<span class=\"tenant-actions\">" + tenantActions(unit) + "</span></div></th>" + cells + "</tr>";
+    
+	var enterprise =
+    "<span class=\"enterprise-name\">" +
+    escapeHtml(empreendimentoName(unit.empreendimentoId)) +
+    "</span>";
+	
+	
+	
+	return "<tr><th scope=\"row\"><div class=\"unit-cell\" data-edit=\"" + escapeHtml(unit.id) + "\" role=\"button\" tabindex=\"0\"><span class=\"unit-name\">" + escapeHtml(unit.name) + "</span>" + enterprise + tenant + "<span class=\"rent\">" + money(currentRent) + "</span>" + dueDay + "<span class=\"tenant-actions\">" + tenantActions(unit) + "</span></div></th>" + cells + "</tr>";
   }).join("");
   grid.querySelector("tfoot").innerHTML = "<tr><th scope=\"row\">Total recebido</th>" + months.map(function (_, i) {
     var total = state.units.reduce(function (sum, unit) { return sum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0); }, 0);
@@ -611,20 +736,20 @@ function scrollToCurrentMonth(currentMonth) {
 }
 
 function renderSummary() {
-  var annual = state.units.reduce(function (sum, unit) {
+  var annual = scopedUnits().reduce(function (sum, unit) {
     return sum + months.reduce(function (monthSum, _, i) { return monthSum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0); }, 0);
   }, 0);
   var now = new Date();
   var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
-  var received = current < 0 ? 0 : state.units.reduce(function (sum, unit) { return sum + (isActive(unit, current) && statusFor(unit, current) === "pago" ? rentForMonth(unit, selectedYear, current) : 0); }, 0);
-  var pending = current < 0 ? 0 : state.units.reduce(function (sum, unit) { return sum + (isActive(unit, current) && statusFor(unit, current) === "pendente" ? rentForMonth(unit, selectedYear, current) : 0); }, 0);
-  var annualExpenses = state.expenses.reduce(function (sum, expense) { return sum + (expense.ym.slice(0, 4) === String(selectedYear) ? expense.amount : 0); }, 0);
-  var currentExpenses = current < 0 ? 0 : state.expenses.reduce(function (sum, expense) { return sum + (expense.ym === monthKey(current) ? expense.amount : 0); }, 0);
+  var received = current < 0 ? 0 : scopedUnits().reduce(function (sum, unit) { return sum + (isActive(unit, current) && statusFor(unit, current) === "pago" ? rentForMonth(unit, selectedYear, current) : 0); }, 0);
+  var pending = current < 0 ? 0 : scopedUnits().reduce(function (sum, unit) { return sum + (isActive(unit, current) && statusFor(unit, current) === "pendente" ? rentForMonth(unit, selectedYear, current) : 0); }, 0);
+  var annualExpenses = scopedExpenses().reduce(function (sum, expense) { return sum + (expense.ym.slice(0, 4) === String(selectedYear) ? expense.amount : 0); }, 0);
+  var currentExpenses = current < 0 ? 0 : scopedExpenses().reduce(function (sum, expense) { return sum + (expense.ym === monthKey(current) ? expense.amount : 0); }, 0);
   var annualNet = annual - annualExpenses;
   var currentNet = received - currentExpenses;
   var overdueCount = 0;
   var overdueTotal = 0;
-  state.units.forEach(function (unit) {
+  scopedUnits().forEach(function (unit) {
     months.forEach(function (_, i) {
       if (isActive(unit, i) && effectiveStatus(unit, i) === "atrasado") {
         overdueCount += 1;
@@ -634,20 +759,22 @@ function renderSummary() {
     });
   });
   var overdueAlert = overdueCount ? "<div class=\"summary-card summary-alert\"><div class=\"summary-label\">⚠️ " + overdueCount + " " + (overdueCount === 1 ? "pagamento" : "pagamentos") + " em atraso</div><div class=\"summary-value\">" + money(overdueTotal) + "</div><div class=\"summary-detail\">Total em atraso no ano, com multa e juros</div></div>" : "";
-  var reportRows = state.units.map(function (unit) {
+  var reportRows = scopedUnits().map(function (unit) {
     var openLate = 0;
     var paidLate = 0;
     months.forEach(function (_, i) {
       if (isActive(unit, i) && effectiveStatus(unit, i) === "atrasado") openLate += 1;
       if (isPaidLate(unit, i)) paidLate += 1;
     });
-    return { name: unit.name, openLate: openLate, paidLate: paidLate, total: openLate + paidLate };
+    return { name: unit.name, enterprise: empreendimentoName(unit.empreendimentoId), openLate: openLate, paidLate: paidLate, total: openLate + paidLate };
   }).sort(function (a, b) { return b.total - a.total || a.name.localeCompare(b.name, "pt-BR"); });
   var report = 
   "<section class=\"summary-report\"><h3>Atrasos no ano</h3><p class=\"summary-report-intro\">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>" +
     (reportRows.length ? "<div class=\"late-list\">" + reportRows.map(function (row) {
       var detail = row.total ? row.openLate + " em atraso " + row.paidLate + " pago" + (row.paidLate === 1 ? "" : "s") + " com atraso" : "Sempre em dia";
-      return "<div class=\"late-row\"><div><strong>" + escapeHtml(row.name) + "</strong><span>" + detail + "</span></div><b class=\"" + (row.total ? "late-count" : "on-time") + "\">" + row.total + "</b></div>";
+      var rowEnterprise = selectedEmpreendimentoId === "todos" ? " <small>(" + escapeHtml(row.enterprise) + ")</small>" : "";
+	  return "<div class=\"late-row\"><div><strong>" + escapeHtml(row.name) + rowEnterprise + "</strong><span>" +
+    detail + "</span></div><b class=\"" + (row.total ? "late-count" : "on-time") + "\">" + row.total + "</b></div>";
     }).join("") + "</div>" : "<p class=\"summary-report-empty\">Nenhuma unidade cadastrada.</p>") + "</section>";
   summary.innerHTML = overdueAlert +
     "<div class=\"summary-card\"><div class=\"summary-label\">Total recebido em " + selectedYear + "</div><div class=\"summary-value\">" + money(annual) + "</div><div class=\"summary-detail\">Soma dos pagamentos marcados como recebidos</div></div>" +
@@ -685,7 +812,9 @@ var subtotal = group.items.reduce(function (sum, expense) { return sum + expense
     return "<section class=\"expense-month\"><div class=\"expense-month-header\"><h3>" + fullMonths[group.month] + "</h3><strong>" + money(subtotal) + "</strong></div>" +
       group.items.map(function (expense) {
         var description = expense.description ? " <span>" + escapeHtml(expense.description) + "</span>" : "";
-        return "<div class=\"expense-row\"><div><strong>" + escapeHtml(expense.category) + "</strong>" + description + "</div><b>" + money(expense.amount) + "</b><button class=\"expense-edit\" type=\"button\" data-expense-edit=\"" + escapeHtml(expense.id) + "\" aria-label=\"Editar gasto\">✏️</button></div>";
+		var enterprise = selectedEmpreendimentoId === "todos" ? "<span class=\"enterprise-name\">" +
+escapeHtml(empreendimentoName(unit.empreendimentoId)) + "</span>" : "";
+        return "<div class=\"expense-row\"><div>" + enterprise + "<strong>" + escapeHtml(expense.category) + "</strong>" + description + "</div><b>" + money(expense.amount) + "</b><button class=\"expense-edit\" type=\"button\" data-expense-edit=\"" + escapeHtml(expense.id) + "\" aria-label=\"Editar gasto\">✏️</button></div>";
       }).join("") + "</section>";
   }).join("");
   expensesList.querySelectorAll(".expense-edit").forEach(function (button) {
@@ -713,6 +842,7 @@ function openModal(id) {
   var unit = state.units.find(function (item) { return item.id === editingId; });
   document.getElementById("modalTitle").textContent = unit ? "Editar unidade" : "Nova unidade";
   unitName.value = unit ? unit.name : "";
+  populateEmpreendimentoSelect(unitEmpreendimento, unit ? unit.empreendimentoId : (selectedEmpreendimentoId === "todos" ? null : selectedEmpreendimentoId), false);
   unitRent.value = unit ? unit.rent : "";
   pendingRentChanges = unit ? (unit.rentChanges || []).map(function (change) { return { fromYm: change.fromYm, rent: change.rent }; }) : [];
   unitDueDay.value = unit && Number.isInteger(unit.dueDay) ? unit.dueDay : "";
@@ -887,12 +1017,104 @@ function populateExpenseCategories(selected) {
   if (current && options.includes(current)) expenseCategory.value = current;
 }
 
+
+
+function setEnterpriseStatus(message, isError) {
+    enterpriseStatus.textContent = message;
+    enterpriseStatus.style.color = isError ? "#a52d3b" : "#0f766e";
+}
+
+function renderEnterpriseManager() {
+        enterpriseList.innerHTML = state.empreendimentos.map(function (enterprise) {
+        return "<div class=\"category-row\"><input type=\"text\" value=\"" + escapeHtml(enterprise.name) +
+        "\" data-enterprise-input=\"" + escapeHtml (enterprise.id) +
+        "\" maxlength=\"80\" /><button class=\"category-save btn btn-ghost\" type=\"button\" data-enterprise-save=\"" +
+        escapeHtml(enterprise.id) + "\">Renomear</button><button class=\"category-remove btn btn-danger\" type=\"button\" data-enterprise-remove=\"" +
+        escapeHtml(enterprise.id) + "\">Remover</button></div>";
+    }).join("");
+    enterpriseList.querySelectorAll("[data-enterprise-save]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var input = Array.from(enterpriseList.querySelectorAll("[data-enterprise-input]")).find(function (item) {
+                return item.dataset.enterpriseInput === button.dataset.enterpriseSave;
+            });
+            renameEnterprise(button.dataset.enterpriseSave, input ? input.value : "");
+        });
+    });
+    enterpriseList.querySelectorAll("[data-enterprise-remove]").forEach(function (button) {
+        button.addEventListener("click", function () { removeEnterprise(button.dataset.enterpriseRemove); });
+    });
+}
+
+function addEnterprise() {
+    var value = newEnterprise.value.trim();
+    if (!value) { setEnterpriseStatus("Digite um nome para o empreendimento.", true); newEnterprise.focus(); return; }
+    if (state.empreendimentos.some(function (item) { return normalizeText(item.name) === normalizeText(value); })) {
+        setEnterpriseStatus("Este empreendimento já existe.", true);
+        newEnterprise.focus();
+        return;
+    }
+    state.empreendimentos.push({ id: newEnterpriseId(), name: value });
+    newEnterprise.value = "";
+    saveState();
+    renderEnterpriseManager();
+    renderEmpreendimentoFilter();
+    setEnterpriseStatus("Empreendimento adicionado.", false);
+}
+function renameEnterprise(id, value) {
+    value = String(value || "").trim();
+    if (!value) { setEnterpriseStatus("Digite um nome para o empreendimento.", true); return; }
+    if (state.empreendimentos.some(function (item) { return item.id !== id && normalizeText(item.name) === normalizeText(value); })) {
+        setEnterpriseStatus("Este empreendimento já existe.", true);
+        return;
+    }
+    var enterprise = state.empreendimentos.find(function (item) { return item.id === id; });
+    if (!enterprise) return;
+    enterprise.name = value;
+    saveState();
+    renderEnterpriseManager();
+    renderEmpreendimentoFilter();
+    setEnterpriseStatus("Empreendimento renomeado.", false);
+}
+
+function removeEnterprise(id) {
+    if (state.empreendimentos.length <= 1) { setEnterpriseStatus("Não é possível remover o último empreendimento.", true); return; }
+    if (state.units.some(function (unit) { return unit.empreendimentoId === id; }) ||
+        state.expenses.some(function (expense) { return expense.empreendimentoId === id; })) {
+        setEnterpriseStatus("Mova ou remova as unidades e gastos antes de excluir este empreendimento.", true);
+        return;
+    }
+    if (!window.confirm("Remover este empreendimento?")) return;
+    state.empreendimentos = state.empreendimentos.filter(function (item) { return item.id !== id; });
+    if (selectedEmpreendimentoId === id) {
+        selectedEmpreendimentoId = "todos";
+        saveSelectedEmpreendimento();
+    }
+    saveState();
+    renderEnterpriseManager();
+    render();
+    setEnterpriseStatus("Empreendimento removido.", false);
+}
+
+
+
+
+
+
+
+
+
+
 function openExpenseModal(id) {
   editingExpenseId = id || null;
   var expense = state.expenses.find(function (item) { return item.id === editingExpenseId; });
   var currentMonth = new Date().getMonth() + 1;
   expenseModalTitle.textContent = expense ? "Editar gasto" : "Novo gasto";
   expenseYm.value = expense ? expense.ym : selectedYear + "-" + String(selectedYear === new Date().getFullYear() ? currentMonth : 1).padStart(2, "0");
+  populateEmpreendimentoSelect(
+    expenseEmpreendimento,
+    expense ? expense.empreendimentoId : (selectedEmpreendimentoId ==="todos" ? null : selectedEmpreendimentoId),
+    false
+  );
   populateExpenseCategories(expense ? expense.category : expenseCategories[expenseCategories.length - 1]);
   expenseAmount.value = expense ? expense.amount : "";
   expenseDescription.value = expense ? expense.description : "";
@@ -921,6 +1143,13 @@ function saveExpense() {
   var amount = Number(expenseAmount.value);
   if (!isValidStartYm(ym)) { expenseYm.focus(); return; }
   if (!Number.isFinite(amount) || amount < 0) { expenseAmount.focus(); return; }
+  if (!expenseEmpreendimento.value) {
+    expenseEmpreendimento.setCustomValidity("Selecione um empreendimento.");
+    expenseEmpreendimento.reportValidity();
+    expenseEmpreendimento.focus();
+    return;
+  }
+  expenseEmpreendimento.setCustomValidity("");
   var repeatCount = expenseRepeat.checked ? Number(expenseRepeatCount.value) : 1;
   if (!Number.isInteger(repeatCount) || repeatCount < 1 || repeatCount > 60) {
     expenseRepeatCount.setCustomValidity("Informe uma quantidade inteira entre 1 e 60.");
@@ -931,7 +1160,8 @@ function saveExpense() {
   expenseRepeatCount.setCustomValidity("");
   var expenseData = {
     ym: ym,
-    category: expenseCategory.value && expenseCategory.value.trim() ? expenseCategory.value : "Outros",
+    empreendimentoId: expenseEmpreendimento.value,
+	category: expenseCategory.value && expenseCategory.value.trim() ? expenseCategory.value : "Outros",
     description: expenseDescription.value.trim(),
     amount: amount
   };
@@ -944,6 +1174,7 @@ function saveExpense() {
       state.expenses.push({
         id: newExpenseId(),
         ym: addMonthsYm(expenseData.ym, i),
+		empreendimentoId: expenseData.empreendimentoId,
         category: expenseData.category,
         description: expenseData.description,
         amount: expenseData.amount,
@@ -989,6 +1220,7 @@ function openSettings() {
   //securityStatus.textContent = lockConfig ? "Um PIN protege o acesso neste dispositivo." : "Nenhum PIN configurado neste dispositivo.";
   securityStatus.style.color = "";
   renderCategoryManager();
+  renderEnterpriseManager();
   setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
   updateBiometricVisibility();
   finePercent.setCustomValidity("");
@@ -1118,9 +1350,17 @@ function saveUnit() {
   var endYm = unitEndYm.value || null;
   if (!name) { unitName.focus(); return; }
   if (!Number.isFinite(rent) || rent < 0) { unitRent.focus(); return; }
+  
+  if (!unitEmpreendimento.value) {
+	  unitEmpreendimento.setCustomValidity("Selecione um empreendimento");
+      unitEmpreendimento.reportValidity();
+	  unitEmpreendimento.focus();
+      return;
+  }
+  unitEmpreendimento.setCustomValidity("");
   if (dueDay !== null && (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31)) {
     unitDueDay.setCustomValidity("Informe um dia inteiro entre 1 e 31.");
-    unitDueDay.reportValidity();
+	unitDueDay.reportValidity();
     unitDueDay.focus();
     return;
   }
@@ -1150,6 +1390,7 @@ unitEndYm.reportValidity();
     var existing = state.units.find(function (unit) { return unit.id === editingId; });
     if (existing) {
       existing.name = name;
+	  existing.empreendimentoId = unitEmpreendimento.value;
       existing.rent = rent;
       existing.rentChanges = normalizeRentChanges(pendingRentChanges);
       existing.dueDay = dueDay;
@@ -1163,7 +1404,8 @@ unitEndYm.reportValidity();
   } else {
     state.units.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-      name: name,
+      empreendimentoId: unitEmpreendimento.value,
+	  name: name,
       rent: rent,
       rentChanges: normalizeRentChanges(pendingRentChanges),
       dueDay: dueDay,
@@ -1427,6 +1669,13 @@ document.getElementById("prevYear").addEventListener("click", function () { sele
 document.getElementById("nextYear").addEventListener("click", function () { selectedYear += 1; render(); });
 unitSearch.addEventListener("input", render);
 statusFilter.addEventListener("change", render);
+empreendimentoFilter.addEventListener("change", function () {
+  selectedEmpreendimentoId = empreendimentoFilter.value;
+  saveSelectedEmpreendimento();
+  unitSearch.value = "";
+  statusFilter.value = "todos";
+  render();
+});
 document.getElementById("addUnit").addEventListener("click", function () { openModal(); });
 document.getElementById("addExpense").addEventListener("click", function () { openExpenseModal(); });
 document.getElementById("cancelModal").addEventListener("click", closeModal);
@@ -1437,6 +1686,7 @@ document.getElementById("cancelExpense").addEventListener("click", closeExpenseM
 document.getElementById("saveExpense").addEventListener("click", saveExpense);
 deleteExpenseButton.addEventListener("click", deleteExpense);
 addCategoryButton.addEventListener("click", addCategory);
+addEnterpriseButton.addEventListener("click", addEnterprise);
 document.getElementById("settingsButton").addEventListener("click", openSettings);
 document.getElementById("cancelSettings").addEventListener("click", closeSettings);
 document.getElementById("saveSettings").addEventListener("click", saveSettings);
