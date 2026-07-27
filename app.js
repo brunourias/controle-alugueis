@@ -1,12 +1,35 @@
 (function () {
 "use strict";
 
+var core = window.RentCore;
+var normalizeText = core.normalizeText;
+var escapeHtml = core.escapeHtml;
+var money = core.money;
+var slugify = core.slugify;
+var formatDate = core.formatDate;
+var isValidStartYm = core.isValidStartYm;
+var isValidPin = core.isValidPin;
+var previousYm = core.previousYm;
+var addMonthsYm = core.addMonthsYm;
+var whatsappUrl = core.whatsappUrl;
+var bytesToBase64Url = core.bytesToBase64Url;
+var base64UrlToBytes = core.base64UrlToBytes;
+var newExpenseId = core.newExpenseId;
+var normalizeSettings = core.normalizeSettings;
+var normalizeCategories = core.normalizeCategories;
+var normalizeExpenses = core.normalizeExpenses;
+var normalizeRentChanges = core.normalizeRentChanges;
+var normalizeUnit = core.normalizeUnit;
+var rentForMonth = core.rentForMonth;
+var rentForYm = core.rentForYm;
+var overdueAmount = core.overdueAmount;
+var wrapCanvasText = core.wrapCanvasText;
+
 var STORAGE_KEY = "controle-alugueis-v1";
 var LOCK_STORAGE_KEY = "controle-alugueis-lock";
-var DEFAULT_SETTINGS = { finePercent: 10, dailyInterestPercent: 0.3, receiverName: "" };
+var DEFAULT_EXPENSE_CATEGORIES = core.DEFAULT_EXPENSE_CATEGORIES;
 var months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 var fullMonths = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-var DEFAULT_EXPENSE_CATEGORIES = ["Manutenção", "Mão de obra", "IPTU", "Água", "Luz", "Outros"];
 var statusOrder = ["pendente", "pago", "atrasado"];
 var state = loadState();
 var expenseCategories = state.expenseCategories;
@@ -85,78 +108,6 @@ var newCategory = document.getElementById("newCategory");
 var addCategoryButton = document.getElementById("addCategory");
 var categoryStatus = document.getElementById("categoryStatus");
 
-function normalizeSettings(settings) {
-  return {
-    finePercent: settings && Number.isFinite(Number(settings.finePercent)) && Number(settings.finePercent) >= 0 ? Number(settings.finePercent) : DEFAULT_SETTINGS.finePercent,
-    dailyInterestPercent: settings && Number.isFinite(Number(settings.dailyInterestPercent)) && Number(settings.dailyInterestPercent) >= 0 ? Number(settings.dailyInterestPercent) : DEFAULT_SETTINGS.dailyInterestPercent,
-    receiverName: settings && typeof settings.receiverName === "string" ? settings.receiverName.trim() : DEFAULT_SETTINGS.receiverName
-  };
-}
-
-function newExpenseId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
-}
-
-function normalizeCategories(categories) {
-  if (!Array.isArray(categories)) return DEFAULT_EXPENSE_CATEGORIES.slice();
-  var result = [];
-  categories.forEach(function (category) {
-    if (typeof category !== "string") return;
-    var value = category.trim();
-    if (value && !result.some(function (item) { return normalizeText(item) === normalizeText(value); })) result.push(value);
-  });
-  if (!result.length) return DEFAULT_EXPENSE_CATEGORIES.slice();
-  if (!result.some(function (item) { return normalizeText(item) === "outros"; })) result.push("Outros");
-  return result;
-}
-
-function normalizeExpense(expense) {
-  if (!expense || typeof expense !== "object" || Array.isArray(expense) || !isValidStartYm(expense.ym)) return null;
-  var amount = Number(expense.amount);
-  return {
-    id: typeof expense.id === "string" && expense.id.trim() ? expense.id : newExpenseId(),
-	
-//--------------------------------------------------------------------------------------------
-ym: expense.ym,
-    category: typeof expense.category === "string" && expense.category.trim() ? expense.category.trim() : "Outros",
-    description: typeof expense.description === "string" ? expense.description.trim() : "",
-    amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
-    recurrenceId: typeof expense.recurrenceId === "string" && expense.recurrenceId.trim() ? expense.recurrenceId : null
-  };
-}
-
-function normalizeExpenses(expenses) {
-  if (!Array.isArray(expenses)) return [];
-  return expenses.map(normalizeExpense).filter(function (expense) { return expense !== null; });
-}
-
-function normalizeRentChanges(changes) {
-  if (!Array.isArray(changes)) return [];
-  return changes.map(function (change) {
-    if (!change || typeof change !== "object" || Array.isArray(change) || !isValidStartYm(change.fromYm)) return null;
-    var rent = Number(change.rent);
-    return Number.isFinite(rent) && rent >= 0 ? { fromYm: change.fromYm, rent: Math.round(rent * 100) / 100 } : null;
-  }).filter(function (change) { return change !== null; }).sort(function (a, b) {
-    return a.fromYm.localeCompare(b.fromYm);
-  }).filter(function (change, index, list) {
-    return index === 0 || change.fromYm !== list[index - 1].fromYm;
-  });
-}
-
-function normalizeUnit(unit) {
-  unit.status = unit.status && typeof unit.status === "object" && !Array.isArray(unit.status) ? unit.status : {};
-  unit.paidLate = unit.paidLate && typeof unit.paidLate === "object" && !Array.isArray(unit.paidLate) ? unit.paidLate : {};
-  unit.startYm = isValidStartYm(unit.startYm) ? unit.startYm : null;
-  unit.endYm = isValidStartYm(unit.endYm) ? unit.endYm : null;
-  unit.rent = Number.isFinite(Number(unit.rent)) && Number(unit.rent) >= 0 ? Number(unit.rent) : 0;
-  unit.rentChanges = normalizeRentChanges(unit.rentChanges);
-  if (unit.startYm && unit.endYm && unit.endYm < unit.startYm) unit.endYm = null;
-  unit.tenantName = typeof unit.tenantName === "string" ? unit.tenantName.trim() : "";
-  unit.tenantPhone = typeof unit.tenantPhone === "string" ? unit.tenantPhone.trim() : "";
-  unit.tenantEmail = typeof unit.tenantEmail === "string" ? unit.tenantEmail.trim() : "";
-  unit.tenantNotes = typeof unit.tenantNotes === "string" ? unit.tenantNotes.trim() : "";
-}
-
 function loadState() {
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
@@ -197,17 +148,6 @@ function loadLockConfig() {
   return null;
 }
 
-function bytesToBase64Url(bytes) {
-  var binary = "";
-  bytes.forEach(function (byte) { binary += String.fromCharCode(byte); });
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function base64UrlToBytes(value) {
-  var binary = atob(value.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((value.length + 3) % 4));
-  return Uint8Array.from(binary, function (character) { return character.charCodeAt(0); });
-}
-
 async function hashPin(pin, salt) {
   var pinBytes = new TextEncoder().encode(pin);
   var saltBytes = base64UrlToBytes(salt);
@@ -215,10 +155,6 @@ async function hashPin(pin, salt) {
   combined.set(saltBytes);
   combined.set(pinBytes, saltBytes.length);
   return bytesToBase64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", combined)));
-}
-
-function isValidPin(pin) {
-  return /^\d{4,}$/.test(pin);
 }
 
 async function verifyPin(pin, config) {
@@ -386,37 +322,8 @@ var file = event.target.files[0];
   reader.readAsText(file);
 }
 
-function money(value) {
-  return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function monthKey(month) {
   return selectedYear + "-" + String(month + 1).padStart(2, "0");
-}
-
-function rentForMonth(unit, year, month) {
-  var key = String(year) + "-" + String(month + 1).padStart(2, "0");
-  var rent = Number(unit.rent) || 0;
-  (unit.rentChanges || []).forEach(function (change) {
-    if (change.fromYm <= key) rent = Number(change.rent) || 0;
-  });
-  return rent;
-}
-
-function rentForYm(unit, ym) {
-  var parts = ym.split("-").map(Number);
-  return rentForMonth(unit, parts[0], parts[1] - 1);
-//--------------------------------------------------------------------------------------------
-}
-
-function previousYm(ym) {
-  var parts = ym.split("-").map(Number);
-  var date = new Date(parts[0], parts[1] - 2, 1);
-  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
-}
-
-function isValidStartYm(value) {
-  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
 function isActive(unit, month) {
@@ -448,8 +355,7 @@ function daysOverdue(unit, month) {
 function updatedAmount(unit, month) {
   var days = daysOverdue(unit, month);
   if (days === null) return null;
-  var rent = rentForMonth(unit, selectedYear, month);
-  return rent * (1 + state.settings.finePercent / 100 + state.settings.dailyInterestPercent / 100 * days);
+  return overdueAmount(rentForMonth(unit, selectedYear, month), days, state.settings);
 }
 
 function effectiveStatus(unit, month) {
@@ -473,10 +379,6 @@ function displayStatus(unit, month) {
   return isPaidLate(unit, month) ? "pago-atrasado" : effectiveStatus(unit, month);
 }
 
-function normalizeText(value) {
-  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
 function matchesStatusFilter(unit) {
   var filter = statusFilter.value;
   if (filter === "todos") return true;
@@ -495,12 +397,6 @@ function filteredUnits() {
   return state.units.filter(function (unit) {
     return normalizeText(unit.name).includes(query) && matchesStatusFilter(unit);
   });
-}
-
-function whatsappUrl(phone) {
-  var digits = String(phone || "").replace(/\D/g, "");
-  if (digits.length === 10 || digits.length === 11) digits = "55" + digits;
-  return digits ? "https://wa.me/" + digits : "";
 }
 
 function tenantActions(unit) {
@@ -909,13 +805,6 @@ function closeExpenseModal() {
   editingExpenseId = null;
 }
 
-function addMonthsYm(ym, offset) {
-  var parts = ym.split("-").map(Number);
-  var date = new Date(parts[0], parts[1] - 1 + offset, 1);
-//--------------------------------------------------------------------------------------------
-return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
-}
-
 function saveExpense() {
   var ym = expenseYm.value;
   var amount = Number(expenseAmount.value);
@@ -1190,17 +1079,6 @@ function deleteUnit() {
   render();
 }
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, function (character) {
-    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character];
-  });
-}
-
-function formatDate(date) {
-//--------------------------------------------------------------------------------------------
-return String(date.getDate()).padStart(2, "0") + "/" + String(date.getMonth() + 1).padStart(2, "0") + "/" + date.getFullYear();
-}
-
 function receiptData(unit, month) {
   return {
     unit: unit,
@@ -1254,24 +1132,6 @@ function closeReceipt() {
   receiptModal.hidden = true;
   receiptContext = null;
   receiptPreview.innerHTML = "";
-}
-
-function wrapCanvasText(context, text, x, y, maxWidth, lineHeight) {
-  var words = text.split(" ");
-  var line = "";
-  words.forEach(function (word) {
-    var test = line ? line + " " + word : word;
-    if (context.measureText(test).width > maxWidth && line) {
-      context.fillText(line, x, y);
-      y += lineHeight;
-      line = word;
-    } else {
-      line = test;
-    }
-  });
-//--------------------------------------------------------------------------------------------
-if (line) context.fillText(line, x, y);
-  return y + lineHeight;
 }
 
 function drawReceiptCanvas(data) {
@@ -1392,10 +1252,6 @@ function drawReceiptCanvas(data) {
   context.textAlign = "left";
 
   return canvas;
-}
-
-function slugify(value) {
-  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unidade";
 }
 
 function downloadReceipt() {
