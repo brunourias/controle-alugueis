@@ -1,0 +1,16 @@
+{
+  "name": "controle-alugueis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Controle de aluguéis (PWA estático)",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "jsdom": "^25.0.1",
+    "vitest": "^4.1.10"
+  }
+}
