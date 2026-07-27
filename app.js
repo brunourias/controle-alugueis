@@ -93,8 +93,78 @@ function normalizeSettings(settings) {
   };
 }
 
-function newExpenseId() {
+function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function parseYm(ym) {
+  var parts = String(ym).split("-").map(Number);
+  return { year: parts[0], month: parts[1] - 1 };
+}
+
+function ymFromParts(year, monthIndex) {
+  return String(year) + "-" + String(monthIndex + 1).padStart(2, "0");
+}
+
+function ymFromDate(date) {
+  return ymFromParts(date.getFullYear(), date.getMonth());
+}
+
+function ymYear(ym) {
+  return ym.slice(0, 4);
+}
+
+function ymMonthIndex(ym) {
+  return Number(ym.slice(5, 7)) - 1;
+}
+
+function isValidDueDay(value) {
+  return Number.isInteger(value) && value >= 1 && value <= 31;
+}
+
+function findUnit(id) {
+  return state.units.find(function (unit) { return unit.id === id; });
+}
+
+function findExpense(id) {
+  return state.expenses.find(function (expense) { return expense.id === id; });
+}
+
+function isOutros(value) {
+  return normalizeText(value) === "outros";
+}
+
+function categoryExists(name, exceptName) {
+  return expenseCategories.some(function (category) {
+    if (exceptName !== undefined && normalizeText(category) === normalizeText(exceptName)) return false;
+    return normalizeText(category) === normalizeText(name);
+  });
+}
+
+function reportInvalid(input, message) {
+  input.setCustomValidity(message);
+  input.reportValidity();
+  input.focus();
+}
+
+function triggerDownload(href, filename) {
+  var link = document.createElement("a");
+  link.href = href;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function sumUnitsRentForMonth(month, status) {
+  return state.units.reduce(function (sum, unit) {
+    return sum + (isActive(unit, month) && statusFor(unit, month) === status ? rentForMonth(unit, selectedYear, month) : 0);
+  }, 0);
+}
+
+function setSecurityStatus(message, isError) {
+  securityStatus.textContent = message;
+  securityStatus.style.color = isError ? "#a52d3b" : "#0f766e";
 }
 
 function normalizeCategories(categories) {
@@ -106,7 +176,7 @@ function normalizeCategories(categories) {
     if (value && !result.some(function (item) { return normalizeText(item) === normalizeText(value); })) result.push(value);
   });
   if (!result.length) return DEFAULT_EXPENSE_CATEGORIES.slice();
-  if (!result.some(function (item) { return normalizeText(item) === "outros"; })) result.push("Outros");
+  if (!result.some(isOutros)) result.push("Outros");
   return result;
 }
 
@@ -114,7 +184,7 @@ function normalizeExpense(expense) {
   if (!expense || typeof expense !== "object" || Array.isArray(expense) || !isValidStartYm(expense.ym)) return null;
   var amount = Number(expense.amount);
   return {
-    id: typeof expense.id === "string" && expense.id.trim() ? expense.id : newExpenseId(),
+    id: typeof expense.id === "string" && expense.id.trim() ? expense.id : generateId(),
 	
 //--------------------------------------------------------------------------------------------
 ym: expense.ym,
@@ -339,12 +409,7 @@ function exportBackup() {
   var date = new Date().toISOString().slice(0, 10);
   var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   var url = URL.createObjectURL(blob);
-  var link = document.createElement("a");
-  link.href = url;
-  link.download = "controle-alugueis-backup-" + date + ".json";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  triggerDownload(url, "controle-alugueis-backup-" + date + ".json");
   URL.revokeObjectURL(url);
 }
 
@@ -391,11 +456,11 @@ function money(value) {
 }
 
 function monthKey(month) {
-  return selectedYear + "-" + String(month + 1).padStart(2, "0");
+  return ymFromParts(selectedYear, month);
 }
 
 function rentForMonth(unit, year, month) {
-  var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+  var key = ymFromParts(year, month);
   var rent = Number(unit.rent) || 0;
   (unit.rentChanges || []).forEach(function (change) {
     if (change.fromYm <= key) rent = Number(change.rent) || 0;
@@ -404,15 +469,15 @@ function rentForMonth(unit, year, month) {
 }
 
 function rentForYm(unit, ym) {
-  var parts = ym.split("-").map(Number);
-  return rentForMonth(unit, parts[0], parts[1] - 1);
+  var parts = parseYm(ym);
+  return rentForMonth(unit, parts.year, parts.month);
 //--------------------------------------------------------------------------------------------
 }
 
 function previousYm(ym) {
-  var parts = ym.split("-").map(Number);
-  var date = new Date(parts[0], parts[1] - 2, 1);
-  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+  var parts = parseYm(ym);
+  var date = new Date(parts.year, parts.month - 1, 1);
+  return ymFromDate(date);
 }
 
 function isValidStartYm(value) {
@@ -430,7 +495,7 @@ function statusFor(unit, month) {
 }
 
 function dueDateFor(unit, month) {
-  if (!Number.isInteger(unit.dueDay) || unit.dueDay < 1 || unit.dueDay > 31) return null;
+  if (!isValidDueDay(unit.dueDay)) return null;
   var lastDay = new Date(selectedYear, month + 1, 0).getDate();
   return new Date(selectedYear, month, Math.min(unit.dueDay, lastDay));
 }
@@ -555,15 +620,14 @@ function renderGrid(visibleUnits) {
         : "";
       return "<td class=\"" + (i === currentMonth ? "month-current" : "") + "\"><div class=\"status-cell\"><button class=\"status-btn chip-" + status + "\" data-unit=\"" + escapeHtml(unit.id) + "\" data-month=\"" + i + "\" aria-label=\"" + ariaLabel + "\">" + icon + "<span class=\"status-label\">" + label + "</span>" + statusDays + statusAmount + "</button>" + receipt + "</div></td>";
     }).join("");
-    var dueDay = Number.isInteger(unit.dueDay) && unit.dueDay >= 1 && unit.dueDay <= 31 ? "<span class=\"due-day\">Vence dia " + unit.dueDay + "</span>" : "";
+    var dueDay = isValidDueDay(unit.dueDay) ? "<span class=\"due-day\">Vence dia " + unit.dueDay + "</span>" : "";
     var tenant = unit.tenantName ? "<span class=\"tenant-name\">" + escapeHtml(unit.tenantName) + "</span>" : "";
     var now = new Date();
     var currentRent = rentForMonth(unit, now.getFullYear(), now.getMonth());
     return "<tr><th scope=\"row\"><div class=\"unit-cell\" data-edit=\"" + escapeHtml(unit.id) + "\" role=\"button\" tabindex=\"0\"><span class=\"unit-name\">" + escapeHtml(unit.name) + "</span>" + tenant + "<span class=\"rent\">" + money(currentRent) + "</span>" + dueDay + "<span class=\"tenant-actions\">" + tenantActions(unit) + "</span></div></th>" + cells + "</tr>";
   }).join("");
   grid.querySelector("tfoot").innerHTML = "<tr><th scope=\"row\">Total recebido</th>" + months.map(function (_, i) {
-    var total = state.units.reduce(function (sum, unit) { return sum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0); }, 0);
-    return "<td>" + money(total) + "</td>";
+    return "<td>" + money(sumUnitsRentForMonth(i, "pago")) + "</td>";
   }).join("") + "</tr>";
   grid.querySelectorAll(".unit-cell").forEach(function (button) {
     button.addEventListener("click", function () { openModal(button.dataset.edit); });
@@ -611,14 +675,12 @@ function scrollToCurrentMonth(currentMonth) {
 }
 
 function renderSummary() {
-  var annual = state.units.reduce(function (sum, unit) {
-    return sum + months.reduce(function (monthSum, _, i) { return monthSum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0); }, 0);
-  }, 0);
+  var annual = months.reduce(function (sum, _, i) { return sum + sumUnitsRentForMonth(i, "pago"); }, 0);
   var now = new Date();
   var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
-  var received = current < 0 ? 0 : state.units.reduce(function (sum, unit) { return sum + (isActive(unit, current) && statusFor(unit, current) === "pago" ? rentForMonth(unit, selectedYear, current) : 0); }, 0);
-  var pending = current < 0 ? 0 : state.units.reduce(function (sum, unit) { return sum + (isActive(unit, current) && statusFor(unit, current) === "pendente" ? rentForMonth(unit, selectedYear, current) : 0); }, 0);
-  var annualExpenses = state.expenses.reduce(function (sum, expense) { return sum + (expense.ym.slice(0, 4) === String(selectedYear) ? expense.amount : 0); }, 0);
+  var received = current < 0 ? 0 : sumUnitsRentForMonth(current, "pago");
+  var pending = current < 0 ? 0 : sumUnitsRentForMonth(current, "pendente");
+  var annualExpenses = state.expenses.reduce(function (sum, expense) { return sum + (ymYear(expense.ym) === String(selectedYear) ? expense.amount : 0); }, 0);
   var currentExpenses = current < 0 ? 0 : state.expenses.reduce(function (sum, expense) { return sum + (expense.ym === monthKey(current) ? expense.amount : 0); }, 0);
   var annualNet = annual - annualExpenses;
   var currentNet = received - currentExpenses;
@@ -661,7 +723,7 @@ function renderSummary() {
 
 function renderExpenses() {
   expensesYear.textContent = selectedYear;
-  var yearExpenses = state.expenses.filter(function (expense) { return expense.ym.slice(0, 4) === String(selectedYear); });
+  var yearExpenses = state.expenses.filter(function (expense) { return ymYear(expense.ym) === String(selectedYear); });
   var annualTotal = yearExpenses.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
   expensesTotal.textContent = money(annualTotal);
   if (!yearExpenses.length) {
@@ -670,7 +732,7 @@ function renderExpenses() {
   }
   var groups = [];
   yearExpenses.forEach(function (expense) {
-    var month = Number(expense.ym.slice(5, 7)) - 1;
+    var month = ymMonthIndex(expense.ym);
     var group = groups.find(function (item) { return item.month === month; });
     if (!group) {
       group = { month: month, items: [] };
@@ -694,7 +756,7 @@ var subtotal = group.items.reduce(function (sum, expense) { return sum + expense
 }
 
 function toggleStatus(id, month) {
-  var unit = state.units.find(function (item) { return item.id === id; });
+  var unit = findUnit(id);
   if (!unit || !isActive(unit, month)) return;
   var cycle = ["pendente", "pago", "pago-atrasado"];
   var current = logicalStatus(unit, month);
@@ -710,7 +772,7 @@ function toggleStatus(id, month) {
 
 function openModal(id) {
   editingId = id || null;
-  var unit = state.units.find(function (item) { return item.id === editingId; });
+  var unit = findUnit(editingId);
   document.getElementById("modalTitle").textContent = unit ? "Editar unidade" : "Nova unidade";
   unitName.value = unit ? unit.name : "";
   unitRent.value = unit ? unit.rent : "";
@@ -744,7 +806,7 @@ function renderRentChanges() {
     return;
   }
   rentChangesList.innerHTML = pendingRentChanges.map(function (change) {
-    return "<div class=\"rent-change-row\"><div><strong>" + fullMonths[Number(change.fromYm.slice(5, 7)) - 1] + " de " + change.fromYm.slice(0, 4) + "</strong><span>" + money(change.rent) + "</span></div><button class=\"btn btn-danger rent-change-remove\" type=\"button\" data-rent-change=\"" + escapeHtml(change.fromYm) + "\">Remover</button></div>";
+    return "<div class=\"rent-change-row\"><div><strong>" + fullMonths[ymMonthIndex(change.fromYm)] + " de " + ymYear(change.fromYm) + "</strong><span>" + money(change.rent) + "</span></div><button class=\"btn btn-danger rent-change-remove\" type=\"button\" data-rent-change=\"" + escapeHtml(change.fromYm) + "\">Remover</button></div>";
   }).join("");
   rentChangesList.querySelectorAll("[data-rent-change]").forEach(function (button) {
     button.addEventListener("click", function () {
@@ -759,17 +821,13 @@ function addRentChange() {
   var percentValue = rentChangePercent.value.trim();
   var absoluteValue = rentChangeAbsolute.value.trim();
   if (!isValidStartYm(fromYm)) {
-    rentChangeYm.setCustomValidity("Informe um mês de reajuste válido.");
-    rentChangeYm.reportValidity();
-    rentChangeYm.focus();
+    reportInvalid(rentChangeYm, "Informe um mês de reajuste válido.");
     return;
   }
   var hasPercent = percentValue !== "";
   var hasAbsolute = absoluteValue !== "";
   if (hasPercent === hasAbsolute) {
-    rentChangeAbsolute.setCustomValidity("Informe um percentual ou um novo valor.");
-    rentChangeAbsolute.reportValidity();
-    rentChangeAbsolute.focus();
+    reportInvalid(rentChangeAbsolute, "Informe um percentual ou um novo valor.");
     return;
   }
   var baseRent = Number(unitRent.value);
@@ -777,9 +835,7 @@ function addRentChange() {
   var previousRent = rentForYm({ rent: baseRent, rentChanges: pendingRentChanges }, previousYm(fromYm));
   var rent = hasPercent ? previousRent * (1 + Number(percentValue) / 100) : Number(absoluteValue);
   if (!Number.isFinite(rent) || rent < 0 || (hasPercent && !Number.isFinite(Number(percentValue)))) {
-    rentChangeAbsolute.setCustomValidity("Informe um valor de reajuste válido.");
-    rentChangeAbsolute.reportValidity();
-    rentChangeAbsolute.focus();
+    reportInvalid(rentChangeAbsolute, "Informe um valor de reajuste válido.");
     return;
   }
   rent = Math.round(rent * 100) / 100;
@@ -801,15 +857,15 @@ function setCategoryStatus(message, isError) {
 
 function renderCategoryManager() {
   categoryList.innerHTML = expenseCategories.map(function (category) {
-    var remove = normalizeText(category) === "outros" ? "" : "<button class=\"category-remove btn btn-danger\" type=\"button\" data-category-remove=\"" + escapeHtml(category) + "\">Remover</button>";
+    var remove = isOutros(category) ? "" : "<button class=\"category-remove btn btn-danger\" type=\"button\" data-category-remove=\"" + escapeHtml(category) + "\">Remover</button>";
     return "<div class=\"category-row\"><input type=\"text\" value=\"" + escapeHtml(category) + "\" data-category-input=\"" + escapeHtml(category) + "\" maxlength=\"60\" /><button class=\"category-save btn btn-ghost\" type=\"button\" data-category-save=\"" + escapeHtml(category) + "\">Renomear</button>" + remove + "</div>";
   }).join("");
   categoryList.querySelectorAll("[data-category-save]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var input = Array.from(categoryList.querySelectorAll("[data-category-input]")).find(function (item) {
+      var categoryInput = Array.from(categoryList.querySelectorAll("[data-category-input]")).find(function (item) {
         return item.dataset.categoryInput === button.dataset.categorySave;
       });
-      renameCategory(button.dataset.categorySave, input ? input.value : "");
+      renameCategory(button.dataset.categorySave, categoryInput ? categoryInput.value : "");
     });
   });
   categoryList.querySelectorAll("[data-category-remove]").forEach(function (button) {
@@ -827,7 +883,7 @@ function saveCategoryList() {
 function addCategory() {
   var value = newCategory.value.trim();
   if (!value) { setCategoryStatus("Digite um nome para a categoria.", true); newCategory.focus(); return; }
-  if (expenseCategories.some(function (category) { return normalizeText(category) === normalizeText(value); })) {
+  if (categoryExists(value)) {
     setCategoryStatus("Esta categoria já existe.", true);
     newCategory.focus();
     return;
@@ -841,9 +897,9 @@ function addCategory() {
 
 function renameCategory(oldName, newName) {
   newName = String(newName || "").trim();
-  if (normalizeText(oldName) === "outros") { setCategoryStatus("A categoria Outros não pode ser renomeada.", true); return; }
+  if (isOutros(oldName)) { setCategoryStatus("A categoria Outros não pode ser renomeada.", true); return; }
   if (!newName) { setCategoryStatus("Digite um nome para a categoria.", true); return; }
-  if (expenseCategories.some(function (category) { return normalizeText(category) !== normalizeText(oldName) && normalizeText(category) === normalizeText(newName); })) {
+  if (categoryExists(newName, oldName)) {
     setCategoryStatus("Esta categoria já existe.", true);
     return;
   }
@@ -860,11 +916,11 @@ expenseCategories[index] = newName;
 }
 
 function removeCategory(category) {
-  if (normalizeText(category) === "outros") { setCategoryStatus("A categoria Outros não pode ser removida.", true); return; }
+  if (isOutros(category)) { setCategoryStatus("A categoria Outros não pode ser removida.", true); return; }
   if (!window.confirm("Remover esta categoria? Os gastos serão movidos para Outros.")) return;
   
   // Garantir que "Outros" exista na lista
-  if (!expenseCategories.some(function (item) { return normalizeText(item) === "outros"; })) {
+  if (!expenseCategories.some(isOutros)) {
     expenseCategories.push("Outros");
   }
 
@@ -889,10 +945,9 @@ function populateExpenseCategories(selected) {
 
 function openExpenseModal(id) {
   editingExpenseId = id || null;
-  var expense = state.expenses.find(function (item) { return item.id === editingExpenseId; });
-  var currentMonth = new Date().getMonth() + 1;
+  var expense = findExpense(editingExpenseId);
   expenseModalTitle.textContent = expense ? "Editar gasto" : "Novo gasto";
-  expenseYm.value = expense ? expense.ym : selectedYear + "-" + String(selectedYear === new Date().getFullYear() ? currentMonth : 1).padStart(2, "0");
+  expenseYm.value = expense ? expense.ym : ymFromParts(selectedYear, selectedYear === new Date().getFullYear() ? new Date().getMonth() : 0);
   populateExpenseCategories(expense ? expense.category : expenseCategories[expenseCategories.length - 1]);
   expenseAmount.value = expense ? expense.amount : "";
   expenseDescription.value = expense ? expense.description : "";
@@ -910,10 +965,10 @@ function closeExpenseModal() {
 }
 
 function addMonthsYm(ym, offset) {
-  var parts = ym.split("-").map(Number);
-  var date = new Date(parts[0], parts[1] - 1 + offset, 1);
+  var parts = parseYm(ym);
+  var date = new Date(parts.year, parts.month + offset, 1);
 //--------------------------------------------------------------------------------------------
-return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+return ymFromDate(date);
 }
 
 function saveExpense() {
@@ -923,9 +978,7 @@ function saveExpense() {
   if (!Number.isFinite(amount) || amount < 0) { expenseAmount.focus(); return; }
   var repeatCount = expenseRepeat.checked ? Number(expenseRepeatCount.value) : 1;
   if (!Number.isInteger(repeatCount) || repeatCount < 1 || repeatCount > 60) {
-    expenseRepeatCount.setCustomValidity("Informe uma quantidade inteira entre 1 e 60.");
-    expenseRepeatCount.reportValidity();
-    expenseRepeatCount.focus();
+    reportInvalid(expenseRepeatCount, "Informe uma quantidade inteira entre 1 e 60.");
     return;
   }
   expenseRepeatCount.setCustomValidity("");
@@ -936,13 +989,13 @@ function saveExpense() {
     amount: amount
   };
   if (editingExpenseId) {
-    var existing = state.expenses.find(function (expense) { return expense.id === editingExpenseId; });
+    var existing = findExpense(editingExpenseId);
     if (existing) Object.assign(existing, expenseData);
   } else {
-    var recurrenceId = repeatCount > 1 ? newExpenseId() : null;
+    var recurrenceId = repeatCount > 1 ? generateId() : null;
     for (var i = 0; i < repeatCount; i += 1) {
       state.expenses.push({
-        id: newExpenseId(),
+        id: generateId(),
         ym: addMonthsYm(expenseData.ym, i),
         category: expenseData.category,
         description: expenseData.description,
@@ -958,7 +1011,7 @@ function saveExpense() {
 
 function deleteExpense() {
   if (!editingExpenseId) return;
-  var expense = state.expenses.find(function (item) { return item.id === editingExpenseId; });
+  var expense = findExpense(editingExpenseId);
   if (!expense) return;
   var series = expense.recurrenceId && state.expenses.filter(function (item) { return item.recurrenceId === expense.recurrenceId; }).length > 1;
   var removeSeries = false;
@@ -1003,15 +1056,11 @@ function saveSettings() {
   var fine = Number(finePercent.value);
   var interest = Number(dailyInterestPercent.value);
   if (!Number.isFinite(fine) || fine < 0) {
-    finePercent.setCustomValidity("Informe um percentual válido igual ou maior que zero.");
-    finePercent.reportValidity();
-    finePercent.focus();
+    reportInvalid(finePercent, "Informe um percentual válido igual ou maior que zero.");
     return;
   }
   if (!Number.isFinite(interest) || interest < 0) {
-    dailyInterestPercent.setCustomValidity("Informe um percentual válido igual ou maior que zero.");
-    dailyInterestPercent.reportValidity();
-    dailyInterestPercent.focus();
+    reportInvalid(dailyInterestPercent, "Informe um percentual válido igual ou maior que zero.");
     return;
   }
   finePercent.setCustomValidity("");
@@ -1029,20 +1078,17 @@ async function savePin() {
 //--------------------------------------------------------------------------------------------	
 }
   if (lockConfig && !(await verifyPin(currentPin.value, lockConfig))) {
-    securityStatus.textContent = "PIN atual incorreto.";
-    securityStatus.style.color = "#a52d3b";
+    setSecurityStatus("PIN atual incorreto.", true);
     currentPin.focus();
     return;
   }
   if (!isValidPin(newPin.value)) {
-    securityStatus.textContent = "O novo PIN deve ter pelo menos 4 dígitos numéricos.";
-    securityStatus.style.color = "#a52d3b";
+    setSecurityStatus("O novo PIN deve ter pelo menos 4 dígitos numéricos.", true);
     newPin.focus();
     return;
   }
   if (newPin.value !== confirmPin.value) {
-    securityStatus.textContent = "A confirmação do novo PIN não confere.";
-    securityStatus.style.color = "#a52d3b";
+    setSecurityStatus("A confirmação do novo PIN não confere.", true);
     confirmPin.focus();
     return;
   }
@@ -1054,16 +1100,14 @@ async function savePin() {
   confirmPin.value = "";
   currentPinLabel.hidden = false;
   removePinButton.hidden = false;
-  securityStatus.textContent = "PIN salvo neste dispositivo.";
-  securityStatus.style.color = "#0f766e";
+  setSecurityStatus("PIN salvo neste dispositivo.", false);
   updateBiometricVisibility();
 }
 
 async function removePin() {
   if (!lockConfig) return;
   if (!(await verifyPin(currentPin.value, lockConfig))) {
-    securityStatus.textContent = "PIN atual incorreto.";
-    securityStatus.style.color = "#a52d3b";
+    setSecurityStatus("PIN atual incorreto.", true);
     currentPin.focus();
     return;
   }
@@ -1074,8 +1118,7 @@ async function removePin() {
   confirmPin.value = "";
   currentPinLabel.hidden = true;
   removePinButton.hidden = true;
-  securityStatus.textContent = "PIN removido. O acesso não está mais bloqueado.";
-  securityStatus.style.color = "#0f766e";
+  setSecurityStatus("PIN removido. O acesso não está mais bloqueado.", false);
   updateBiometricVisibility();
 }
 
@@ -1087,25 +1130,21 @@ async function toggleBiometric() {
 saveLockConfig(lockConfig);
   }
   unlockBiometric.hidden = true;
-  securityStatus.textContent = "Biometria desativada.";
-  securityStatus.style.color = "#0f766e";
+  setSecurityStatus("Biometria desativada.", false);
   return;
 }
 if (!lockConfig) {
   biometricToggle.checked = false;
-  securityStatus.textContent = "Salve um PIN antes de ativar a biometria.";
-  securityStatus.style.color = "#a52d3b";
+  setSecurityStatus("Salve um PIN antes de ativar a biometria.", true);
   return;
 }
 try {
   await createBiometricCredential();
   unlockBiometric.hidden = false;
-  securityStatus.textContent = "Biometria ativada.";
-  securityStatus.style.color = "#0f766e";
+  setSecurityStatus("Biometria ativada.", false);
 } catch (error) {
   biometricToggle.checked = false;
-  securityStatus.textContent = "Não foi possível ativar a biometria.";
-  securityStatus.style.color = "#a52d3b";
+  setSecurityStatus("Não foi possível ativar a biometria.", true);
 }
 }
 
@@ -1118,36 +1157,27 @@ function saveUnit() {
   var endYm = unitEndYm.value || null;
   if (!name) { unitName.focus(); return; }
   if (!Number.isFinite(rent) || rent < 0) { unitRent.focus(); return; }
-  if (dueDay !== null && (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31)) {
-    unitDueDay.setCustomValidity("Informe um dia inteiro entre 1 e 31.");
-    unitDueDay.reportValidity();
-    unitDueDay.focus();
+  if (dueDay !== null && !isValidDueDay(dueDay)) {
+    reportInvalid(unitDueDay, "Informe um dia inteiro entre 1 e 31.");
     return;
   }
   unitDueDay.setCustomValidity("");
   if (startYm !== null && !isValidStartYm(startYm)) {
-    unitStartYm.setCustomValidity("Informe um mês de início válido.");
-    unitStartYm.reportValidity();
-    unitStartYm.focus();
+    reportInvalid(unitStartYm, "Informe um mês de início válido.");
     return;
   }
   unitStartYm.setCustomValidity("");
   if (endYm !== null && !isValidStartYm(endYm)) {
-    unitEndYm.setCustomValidity("Informe um mês de fim válido.");
-    unitEndYm.reportValidity();
-    unitEndYm.focus();
+    reportInvalid(unitEndYm, "Informe um mês de fim válido.");
     return;
   }
   if (startYm && endYm && endYm < startYm) {
-    unitEndYm.setCustomValidity("O fim da locação deve ser igual ou posterior ao início.");
-//--------------------------------------------------------------------------------------------
-unitEndYm.reportValidity();
-    unitEndYm.focus();
+    reportInvalid(unitEndYm, "O fim da locação deve ser igual ou posterior ao início.");
     return;
   }
   unitEndYm.setCustomValidity("");
   if (editingId) {
-    var existing = state.units.find(function (unit) { return unit.id === editingId; });
+    var existing = findUnit(editingId);
     if (existing) {
       existing.name = name;
       existing.rent = rent;
@@ -1162,7 +1192,7 @@ unitEndYm.reportValidity();
     }
   } else {
     state.units.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      id: generateId(),
       name: name,
       rent: rent,
       rentChanges: normalizeRentChanges(pendingRentChanges),
@@ -1241,7 +1271,7 @@ function receiptMarkup(data) {
 }                                                                                      
 
 function openReceipt(id, month) {
-  var unit = state.units.find(function (item) { return item.id === id; });
+  var unit = findUnit(id);
   if (!unit || !isActive(unit, month)) return;
   var status = displayStatus(unit, month);
   if (status !== "pago" && status !== "pago-atrasado") return;
@@ -1401,12 +1431,7 @@ function slugify(value) {
 function downloadReceipt() {
   if (!receiptContext) return;
   var canvas = drawReceiptCanvas(receiptContext);
-  var link = document.createElement("a");
-  link.href = canvas.toDataURL("image/png");
-  link.download = "recibo-" + slugify(receiptContext.unit.name) + "-" + receiptContext.year + "-" + String(receiptContext.month + 1).padStart(2, "0") + ".png";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  triggerDownload(canvas.toDataURL("image/png"), "recibo-" + slugify(receiptContext.unit.name) + "-" + receiptContext.year + "-" + String(receiptContext.month + 1).padStart(2, "0") + ".png");
 }
 
 function printReceiptDocument() {
