@@ -795,7 +795,9 @@ function renderSummary() {
 
 function renderExpenses() {
   expensesYear.textContent = selectedYear;
-  var yearExpenses = state.expenses.filter(function (expense) { return expense.ym.slice(0, 4) === String(selectedYear); });
+  var yearExpenses = scopedExpenses().filter(function (expense) {
+    return expense.ym.slice(0, 4) === String(selectedYear);
+  });
   var annualTotal = yearExpenses.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
   expensesTotal.textContent = money(annualTotal);
   if (!yearExpenses.length) {
