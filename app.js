@@ -687,7 +687,14 @@ function renderGrid(visibleUnits) {
 	return "<tr><th scope=\"row\"><div class=\"unit-cell\" data-edit=\"" + escapeHtml(unit.id) + "\" role=\"button\" tabindex=\"0\"><span class=\"unit-name\">" + escapeHtml(unit.name) + "</span>" + enterprise + tenant + "<span class=\"rent\">" + money(currentRent) + "</span>" + dueDay + "<span class=\"tenant-actions\">" + tenantActions(unit) + "</span></div></th>" + cells + "</tr>";
   }).join("");
   grid.querySelector("tfoot").innerHTML = "<tr><th scope=\"row\">Total recebido</th>" + months.map(function (_, i) {
-    var total = state.units.reduce(function (sum, unit) { return sum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0); }, 0);
+    var total = scopedUnits().reduce(function (sum, unit) {
+    return sum + (
+        isActive(unit, i) &&
+        statusFor(unit, i) === "pago"
+            ? rentForMonth(unit, selectedYear, i)
+            : 0
+    );
+}, 0);
     return "<td>" + money(total) + "</td>";
   }).join("") + "</tr>";
   grid.querySelectorAll(".unit-cell").forEach(function (button) {
