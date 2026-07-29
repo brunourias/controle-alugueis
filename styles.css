@@ -150,6 +150,7 @@ tfoot td { min-width: 82px; }
 .summary-label { color: var(--muted); font-size: .76rem; font-weight: 700; }
 .summary-value { margin-top: 6px; color: var(--teal-dark); font-size: 1.2rem; font-weight: 800; }
 .summary-detail { margin-top: 3px; color: var(--muted); font-size: .72rem; }
+.summary-year { border-color: #cbe7e0; background: #edf7f4; }
 .summary-negative { border-color: #f0b9bf; background: #fff5f5; }
 .summary-negative .summary-label, .summary-negative .summary-value { color: #a52d3b; }
 .summary-report { grid-column: 1 / -1; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 5px 18px #2046420b; }
