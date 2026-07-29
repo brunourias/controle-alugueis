@@ -215,19 +215,29 @@ function normalizeCategories(categories) {
   return result;
 }
 
+function isValidDateValue(value) {
+  if (typeof value !== "string" || !/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value)) return false;
+  var parts = value.split("-").map(Number);
+  var date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return date.getFullYear() === parts[0] && date.getMonth() === parts[1] - 1 && date.getDate() === parts[2];
+}
+
 function normalizeExpense(expense) {
-  if (!expense || typeof expense !== "object" || Array.isArray(expense) || !isValidStartYm(expense.ym)) return null;
+  if (!expense || typeof expense !== "object" || Array.isArray(expense)) return null;
+  var date = isValidDateValue(expense.date) ? expense.date : (isValidStartYm(expense.ym) ?
+  expense.ym + "-01" : localDateValue(new Date()));
   var amount = Number(expense.amount);
   return {
     id: typeof expense.id === "string" && expense.id.trim() ? expense.id : newExpenseId(),
-	
-//--------------------------------------------------------------------------------------------
-    ym: expense.ym,
+    date: date,
+    ym: date.slice(0, 7),
     empreendimentoId: typeof expense.empreendimentoId === "string" ? expense.empreendimentoId : null,
-	category: typeof expense.category === "string" && expense.category.trim() ? expense.category.trim() : "Outros",
+    category: typeof expense.category === "string" && expense.category.trim() ?
+    expense.category.trim() : "Outros",
     description: typeof expense.description === "string" ? expense.description.trim() : "",
     amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
-    recurrenceId: typeof expense.recurrenceId === "string" && expense.recurrenceId.trim() ? expense.recurrenceId : null
+    recurrenceId: typeof expense.recurrenceId === "string" && expense.recurrenceId.trim() ?
+    expense.recurrenceId : null
   };
 }
 
@@ -784,9 +794,9 @@ function renderSummary() {
     detail + "</span></div><b class=\"" + (row.total ? "late-count" : "on-time") + "\">" + row.total + "</b></div>";
     }).join("") + "</div>" : "<p class=\"summary-report-empty\">Nenhuma unidade cadastrada.</p>") + "</section>";
   summary.innerHTML = overdueAlert +
-    "<div class=\"summary-card\"><div class=\"summary-label\">Total recebido em " + selectedYear + "</div><div class=\"summary-value\">" + money(annual) + "</div><div class=\"summary-detail\">Soma dos pagamentos marcados como recebidos</div></div>" +
-    "<div class=\"summary-card\"><div class=\"summary-label\">Total de gastos em " + selectedYear + "</div><div class=\"summary-value\">" + money(annualExpenses) + "</div><div class=\"summary-detail\">Despesas gerais do portfólio</div></div>" +
-    "<div class=\"summary-card " + (annualNet < 0 ? "summary-negative" : "") + "\"><div class=\"summary-label\">Líquido no ano</div><div class=\"summary-value\">" + money(annualNet) + "</div><div class=\"summary-detail\">Recebido menos gastos</div></div>" +
+    "<div class=\"summary-card summary-year\"><div class=\"summary-label\">Total recebido em " + selectedYear + "</div><div class=\"summary-value\">" + money(annual) + "</div><div class=\"summary-detail\">Soma dos pagamentos marcados como recebidos</div></div>" +
+    "<div class=\"summary-card summary-year\"><div class=\"summary-label\">Total de gastos em " + selectedYear + "</div><div class=\"summary-value\">" + money(annualExpenses) + "</div><div class=\"summary-detail\">Despesas gerais do portfólio</div></div>" +
+    "<div class=\"summary-card summary-year " + (annualNet < 0 ? "summary-negative" : "") + "\"><div class=\"summary-label\">Líquido no ano</div><div class=\"summary-value\">" + money(annualNet) + "</div><div class=\"summary-detail\">Recebido menos gastos</div></div>" +
     "<div class=\"summary-card\"><div class=\"summary-label\">Recebido neste mês</div><div class=\"summary-value\">" + money(received) + "</div><div class=\"summary-detail\">" + (current < 0 ? "Visualizando outro ano" : months[current] + " de " + selectedYear) + "</div></div>" +
     "<div class=\"summary-card\"><div class=\"summary-label\">Gastos neste mês</div><div class=\"summary-value\">" + money(currentExpenses) + "</div><div class=\"summary-detail\">" + (current < 0 ? "Visualizando outro ano" : months[current] + " de " + selectedYear) + "</div></div>" +
     "<div class=\"summary-card " + (currentNet < 0 ? "summary-negative" : "") + "\"><div class=\"summary-label\">Líquido neste mês</div><div class=\"summary-value\">" + money(currentNet) + "</div><div class=\"summary-detail\">Recebido menos gastos</div></div>" +
@@ -1117,6 +1127,7 @@ function openExpenseModal(id) {
   editingExpenseId = id || null;
   var expense = state.expenses.find(function (item) { return item.id === editingExpenseId; });
   var currentMonth = new Date().getMonth() + 1;
+  
   expenseModalTitle.textContent = expense ? "Editar gasto" : "Novo gasto";
   expenseYm.value = expense ? expense.ym : selectedYear + "-" + String(selectedYear === new Date().getFullYear() ? currentMonth : 1).padStart(2, "0");
   populateEmpreendimentoSelect(
@@ -1150,7 +1161,7 @@ return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
 function saveExpense() {
   var ym = expenseYm.value;
   var amount = Number(expenseAmount.value);
-  if (!isValidStartYm(ym)) { expenseYm.focus(); return; }
+  if (!isValidStartYm(ym)) { expenseDate.focus(); return; }
   if (!Number.isFinite(amount) || amount < 0) { expenseAmount.focus(); return; }
   if (!expenseEmpreendimento.value) {
     expenseEmpreendimento.setCustomValidity("Selecione um empreendimento.");
