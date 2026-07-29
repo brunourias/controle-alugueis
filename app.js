@@ -794,13 +794,14 @@ function renderSummary() {
     detail + "</span></div><b class=\"" + (row.total ? "late-count" : "on-time") + "\">" + row.total + "</b></div>";
     }).join("") + "</div>" : "<p class=\"summary-report-empty\">Nenhuma unidade cadastrada.</p>") + "</section>";
   summary.innerHTML = overdueAlert +
-    "<div class=\"summary-card summary-year\"><div class=\"summary-label\">Total recebido em " + selectedYear + "</div><div class=\"summary-value\">" + money(annual) + "</div><div class=\"summary-detail\">Soma dos pagamentos marcados como recebidos</div></div>" +
-    "<div class=\"summary-card summary-year\"><div class=\"summary-label\">Total de gastos em " + selectedYear + "</div><div class=\"summary-value\">" + money(annualExpenses) + "</div><div class=\"summary-detail\">Despesas gerais do portfólio</div></div>" +
-    "<div class=\"summary-card summary-year " + (annualNet < 0 ? "summary-negative" : "") + "\"><div class=\"summary-label\">Líquido no ano</div><div class=\"summary-value\">" + money(annualNet) + "</div><div class=\"summary-detail\">Recebido menos gastos</div></div>" +
     "<div class=\"summary-card\"><div class=\"summary-label\">Recebido neste mês</div><div class=\"summary-value\">" + money(received) + "</div><div class=\"summary-detail\">" + (current < 0 ? "Visualizando outro ano" : months[current] + " de " + selectedYear) + "</div></div>" +
     "<div class=\"summary-card\"><div class=\"summary-label\">Gastos neste mês</div><div class=\"summary-value\">" + money(currentExpenses) + "</div><div class=\"summary-detail\">" + (current < 0 ? "Visualizando outro ano" : months[current] + " de " + selectedYear) + "</div></div>" +
     "<div class=\"summary-card " + (currentNet < 0 ? "summary-negative" : "") + "\"><div class=\"summary-label\">Líquido neste mês</div><div class=\"summary-value\">" + money(currentNet) + "</div><div class=\"summary-detail\">Recebido menos gastos</div></div>" +
-    "<div class=\"summary-card\"><div class=\"summary-label\">Pendente neste mês</div><div class=\"summary-value\">" + money(pending) + "</div><div class=\"summary-detail\">Valores ainda não recebidos</div></div>" + report;
+    "<div class=\"summary-card\"><div class=\"summary-label\">Pendente neste mês</div><div class=\"summary-value\">" + money(pending) + "</div><div class=\"summary-detail\">Valores ainda não recebidos</div></div>" +
+	"<div class=\"summary-card summary-year\"><div class=\"summary-label\">Total recebido em " + selectedYear + "</div><div class=\"summary-value\">" + money(annual) + "</div><div class=\"summary-detail\">Soma dos pagamentos marcados como recebidos</div></div>" +
+    "<div class=\"summary-card summary-year\"><div class=\"summary-label\">Total de gastos em " + selectedYear + "</div><div class=\"summary-value\">" + money(annualExpenses) + "</div><div class=\"summary-detail\">Despesas gerais do portfólio</div></div>" +
+    "<div class=\"summary-card summary-year " + (annualNet < 0 ? "summary-negative" : "") + "\"><div class=\"summary-label\">Líquido no ano</div><div class=\"summary-value\">" + money(annualNet) + "</div><div class=\"summary-detail\">Recebido menos gastos</div></div>" + report
+    ;
 }
 
 function renderExpenses() {
