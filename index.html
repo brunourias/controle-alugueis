@@ -483,7 +483,35 @@
   </div>
 </section>
 
-
+<section class="cloud-section">
+  <h3>Conta / Nuvem</h3>
+  <p id="cloudStatus" class="settings-note">A sincronização é opcional. Seus dados continuam disponíveis neste dispositivo.</p>
+  <div id="cloudSignedOut">
+    <label>E-mail
+      <input type="email" id="cloudEmail" autocomplete="email" placeholder="voce@exemplo.com" />
+    </label>
+    <label>Senha
+      <input type="password" id="cloudPassword" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres" />
+    </label>
+    <div class="cloud-actions">
+      <button id="cloudSignIn" class="btn btn-primary" type="button">Entrar</button>
+      <button id="cloudSignUp" class="btn btn-ghost" type="button">Criar conta</button>
+    </div>
+  </div>
+  <div id="cloudSignedIn" hidden>
+    <p class="cloud-user">Conectado como <strong id="cloudUserEmail"></strong></p>
+    <p id="syncStatus" class="settings-note">Sincronizando...</p>
+    <button id="cloudSignOut" class="btn btn-ghost" type="button">Sair</button>
+  </div>
+  <p id="cloudError" class="cloud-error" role="alert"></p>
+  <div id="cloudReconcile" class="cloud-reconcile" hidden>
+    <p id="cloudReconcileText"></p>
+    <div class="cloud-actions">
+      <button id="useCloudData" class="btn btn-primary" type="button">Usar dados da nuvem</button>
+      <button id="useLocalData" class="btn btn-ghost" type="button">Enviar dados deste aparelho</button>
+    </div>
+  </div>
+</section>
 
 
 
@@ -581,6 +609,9 @@
 
  
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 
 </body>
