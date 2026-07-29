@@ -262,6 +262,15 @@ tfoot td { min-width: 82px; }
 .enterprise-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 .enterprise-section h3 { margin: 0 0 7px; color: var(--teal-dark); font-size: 1rem; }
 .enterprise-section .settings-note { margin: 0 0 10px; }
+.cloud-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.cloud-section h3 { margin: 0 0 7px; color: var(--teal-dark); font-size: 1rem; }
+.cloud-section .settings-note { margin: 0 0 10px; }
+.cloud-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cloud-actions .btn { flex: 1; }
+.cloud-user { margin: 8px 0; color: var(--ink); font-size: .78rem; }
+.cloud-error { min-height: 18px; margin: 9px 0 0; color: #a52d3b; font-size: .74rem; }
+.cloud-reconcile { margin-top: 12px; padding: 12px; border: 1px solid #e8c88d; border-radius: 12px; background: #fff9eb; }
+.cloud-reconcile p { margin: 0 0 11px; color: var(--ink); font-size: .76rem; line-height: 1.45; }
 .security-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .checkbox-label { margin-top: 18px !important; }
 .checkbox-label > span { display: flex; align-items: center; gap: 8px; color: var(--ink); }
