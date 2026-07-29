@@ -5,6 +5,16 @@ var STORAGE_KEY = "controle-alugueis-v1";
 var LOCK_STORAGE_KEY = "controle-alugueis-lock";
 
 var ENTERPRISE_SELECTION_KEY = "controle-alugueis-empreendimento";
+
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC9G72amaYJ4CiBgNcyMcNyi1MDva_8J1I",
+  authDomain: "controle-alugueis-38871.firebaseapp.com",
+  projectId: "controle-alugueis-38871",
+  storageBucket: "controle-alugueis-38871.firebasestorage.app",
+  messagingSenderId: "36592018809",
+  appId: "1:36592018809:web:c4d7237fbfba0901487ba8"
+};
+
 var DEFAULT_ENTERPRISE_NAME = "Meu empreendimento";
 
 var DEFAULT_SETTINGS = { finePercent: 10, dailyInterestPercent: 0.3, receiverName: "" };
@@ -96,6 +106,28 @@ var enterpriseList = document.getElementById("enterpriseList");
 var newEnterprise = document.getElementById("newEnterprise");
 var addEnterpriseButton = document.getElementById("addEnterprise");
 var enterpriseStatus = document.getElementById("enterpriseStatus");
+
+var cloudStatus = document.getElementById("cloudStatus");
+var cloudSignedOut = document.getElementById("cloudSignedOut");
+var cloudSignedIn = document.getElementById("cloudSignedIn");
+var cloudUserEmail = document.getElementById("cloudUserEmail");
+var cloudEmail = document.getElementById("cloudEmail");
+var cloudPassword = document.getElementById("cloudPassword");
+var cloudError = document.getElementById("cloudError");
+var syncStatus = document.getElementById("syncStatus");
+var cloudReconcile = document.getElementById("cloudReconcile");
+var cloudReconcileText = document.getElementById("cloudReconcileText");
+var useCloudData = document.getElementById("useCloudData");
+var useLocalData = document.getElementById("useLocalData");
+var firebaseAuth = null;
+var firebaseDb = null;
+var firebaseUser = null;
+var firebaseUnsubscribe = null;
+var cloudWriteTimer = null;
+var cloudUpdatedAt = 0;
+var cloudApplyingRemote = false;
+var cloudPendingRemote = null;
+var cloudInitialized = false;
 
 function newEnterpriseId() {
     return "emp-" + Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -295,11 +327,424 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-//--------------------------------------------------------------------------------------------
-}
+    if (!cloudApplyingRemote) scheduleCloudWrite();
+
+  }
+
+ 
+
+  function setCloudError(message) {
+
+    cloudError.textContent = message || "";
+
+  }
+
+ 
+
+  function setSyncStatus(message) {
+
+    syncStatus.textContent = message;
+
+  }
+
+ 
+
+  function cloudErrorMessage(error) {
+
+    var code = error && error.code ? error.code : "";
+
+    if (code === "auth/invalid-email") return "Informe um e-mail válido.";
+
+    if (code === "auth/weak-password") return "A senha deve ter pelo menos 6 caracteres.";
+
+    if (code === "auth/email-already-in-use") return "Este e-mail já está em uso.";
+
+    if (code === "auth/operation-not-allowed") return "O login por e-mail e senha ainda não está habilitado no Firebase.";
+
+    if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") return "E-mail ou senha inválidos.";
+
+    if (code === "auth/network-request-failed" || !navigator.onLine) return "Sem conexão. Tente novamente quando estiver online.";
+
+    if (code === "permission-denied" || code === "firestore/permission-denied") return "A conta entrou, mas as regras da nuvem ainda não permitem acessar os dados.";
+
+    return "Não foi possível conectar à nuvem agora. Os dados locais continuam disponíveis.";
+
+  }
+
+ 
+
+  function cloudCounts(value) {
+
+    return (value.units || []).length + " unidade" + ((value.units || []).length === 1 ? "" : "s") + " / " +
+
+      (value.expenses || []).length + " gasto" + ((value.expenses || []).length === 1 ? "" : "s");
+
+  }
+
+ 
+
+  function cloudStatesEqual(left, right) {
+
+    return JSON.stringify(left) === JSON.stringify(right);
+
+  }
+
+ 
+
+  function cloudDocRef() {
+
+    return firebaseDb && firebaseUser ? firebaseDb.collection("users").doc(firebaseUser.uid) : null;
+
+  }
+
+ 
+
+  function scheduleCloudWrite() {
+
+    if (!firebaseUser || !firebaseDb || cloudApplyingRemote) return;
+
+    setSyncStatus("Sincronizando...");
+
+    clearTimeout(cloudWriteTimer);
+
+    cloudWriteTimer = setTimeout(writeCloudState, 800);
+
+  }
+
+ 
+
+  function writeCloudState() {
+
+    var ref = cloudDocRef();
+
+    if (!ref) return;
+
+    var updatedAt = Date.now();
+
+    cloudUpdatedAt = Math.max(cloudUpdatedAt, updatedAt);
+
+    ref.set({ payload: state, updatedAt: updatedAt }).then(function () {
+
+      setSyncStatus(navigator.onLine ? "Sincronizado" : "Offline — alterações salvas localmente");
+
+    }).catch(function (error) {
+
+      setCloudError(cloudErrorMessage(error));
+
+      setSyncStatus(navigator.onLine ? "Não sincronizado — salvo localmente" : "Offline — alterações salvas localmente");
+
+    });
+
+  }
+
+ 
+
+  function applyRemoteState(payload) {
+
+    cloudApplyingRemote = true;
+
+    state = normalizeState(payload);
+
+    expenseCategories = state.expenseCategories;
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    renderEmpreendimentoFilter();
+
+    render();
+
+    cloudApplyingRemote = false;
+
+  }
+
+ 
+
+  function subscribeCloud() {
+
+    if (firebaseUnsubscribe) firebaseUnsubscribe();
+
+    var ref = cloudDocRef();
+
+    if (!ref) return;
+
+    firebaseUnsubscribe = ref.onSnapshot(function (snapshot) {
+
+      if (!snapshot.exists) return;
+
+      var data = snapshot.data() || {};
+
+      var remoteUpdatedAt = Number(data.updatedAt) || 0;
+
+      if (remoteUpdatedAt <= cloudUpdatedAt || !data.payload) return;
+
+      cloudUpdatedAt = remoteUpdatedAt;
+
+      applyRemoteState(data.payload);
+
+      setSyncStatus(navigator.onLine ? "Sincronizado" : "Offline — alterações salvas localmente");
+
+    }, function (error) {
+
+      setCloudError(cloudErrorMessage(error));
+
+      setSyncStatus("Não sincronizado — salvo localmente");
+
+    });
+
+  }
+
+ 
+
+  function finishCloudReconciliation() {
+
+    cloudReconcile.hidden = true;
+
+    cloudPendingRemote = null;
+
+    subscribeCloud();
+
+  }
+
+ 
+
+  function reconcileCloud() {
+
+    var ref = cloudDocRef();
+
+    if (!ref) return;
+
+    setSyncStatus("Sincronizando...");
+
+    ref.get().then(function (snapshot) {
+
+      var data = snapshot.exists ? (snapshot.data() || {}) : null;
+
+      var remoteState = data && data.payload ? normalizeState(data.payload) : null;
+
+      cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
+
+      if (!remoteState) {
+
+        writeCloudState();
+
+        subscribeCloud();
+
+        return;
+
+      }
+
+      var localEmpty = state.units.length === 0 && state.expenses.length === 0;
+
+      if (localEmpty) {
+
+        applyRemoteState(remoteState);
+
+        finishCloudReconciliation();
+
+        return;
+
+      }
+
+      if (cloudStatesEqual(state, remoteState)) {
+
+        finishCloudReconciliation();
+
+        setSyncStatus("Sincronizado");
+
+        return;
+
+      }
+
+      cloudPendingRemote = remoteState;
+
+      cloudReconcileText.textContent = "Há dados diferentes entre a nuvem (" + cloudCounts(remoteState) + ") e este aparelho (" + cloudCounts(state) + "). Escolha qual versão deseja manter.";
+
+      cloudReconcile.hidden = false;
+
+      setSyncStatus("Aguardando escolha");
+
+    }).catch(function (error) {
+
+      setCloudError(cloudErrorMessage(error));
+
+      setSyncStatus("Não sincronizado — salvo localmente");
+
+    });
+
+  }
+
+ 
+
+  function chooseCloudData() {
+
+    if (!cloudPendingRemote) return;
+
+    applyRemoteState(cloudPendingRemote);
+
+    finishCloudReconciliation();
+
+    setSyncStatus("Sincronizado");
+
+  }
+
+ 
+
+  function chooseLocalData() {
+
+    cloudReconcile.hidden = true;
+
+    cloudPendingRemote = null;
+
+    writeCloudState();
+
+    subscribeCloud();
+
+  }
+
+ 
+
+  function updateCloudUi() {
+
+    var signedIn = !!firebaseUser;
+
+    cloudSignedOut.hidden = signedIn;
+
+    cloudSignedIn.hidden = !signedIn;
+
+    cloudUserEmail.textContent = signedIn ? (firebaseUser.email || "") : "";
+
+    if (!signedIn) {
+
+      setSyncStatus("Sincronização desativada");
+
+      cloudReconcile.hidden = true;
+
+    }
+
+  }
+
+ 
+
+  function handleCloudAuthState(user) {
+
+    firebaseUser = user;
+
+    setCloudError("");
+
+    updateCloudUi();
+
+    if (firebaseUnsubscribe) {
+
+      firebaseUnsubscribe();
+
+      firebaseUnsubscribe = null;
+
+    }
+
+    if (user) {
+
+      setCloudStatus("Conta conectada. Preparando sincronização...");
+
+      reconcileCloud();
+
+    } else {
+
+      setCloudStatus("Sincronização opcional com Firebase. Seus dados locais permanecem disponíveis.");
+
+    }
+
+  }
+
+ 
+
+  function setCloudStatus(message) {
+
+    cloudStatus.textContent = message;
+
+  }
+
+ 
+
+  function initFirebase() {
+
+    if (!window.firebase || !firebase.initializeApp) {
+
+      setCloudStatus("Nuvem indisponível neste carregamento. O modo local continua funcionando.");
+
+      return;
+
+    }
+
+    try {
+
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+
+      firebaseAuth = firebase.auth();
+
+      firebaseDb = firebase.firestore();
+
+      firebaseDb.enablePersistence({ synchronizeTabs: true }).catch(function () {});
+
+      firebaseAuth.onAuthStateChanged(handleCloudAuthState);
+
+      cloudInitialized = true;
+
+      setCloudStatus("Sincronização opcional com Firebase. Seus dados locais permanecem disponíveis.");
+
+    } catch (error) {
+
+      setCloudStatus("Não foi possível iniciar a nuvem. O modo local continua funcionando.");
+
+    }
+
+  }
+
+ 
+
+  function runCloudAuth(action) {
+
+    setCloudError("");
+
+    var email = cloudEmail.value.trim();
+
+    var password = cloudPassword.value;
+
+    if (!email || email.indexOf("@") < 1) {
+
+      setCloudError("Informe um e-mail válido.");
+
+      cloudEmail.focus();
+
+      return;
+
+    }
+
+    if (password.length < 6) {
+
+      setCloudError("A senha deve ter pelo menos 6 caracteres.");
+
+      cloudPassword.focus();
+
+      return;
+
+    }
+
+    if (!firebaseAuth) {
+
+      setCloudError("A nuvem ainda não está disponível. Tente novamente em instantes.");
+
+      return;
+
+    }
+
+    var request = action === "signup" ? firebaseAuth.createUserWithEmailAndPassword(email, password) : firebaseAuth.signInWithEmailAndPassword(email, password);
+
+    request.catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+
+  }
 
 function hasSubtleCrypto() {
   return window.crypto && window.crypto.subtle && window.crypto.getRandomValues && window.TextEncoder;
@@ -1673,83 +2118,186 @@ function downloadReceipt() {
 }
 
 function printReceiptDocument() {
-  if (!receiptContext) return;
 
-  printReceipt.innerHTML = receiptMarkup(receiptContext);
+    if (!receiptContext) return;
 
-  setTimeout(function () {
+    printReceipt.innerHTML = receiptMarkup(receiptContext);
+
     window.print();
 
-    setTimeout(function () {
-      printReceipt.innerHTML = "";
-    }, 1000);
-  }, 300);
-}
+    setTimeout(function () { printReceipt.innerHTML = ""; }, 0);
 
-document.getElementById("prevYear").addEventListener("click", function () { selectedYear -= 1; render(); });
-document.getElementById("nextYear").addEventListener("click", function () { selectedYear += 1; render(); });
-unitSearch.addEventListener("input", render);
-statusFilter.addEventListener("change", render);
-empreendimentoFilter.addEventListener("change", function () {
-  selectedEmpreendimentoId = empreendimentoFilter.value;
-  saveSelectedEmpreendimento();
-  unitSearch.value = "";
-  statusFilter.value = "todos";
-  render();
-});
-document.getElementById("addUnit").addEventListener("click", function () { openModal(); });
-document.getElementById("addExpense").addEventListener("click", function () { openExpenseModal(); });
-document.getElementById("cancelModal").addEventListener("click", closeModal);
-document.getElementById("saveUnit").addEventListener("click", saveUnit);
-addRentChangeButton.addEventListener("click", addRentChange);
-document.getElementById("deleteUnit").addEventListener("click", deleteUnit);
-document.getElementById("cancelExpense").addEventListener("click", closeExpenseModal);
-document.getElementById("saveExpense").addEventListener("click", saveExpense);
-deleteExpenseButton.addEventListener("click", deleteExpense);
-addCategoryButton.addEventListener("click", addCategory);
-addEnterpriseButton.addEventListener("click", addEnterprise);
-document.getElementById("settingsButton").addEventListener("click", openSettings);
-document.getElementById("cancelSettings").addEventListener("click", closeSettings);
-document.getElementById("saveSettings").addEventListener("click", saveSettings);
-unlockForm.addEventListener("submit", function (event) {
-  event.preventDefault();
-  unlockWithPin(unlockPin.value);
-});
-unlockBiometric.addEventListener("click", unlockWithBiometric);
-savePinButton.addEventListener("click", savePin);
-removePinButton.addEventListener("click", removePin);
-biometricToggle.addEventListener("change", toggleBiometric);
-document.getElementById("cancelReceipt").addEventListener("click", closeReceipt);
-//--------------------------------------------------------------------------------------------
-document.getElementById("downloadReceipt").addEventListener("click", downloadReceipt);
-document.getElementById("printReceiptButton").addEventListener("click", printReceiptDocument);
-document.getElementById("exportBackup").addEventListener("click", exportBackup);
-document.getElementById("importBackup").addEventListener("click", function () { backupFile.click(); });
-backupFile.addEventListener("change", importBackup);
-modal.addEventListener("click", function (event) { if (event.target === modal) closeModal(); });
-expenseModal.addEventListener("click", function (event) { if (event.target === expenseModal) closeExpenseModal(); });
-settingsModal.addEventListener("click", function (event) { if (event.target === settingsModal) closeSettings(); });
-receiptModal.addEventListener("click", function (event) { if (event.target === receiptModal) closeReceipt(); });
-document.addEventListener("keydown", function (event) {
-  if (event.key !== "Escape") return;
-  if (!modal.hidden) closeModal();
-  if (!expenseModal.hidden) closeExpenseModal();
-  if (!settingsModal.hidden) closeSettings();
-  if (!receiptModal.hidden) closeReceipt();
-});
-initializeLock();
-if ("serviceWorker" in navigator) {
-  var reloadingForUpdate = false;
-  navigator.serviceWorker.addEventListener("controllerchange", function () {
-    if (reloadingForUpdate) return;
-    reloadingForUpdate = true;
-    window.location.reload();
+  }
+
+ 
+
+  document.getElementById("prevYear").addEventListener("click", function () { selectedYear -= 1; render(); });
+
+  document.getElementById("nextYear").addEventListener("click", function () { selectedYear += 1; render(); });
+
+  unitSearch.addEventListener("input", render);
+
+  statusFilter.addEventListener("change", render);
+
+  empreendimentoFilter.addEventListener("change", function () {
+
+    selectedEmpreendimentoId = empreendimentoFilter.value;
+
+    saveSelectedEmpreendimento();
+
+    unitSearch.value = "";
+
+    statusFilter.value = "todos";
+
+    render();
+
   });
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (registration) {
-      registration.update();
-      setInterval(function () { registration.update(); }, 60 * 60 * 1000);
-    }).catch(function () {});
+
+  document.getElementById("addUnit").addEventListener("click", function () { openModal(); });
+
+  document.getElementById("addExpense").addEventListener("click", function () { openExpenseModal(); });
+
+  document.getElementById("cancelModal").addEventListener("click", closeModal);
+
+  document.getElementById("saveUnit").addEventListener("click", saveUnit);
+
+  addRentChangeButton.addEventListener("click", addRentChange);
+
+  document.getElementById("deleteUnit").addEventListener("click", deleteUnit);
+
+  document.getElementById("cancelExpense").addEventListener("click", closeExpenseModal);
+
+  document.getElementById("saveExpense").addEventListener("click", saveExpense);
+
+  deleteExpenseButton.addEventListener("click", deleteExpense);
+
+  addCategoryButton.addEventListener("click", addCategory);
+
+  addEnterpriseButton.addEventListener("click", addEnterprise);
+
+  document.getElementById("settingsButton").addEventListener("click", openSettings);
+
+  document.getElementById("cancelSettings").addEventListener("click", closeSettings);
+
+  document.getElementById("saveSettings").addEventListener("click", saveSettings);
+
+  unlockForm.addEventListener("submit", function (event) {
+
+    event.preventDefault();
+
+    unlockWithPin(unlockPin.value);
+
   });
-}
+
+  unlockBiometric.addEventListener("click", unlockWithBiometric);
+
+  savePinButton.addEventListener("click", savePin);
+
+  removePinButton.addEventListener("click", removePin);
+
+  biometricToggle.addEventListener("change", toggleBiometric);
+
+  document.getElementById("cancelReceipt").addEventListener("click", closeReceipt);
+
+  document.getElementById("downloadReceipt").addEventListener("click", downloadReceipt);
+
+  document.getElementById("printReceiptButton").addEventListener("click", printReceiptDocument);
+
+  document.getElementById("exportBackup").addEventListener("click", exportBackup);
+
+  document.getElementById("importBackup").addEventListener("click", function () { backupFile.click(); });
+
+  backupFile.addEventListener("change", importBackup);
+
+  document.getElementById("cloudSignIn").addEventListener("click", function () { runCloudAuth("signin"); });
+
+  document.getElementById("cloudSignUp").addEventListener("click", function () { runCloudAuth("signup"); });
+
+  document.getElementById("cloudSignOut").addEventListener("click", function () {
+
+    if (!firebaseAuth) return;
+
+    if (firebaseUnsubscribe) {
+
+      firebaseUnsubscribe();
+
+      firebaseUnsubscribe = null;
+
+    }
+
+    firebaseAuth.signOut().catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+
+  });
+
+  useCloudData.addEventListener("click", chooseCloudData);
+
+  useLocalData.addEventListener("click", chooseLocalData);
+
+  window.addEventListener("online", function () {
+
+    if (firebaseUser) setSyncStatus("Sincronizando...");
+
+  });
+
+  window.addEventListener("offline", function () {
+
+    if (firebaseUser) setSyncStatus("Offline — alterações salvas localmente");
+
+  });
+
+  modal.addEventListener("click", function (event) { if (event.target === modal) closeModal(); });
+
+  expenseModal.addEventListener("click", function (event) { if (event.target === expenseModal) closeExpenseModal(); });
+
+  settingsModal.addEventListener("click", function (event) { if (event.target === settingsModal) closeSettings(); });
+
+  receiptModal.addEventListener("click", function (event) { if (event.target === receiptModal) closeReceipt(); });
+
+  document.addEventListener("keydown", function (event) {
+
+    if (event.key !== "Escape") return;
+
+    if (!modal.hidden) closeModal();
+
+    if (!expenseModal.hidden) closeExpenseModal();
+
+    if (!settingsModal.hidden) closeSettings();
+
+    if (!receiptModal.hidden) closeReceipt();
+
+  });
+
+  updateCloudUi();
+
+  initFirebase();
+
+  initializeLock();
+
+  if ("serviceWorker" in navigator) {
+
+    var reloadingForUpdate = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+
+      if (reloadingForUpdate) return;
+
+      reloadingForUpdate = true;
+
+      window.location.reload();
+
+    });
+
+    window.addEventListener("load", function () {
+
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (registration) {
+
+        registration.update();
+
+        setInterval(function () { registration.update(); }, 60 * 60 * 1000);
+
+      }).catch(function () {});
+
+    });
+
+  }
 })();
