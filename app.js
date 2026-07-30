@@ -101,6 +101,7 @@ var categoryList = document.getElementById("categoryList");
 var newCategory = document.getElementById("newCategory");
 var addCategoryButton = document.getElementById("addCategory");
 var categoryStatus = document.getElementById("categoryStatus");
+var appTitle = document.getElementById("appTitle");
 var empreendimentoFilter = document.getElementById("empreendimentoFilter");
 var enterpriseList = document.getElementById("enterpriseList");
 var newEnterprise = document.getElementById("newEnterprise");
@@ -215,12 +216,11 @@ function renderEmpreendimentoFilter() {
     populateEmpreendimentoSelect(empreendimentoFilter, selectedEmpreendimentoId, true);
 }
 
-
-
-
-
-
-
+function updateAppTitle() {
+	var title = selectedEmpreendimentoId === "todos" ? "Todos" : empreendimentoName(selectedEmpreendimentoId);
+	appTitle.textContent = title;
+	document.title = title;
+}
 
 function normalizeSettings(settings) {
   return {
@@ -1121,6 +1121,7 @@ function render() {
 //--------------------------------------------------------------------------------------------
   document.getElementById("yearLabel").textContent = selectedYear;
   renderEmpreendimentoFilter();
+  updateAppTitle();
   var hasUnits = scopedUnits().length > 0;
   var visibleUnits = filteredUnits();
   grid.hidden = !hasUnits || visibleUnits.length === 0;
@@ -1281,40 +1282,126 @@ function renderSummary() {
 
 function renderExpenses() {
   expensesYear.textContent = selectedYear;
+
   var yearExpenses = scopedExpenses().filter(function (expense) {
     return expense.ym.slice(0, 4) === String(selectedYear);
   });
-  var annualTotal = yearExpenses.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
+
+  var annualTotal = yearExpenses.reduce(function (sum, expense) {
+    return sum + expense.amount;
+  }, 0);
+
   expensesTotal.textContent = money(annualTotal);
+
   if (!yearExpenses.length) {
-    expensesList.innerHTML = "<p class=\"expenses-empty\">Nenhum gasto registrado em " + selectedYear + ".</p>";
+    expensesList.innerHTML =
+      '<p class="expenses-empty">Nenhum gasto registrado em ' +
+      selectedYear +
+      ".</p>";
     return;
   }
+
   var groups = [];
+
   yearExpenses.forEach(function (expense) {
     var month = Number(expense.ym.slice(5, 7)) - 1;
-    var group = groups.find(function (item) { return item.month === month; });
+
+    var group = groups.find(function (item) {
+      return item.month === month;
+    });
+
     if (!group) {
-      group = { month: month, items: [] };
+      group = {
+        month: month,
+        items: []
+      };
       groups.push(group);
     }
+
     group.items.push(expense);
   });
-  groups.sort(function (a, b) { return a.month - b.month; });
-  expensesList.innerHTML = groups.map(function (group) {
-//--------------------------------------------------------------------------------------------
-var subtotal = group.items.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
-    return "<section class=\"expense-month\"><div class=\"expense-month-header\"><h3>" + fullMonths[group.month] + "</h3><strong>" + money(subtotal) + "</strong></div>" +
-      group.items.map(function (expense) {
-        var description = expense.description ? " <span>" + escapeHtml(expense.description) + "</span>" : "";
-		var enterprise = selectedEmpreendimentoId === "todos" ? "<span class=\"enterprise-name\">" +
-escapeHtml(empreendimentoName(unit.empreendimentoId)) + "</span>" : "";
-        return "<div class=\"expense-row\"><div>" + enterprise + "<strong>" + escapeHtml(expense.category) + "</strong>" + description + "</div><b>" + money(expense.amount) + "</b><button class=\"expense-edit\" type=\"button\" data-expense-edit=\"" + escapeHtml(expense.id) + "\" aria-label=\"Editar gasto\">✏️</button></div>";
-      }).join("") + "</section>";
-  }).join("");
-  expensesList.querySelectorAll(".expense-edit").forEach(function (button) {
-    button.addEventListener("click", function () { openExpenseModal(button.dataset.expenseEdit); });
+
+  groups.sort(function (a, b) {
+    return a.month - b.month;
   });
+
+  expensesList.innerHTML = groups
+    .map(function (group) {
+      var subtotal = group.items.reduce(function (sum, expense) {
+        return sum + expense.amount;
+      }, 0);
+
+      var count =
+        group.items.length +
+        (group.items.length === 1 ? " lançamento" : " lançamentos");
+
+      var rows = group.items
+        .map(function (expense) {
+          var description = expense.description
+            ? ' <span>— ' + escapeHtml(expense.description) + "</span>"
+            : "";
+
+          var dateLabel =
+            '<small class="expense-date">' +
+            escapeHtml(formatExpenseDate(expense.date)) +
+            "</small>";
+
+          var enterprise =
+            selectedEmpreendimentoId === "todos"
+              ? '<span class="enterprise-name">' +
+                escapeHtml(empreendimentoName(expense.empreendimentoId)) +
+                "</span>"
+              : "";
+
+          return (
+            '<div class="expense-row">' +
+              "<div>" +
+                enterprise +
+                dateLabel +
+                " <strong>" +
+                escapeHtml(expense.category) +
+                "</strong>" +
+                description +
+              "</div>" +
+              "<b>" +
+                money(expense.amount) +
+              "</b>" +
+              '<button class="expense-edit" type="button" data-expense-edit="' +
+                escapeHtml(expense.id) +
+                '" aria-label="Editar gasto">✎</button>' +
+            "</div>"
+          );
+        })
+        .join("");
+
+      return (
+        '<details class="expense-month" open>' +
+          '<summary class="expense-month-header">' +
+            '<div class="expense-month-title">' +
+              "<h3>" +
+                fullMonths[group.month] +
+              "</h3>" +
+              "<small>" +
+                count +
+              "</small>" +
+            "</div>" +
+            "<strong>" +
+              money(subtotal) +
+            "</strong>" +
+          "</summary>" +
+          rows +
+        "</details>"
+      );
+    })
+    .join("");
+
+  expensesList
+    .querySelectorAll(".expense-edit")
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        openExpenseModal(button.dataset.expenseEdit);
+      });
+    });
 }
 
 function toggleStatus(id, month) {
@@ -1568,6 +1655,7 @@ function renameEnterprise(id, value) {
     saveState();
     renderEnterpriseManager();
     renderEmpreendimentoFilter();
+	updateAppTitle();
     setEnterpriseStatus("Empreendimento renomeado.", false);
 }
 
@@ -1632,6 +1720,16 @@ function addMonthsYm(ym, offset) {
   var date = new Date(parts[0], parts[1] - 1 + offset, 1);
 //--------------------------------------------------------------------------------------------
 return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+}
+
+function formatExpenseDate(date) {
+  if (!date) return "";
+
+  var parts = date.split("-");
+
+  if (parts.length !== 3) return date;
+
+  return parts[2] + "/" + parts[1] + "/" + parts[0];
 }
 
 function saveExpense() {
