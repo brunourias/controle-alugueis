@@ -1312,6 +1312,22 @@
         return new Date(selectedYear, month, Math.min(unit.dueDay, lastDay));
     }
 
+	var DUE_SOON_DAYS = 5;
+
+	function dueReminder(unit) {
+	  if (selectedYear !== new Date().getFullYear()) return null;
+	  var m = new Date().getMonth();
+	  if (!isActive(unit, m) || statusFor(unit, m) !== "pendente") return null;
+	  if (daysOverdue(unit, m) !== null) return null;
+	  var due = dueDateFor(unit, m);
+	  if (!due) return null;
+	  var today = new Date();
+	  today.setHours(0, 0, 0, 0);
+	  var days = Math.round((due - today) / 86400000);
+	  if (days < 0 || days > DUE_SOON_DAYS) return null;
+	  return days;
+	}
+
     function daysOverdue(unit, month) {
         if (!isActive(unit, month)) return null;
         var dueDate = dueDateFor(unit, month);
@@ -1403,8 +1419,58 @@
         return digits ? "https://wa.me/" + digits : "";
     }
 
+	function chargeMessage(unit) {
+	  var overdueMonths = [];
+	  months.forEach(function (_, i) {
+		if (!isActive(unit, i) || effectiveStatus(unit, i) !== "atrasado") return;
+		var due = dueDateFor(unit, i);
+		var updated = updatedAmount(unit, i);
+		overdueMonths.push({
+		  i: i,
+		  due: due,
+		  amount: updated === null ? rentForMonth(unit, selectedYear, i) : updated
+		});
+	  });
+	  var greeting = "Olá" + (unit.tenantName ? ", " + unit.tenantName : "") + "! ";
+	  if (overdueMonths.length) {
+		var total = overdueMonths.reduce(function (sum, item) { return sum + item.amount; }, 0);
+		var message = greeting + "Sobre o aluguel da " + unit.name + ":\n";
+		message += overdueMonths.map(function (item) {
+		  var dueLabel = item.due
+			? " (venceu em " + String(item.due.getDate()).padStart(2, "0") + "/" +
+	String(item.due.getMonth() + 1).padStart(2, "0") + ")"
+			: "";
+		  return " • " + fullMonths[item.i] + dueLabel + " - valor atualizado " + money(item.amount) + "\n";
+		}).join("");
+		if (overdueMonths.length > 1) message += "Total em aberto: " + money(total) + ".\n";
+		return message + "Pode me confirmar o pagamento? Obrigado.";
+	  }
+	  if (dueReminder(unit) !== null) {
+		var m = new Date().getMonth();
+		var due = dueDateFor(unit, m);
+		var dueLabel = due
+		  ? ", que vence em " + String(due.getDate()).padStart(2, "0") + "/" + String(due.getMonth() + 1).padStart(2, "0")
+		  : "";
+		return greeting + "Passando para lembrar do aluguel da " + unit.name + dueLabel + ", no valor de " + money(rentForMonth(unit, selectedYear, m)) + ". Obrigado.";
+	  }
+	  return null;
+	}
+
+	function chargeUrl(unit) {
+	  var msg = chargeMessage(unit);
+	  if (!msg) return "";
+	  var base = whatsappUrl(unit.tenantPhone);
+	  return (base ? base : "https://wa.me/") + "?text=" + encodeURIComponent(msg);
+	}
+
     function tenantActions(unit) {
         var actions = "";
+        var charge = chargeUrl(unit);
+		if (charge) {
+		  actions += "<a class=\"tenant-action charge-btn\" href=\"" + escapeHtml(charge) +
+		  "\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"Cobrar " +
+		  escapeHtml(unit.tenantName || "inquilino") + " pelo WhatsApp\" data-tenant-action>Cobrar</a>";
+		}
         var whatsapp = whatsappUrl(unit.tenantPhone);
         if (whatsapp) {
             actions +=
@@ -1570,7 +1636,10 @@
                     '<span class="enterprise-name">' +
                     escapeHtml(empreendimentoName(unit.empreendimentoId)) +
                     "</span>";
-
+				var reminderDays = dueReminder(unit);
+				var dueSoon = reminderDays === null ? "" : "<span class=\"due-soon\">" + (reminderDays === 0 ? "Vence hoje" : reminderDays === 1 ?
+				"Vence amanhã" : "Vence em " + reminderDays + " dias") + "</span>";	
+				
                 return (
                     '<tr><th scope="row"><div class="unit-cell" data-edit="' +
                     escapeHtml(unit.id) +
@@ -1582,7 +1651,7 @@
                     '<span class="rent">' +
                     money(currentRent) +
                     "</span>" +
-                    dueDay +
+                    dueDay + dueSoon +
                     '<span class="tenant-actions">' +
                     tenantActions(unit) +
                     "</span></div></th>" +
