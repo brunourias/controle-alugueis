@@ -1419,6 +1419,10 @@ function toggleStatus(id, month) {
   render();
 }
 
+function collapseExpenseMonths() {
+  expensesList.querySelectorAll("details.expense-month[open]").forEach(function (item) { item.open = false; });
+}
+
 function openModal(id) {
   editingId = id || null;
   var unit = state.units.find(function (item) { return item.id === editingId; });
@@ -2394,6 +2398,8 @@ function printReceiptDocument() {
     if (!receiptModal.hidden) closeReceipt();
 
   });
+
+  window.addEventListener("pageshow", collapseExpenseMonths);
 
   updateCloudUi();
 
