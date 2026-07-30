@@ -175,9 +175,22 @@ tfoot td { min-width: 82px; }
 .expenses-header .btn { min-height: 40px; padding: 0 11px; font-size: .74rem; white-space: nowrap; }
 .expenses-empty { margin: 18px 0 3px; color: var(--muted); font-size: .76rem; }
 .expense-month { margin-top: 16px; border-top: 1px solid #edf3f2; }
-.expense-month-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0 6px; }
+
+
+
+.expense-month-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 4px 12px 22px; list-style: none; cursor: pointer; position: relative; }
+.expense-month-header::-webkit-details-marker { display: none; }
+.expense-month-header::before { content: "▶"; position: absolute; left: 4px; color: var(--teal-dark); font-size: .8rem; transition: transform .15s ease; }
+.expense-month[open] > .expense-month-header::before { transform: rotate(90deg); }
+.expense-month-header:hover { background: #f6fbfa; border-radius: 10px; }
+.expense-month-title { display: flex; flex-direction: column; gap: 1px; }
+.expense-month-title small { color: var(--muted); font-size: .68rem; font-weight: 600; }
 .expense-month-header h3 { margin: 0; color: var(--ink); font-size: .9rem; }
-.expense-month-header strong { color: var(--teal-dark); font-size: .82rem; }
+.expense-month-header strong { color: var(--teal-dark); font-size: .82rem; white-space: nowrap; }
+
+
+
+
 .expense-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid #edf3f2; }
 .expense-row > div { min-width: 0; }
 .expense-row strong, .expense-row span { display: inline; font-size: .76rem; }
