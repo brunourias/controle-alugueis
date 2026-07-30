@@ -3300,6 +3300,30 @@
         link.remove();
     }
 
+	function dataUrlToFile(dataUrl, filename) {
+	  var parts = dataUrl.split(",");
+	  var mime = (parts[0].match(/:(.*?);/) || [])[1] || "image/png";
+	  var binary = atob(parts[1]);
+	  var bytes = new Uint8Array(binary.length);
+	  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	  return new File([bytes], filename, { type: mime });
+	}
+
+	function shareReceipt() {
+	  if (!receiptContext) return;
+	  var text = "Segue comprovante de pagamento";
+	  var filename = "recibo-" + slugify(receiptContext.unit.name) + "-" + receiptContext.year + "-" + String(receiptContext.month + 1).padStart(2, "0") + ".png";
+	  var canvas = drawReceiptCanvas(receiptContext);
+	  var file = dataUrlToFile(canvas.toDataURL("image/png"), filename);
+	  if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+		navigator.share({ files: [file], text: text }).catch(function () {});
+		return;
+	  }
+	  downloadReceipt();
+	  var base = whatsappUrl(receiptContext.unit.tenantPhone);
+	  window.open((base ? base : "https://wa.me/") + "?text=" + encodeURIComponent(text), "_blank");
+	}
+
     function printReceiptDocument() {
         if (!receiptContext) return;
 
@@ -3408,6 +3432,10 @@
         .getElementById("downloadReceipt")
         .addEventListener("click", downloadReceipt);
 
+    document
+        .getElementById("shareReceipt")
+        .addEventListener("click", shareReceipt);
+		
     document
         .getElementById("printReceiptButton")
         .addEventListener("click", printReceiptDocument);
