@@ -66,7 +66,8 @@
     var editingId = null;
     var pendingRentChanges = [];
     var editingExpenseId = null;
-    var didInitialScroll = false;
+    var expensesExpanded = false;
+	var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
     var lockConfig = loadLockConfig();
@@ -80,6 +81,7 @@
     var statusFilter = document.getElementById("statusFilter");
     var summary = document.getElementById("summary");
     var expensesList = document.getElementById("expensesList");
+	var toggleExpensesButton =  document.getElementById("toggleExpenses");
     var expensesTotal = document.getElementById("expensesTotal");
     var expensesYear = document.getElementById("expensesYear");
     var lockScreen = document.getElementById("lockScreen");
@@ -1989,7 +1991,43 @@
                     openExpenseModal(button.dataset.expenseEdit);
                 });
             });
+		expensesList.querySelectorAll("details.expense-month").forEach(function (item) {
+			item.addEventListener("toggle", updateToggleExpensesButton);
+		});
+		applyExpensesVisibility();
     }
+	
+	function expenseMonths() {
+     return expensesList.querySelectorAll("details.expense-month");
+	}
+
+	function applyExpensesVisibility() {
+		var hasGroups = expenseMonths().length > 0;
+		toggleExpensesButton.hidden = !hasGroups;
+		toggleExpensesButton.textContent = expensesExpanded ? "Ocultar meses" : "Mostrar meses";
+		expensesList.hidden = hasGroups && !expensesExpanded;
+	}
+
+	function toggleExpensesVisibility() {
+		expensesExpanded = !expensesExpanded;
+		if (!expensesExpanded) {
+			expenseMonths().forEach(function (item) { item.open = false; });
+		}
+		applyExpensesVisibility();
+	}
+	function updateToggleExpensesButton() {
+	  var months = expenseMonths();
+	  toggleExpensesButton.hidden = months.length < 2;
+	  var allOpen = months.length > 0 && Array.prototype.every.call(months, function (item) { return item.open; });
+	  toggleExpensesButton.textContent = allOpen ? "Recolher tudo" : "Expandir tudo";
+	}
+
+	function toggleAllExpenseMonths() {
+	  var months = expenseMonths();
+	  var allOpen = months.length > 0 && Array.prototype.every.call(months, function (item) { return item.open; });
+	  months.forEach(function (item) { item.open = !allOpen; });
+	  updateToggleExpensesButton();
+	}
 
     function toggleStatus(id, month) {
         var unit = state.units.find(function (item) {
@@ -2018,6 +2056,7 @@
             .forEach(function (item) {
                 item.open = false;
             });
+		applyExpensesVisibility()	
     }
 
     function openModal(id) {
@@ -3242,7 +3281,9 @@
         .addEventListener("click", function () {
             openExpenseModal();
         });
-
+    
+	toggleExpensesButton.addEventListener("click", toggleExpensesVisibility);
+	
     document
         .getElementById("cancelModal")
         .addEventListener("click", closeModal);
