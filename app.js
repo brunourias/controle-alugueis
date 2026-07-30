@@ -384,15 +384,7 @@ function saveState() {
 
   }
 
- 
 
-  function cloudStatesEqual(left, right) {
-
-    return JSON.stringify(left) === JSON.stringify(right);
-
-  }
-
- 
 
   function cloudDocRef() {
 
@@ -426,17 +418,28 @@ function saveState() {
 
     cloudUpdatedAt = Math.max(cloudUpdatedAt, updatedAt);
 
-    ref.set({ payload: state, updatedAt: updatedAt }).then(function () {
+    ref.set({
+    payload: state,
+    updatedAt: updatedAt
+	}).then(function () {
 
-      setSyncStatus(navigator.onLine ? "Sincronizado" : "Offline — alterações salvas localmente");
+		cloudUpdatedAt = updatedAt;
+		cloudPendingRemote = null;
+		cloudReconcile.hidden = true;
 
-    }).catch(function (error) {
+		setSyncStatus("Sincronizado");
 
-      setCloudError(cloudErrorMessage(error));
+	}).catch(function (error) {
 
-      setSyncStatus(navigator.onLine ? "Não sincronizado — salvo localmente" : "Offline — alterações salvas localmente");
+		setCloudError(cloudErrorMessage(error));
 
-    });
+		setSyncStatus(
+			navigator.onLine
+				? "Não sincronizado — salvo localmente"
+				: "Offline — alterações salvas localmente"
+		);
+
+	});
 
   }
 
@@ -547,24 +550,55 @@ function saveState() {
         return;
 
       }
-
-      if (cloudStatesEqual(state, remoteState)) {
-
-        finishCloudReconciliation();
-
-        setSyncStatus("Sincronizado");
-
-        return;
-
-      }
-
-      cloudPendingRemote = remoteState;
+	  
+	  if (cloudStatesEqual(state, remoteState)) {
+    finishCloudReconciliation();
+    setSyncStatus("Sincronizado");
+    return;
+	}
+	
+	cloudPendingRemote = remoteState;
 
       cloudReconcileText.textContent = "Há dados diferentes entre a nuvem (" + cloudCounts(remoteState) + ") e este aparelho (" + cloudCounts(state) + "). Escolha qual versão deseja manter.";
 
       cloudReconcile.hidden = false;
 
       setSyncStatus("Aguardando escolha");
+
+
+function sortObject(value) {
+
+    if (Array.isArray(value)) {
+        return value.map(sortObject);
+    }
+
+    if (value && typeof value === "object") {
+
+        var obj = {};
+
+        Object.keys(value)
+            .sort()
+            .forEach(function (key) {
+                obj[key] = sortObject(value[key]);
+            });
+
+        return obj;
+    }
+
+    return value;
+}
+
+function cloudStatesEqual(left, right) {
+
+    return JSON.stringify(
+        sortObject(normalizeState(JSON.parse(JSON.stringify(left))))
+    ) === JSON.stringify(
+        sortObject(normalizeState(JSON.parse(JSON.stringify(right))))
+    );
+
+}
+
+      
 
     }).catch(function (error) {
 
@@ -592,17 +626,18 @@ function saveState() {
 
  
 
-  function chooseLocalData() {
+function chooseLocalData() {
 
-    cloudReconcile.hidden = true;
+	cloudReconcile.hidden = true;
+	cloudPendingRemote = null;
 
-    cloudPendingRemote = null;
+	cloudUpdatedAt = Date.now();
 
-    writeCloudState();
+	writeCloudState();
 
-    subscribeCloud();
+	subscribeCloud();
 
-  }
+}
 
  
 
