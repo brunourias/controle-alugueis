@@ -406,9 +406,7 @@ function saveState() {
 
   }
 
- 
-
-  function writeCloudState() {
+ function writeCloudState() {
 
     var ref = cloudDocRef();
 
@@ -419,31 +417,30 @@ function saveState() {
     cloudUpdatedAt = Math.max(cloudUpdatedAt, updatedAt);
 
     ref.set({
-    payload: state,
-    updatedAt: updatedAt
-	}).then(function () {
+        payload: state,
+        updatedAt: updatedAt
+    }).then(function () {
 
-		cloudUpdatedAt = updatedAt;
-		cloudPendingRemote = null;
-		cloudReconcile.hidden = true;
+        cloudUpdatedAt = updatedAt;
+        cloudPendingRemote = null;
+        cloudReconcile.hidden = true;
 
-		setSyncStatus("Sincronizado");
+        setCloudStatus("Conta conectada. Sincronização automática ativa.");
+        setSyncStatus("Sincronizado");
 
-	}).catch(function (error) {
+    }).catch(function (error) {
 
-		setCloudError(cloudErrorMessage(error));
+        setCloudError(cloudErrorMessage(error));
 
-		setSyncStatus(
-			navigator.onLine
-				? "Não sincronizado — salvo localmente"
-				: "Offline — alterações salvas localmente"
-		);
+        setSyncStatus(
+            navigator.onLine
+                ? "Não sincronizado — salvo localmente"
+                : "Offline — alterações salvas localmente"
+        );
 
-	});
+    });
 
-  }
-
- 
+}
 
   function applyRemoteState(payload) {
 
@@ -499,19 +496,17 @@ function saveState() {
 
   }
 
- 
-
-  function finishCloudReconciliation() {
+function finishCloudReconciliation() {
 
     cloudReconcile.hidden = true;
-
     cloudPendingRemote = null;
+
+    setCloudStatus("Conta conectada. Sincronização automática ativa.");
+    setSyncStatus("Sincronizado");
 
     subscribeCloud();
 
-  }
-
- 
+}
 
   function reconcileCloud() {
 
