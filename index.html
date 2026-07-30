@@ -1,620 +1,849 @@
 <!DOCTYPE html>
 
 <html lang="pt-BR">
-
-<head>
-
-  <meta charset="UTF-8" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-
-  <meta name="theme-color" content="#0f766e" />
-
-  <title>Meus Imóveis</title>
-
-  <link rel="manifest" href="manifest.json" />
-
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-  <link rel="stylesheet" href="styles.css" />
-
-</head>
-
-<body>
-
-  <div id="lockScreen" class="lock-screen" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
-
-    <div class="lock-card">
-
-      <div class="lock-icon">🔒</div>
-
-      <h2 id="lockTitle">Acesso protegido</h2>
-
-      <p>Digite seu PIN para abrir o controle de aluguéis.</p>
-
-      <form id="unlockForm">
-
-        <label>PIN
-
-          <input id="unlockPin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" />
-
-        </label>
-
-        <button class="btn btn-primary" type="submit">Desbloquear</button>
-
-      </form>
-
-      <button id="unlockBiometric" class="btn btn-ghost biometric-unlock" type="button" hidden>Desbloquear com biometria</button>
-
-      <p id="lockError" class="lock-error" role="alert"></p>
-
-    </div>
-
-  </div>
-
- 
-
-  <header class="app-header">
-
-    <div class="header-top">
- 
-      <h1 id="appTitle">Meus Imóveis</h1>
-
-      <div class="header-controls">
-	
-        <div class="year-nav">
-          
-		  <button id="settingsButton" class="icon-btn" type="button" aria-label="Configurações" title="Configurações">⚙</button>
-          
-		  <button id="prevYear" class="icon-btn" aria-label="Ano anterior">‹</button>
-
-          <span id="yearLabel">2026</span>
-
-          <button id="nextYear" class="icon-btn" aria-label="Próximo ano">›</button>
-
-        </div>
-		
-		 <div class="emp">
-			
-			<label class="enterprise-selector">
-			 <select id="empreendimentoFilter">
-			 <option value="todos">Todos</option>
-			 </select>
-			</label>
-		
-		</div>
-
-      </div>
-
-    </div>
-	
-
-
-    <p class="hint">Toque para alternar:
-	<br>
-	<span class="chip chip-pendente">Pendente</span> → 
-	<span class="chip chip-pago">Pago</span> → 
-	<span class="chip chip-pago-atrasado">Pago (atraso)</span> → 
-	<span class="chip chip-atrasado">Atrasado</span></p>
-
-  </header>
-
- 
-
-  <main>
-
-    <div class="filter-bar" aria-label="Filtros das unidades">
-
-      <label class="filter-search">Buscar unidade
-
-        <input id="unitSearch" type="search" placeholder="Nome da unidade" autocomplete="off" />
-
-      </label>
-
-      <label>Filtrar por status
-
-        <select id="statusFilter">
-
-          <option value="todos">Todos</option>
-
-          <option value="atrasados">Atrasados</option>
-
-          <option value="pendentes">Pendentes</option>
-
-          <option value="pagos">Pagos</option>
-
-        </select>
-
-      </label>
-
-    </div>
-
- 
-
-    <div class="table-wrap">
-
-      <table id="grid">
-
-        <thead></thead>
-
-        <tbody></tbody>
-
-        <tfoot></tfoot>
-
-      </table>
-
-    </div>
-
- 
-
-    <div id="filterEmpty" class="empty" hidden>
-
-      <p>Nenhuma unidade encontrada.</p>
-
-      <p>Ajuste os filtros para ver outras unidades.</p>
-
-    </div>
-
- 
-
-    <div id="empty" class="empty" hidden>
-
-      <p>Nenhuma unidade cadastrada ainda.</p>
-
-      <p>Toque em <strong>+ Nova unidade</strong> para começar.</p>
-
-    </div>
-
- 
-
-    <div class="summary" id="summary"></div>
-
- 
-
-    <section class="expenses-section" aria-labelledby="expensesTitle">
-
-      <div class="expense-header">
-
-        <div>
-
-          <h2 id="expensesTitle">Gastos gerais</h2>
-
-          <p>Despesas do portfólio em <span id="expensesYear">2026</span>.</p>
-
+    <head>
+        <meta charset="UTF-8" />
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+        />
+
+        <meta name="theme-color" content="#0f766e" />
+
+        <title>Meus Imóveis</title>
+
+        <link rel="manifest" href="manifest.json" />
+
+        <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+
+    <body>
+        <div
+            id="lockScreen"
+            class="lock-screen"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lockTitle"
+            hidden
+        >
+            <div class="lock-card">
+                <div class="lock-icon">🔒</div>
+
+                <h2 id="lockTitle">Acesso protegido</h2>
+
+                <p>Digite seu PIN para abrir o controle de aluguéis.</p>
+
+                <form id="unlockForm">
+                    <label
+                        >PIN
+
+                        <input
+                            id="unlockPin"
+                            type="password"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="current-password"
+                            maxlength="32"
+                        />
+                    </label>
+
+                    <button class="btn btn-primary" type="submit">
+                        Desbloquear
+                    </button>
+                </form>
+
+                <button
+                    id="unlockBiometric"
+                    class="btn btn-ghost biometric-unlock"
+                    type="button"
+                    hidden
+                >
+                    Desbloquear com biometria
+                </button>
+
+                <p id="lockError" class="lock-error" role="alert"></p>
+            </div>
         </div>
 
-        Gastos no ano: <strong id="expensesTotal">R$ 0,00</strong>
-        <br>
-		<br>		
-        <button id="addExpense" class="btn btn-primary" type="button">+ Novo gasto</button>
-
-      </div>
-
-      <div id="expensesList"></div>
-
-    </section>
-
- 
-
-    <div class="backup-toolbar" aria-label="Backup dos dados">
-
-      <span class="backup-title">Seus dados ficam salvos na Nuvem.</span>
-
-      <div class="backup-actions">
-
-        <button id="exportBackup" class="btn btn-ghost" type="button">Exportar backup</button>
-
-        <button id="importBackup" class="btn btn-ghost" type="button">Importar backup</button>
-
-        <input id="backupFile" type="file" accept="application/json" hidden />
-
-      </div>
-
-    </div>
-
-  </main>
-
- 
-
-  <button id="addUnit" class="fab" aria-label="Nova unidade">+ Nova unidade</button>
-
- 
-
-  <!-- Modal de unidade -->
-
-  <div class="modal-backdrop" id="modal" hidden>
-
-    <div class="modal">
-
-      <h2 id="modalTitle">Nova unidade</h2>
-
-      <label>Nome da unidade
-
-        <input type="text" id="unitName" placeholder="Ex.: Unidade 01" autocomplete="off" />
-
-      </label>
-
-
-      <label>Empreendimento
-	  <select id="unitEmpreendimento"></select>
-	  </label>
-
-
-
-
-      <label>Valor do aluguel (R$)
-
-        <input type="number" id="unitRent" placeholder="Ex.: 1200" inputmode="decimal" min="0" step="0.01" />
-
-      </label>
-
-      <section class="rent-changes-section">
-
-        <h3>Reajuste de aluguel</h3>
-
-        <p class="field-help">O valor acima é o aluguel base. Cada reajuste vale a partir do mês informado.</p>
-
-        <div id="rentChangesList"></div>
-
-        <label>Aplicar a partir de
-
-          <input type="month" id="rentChangeYm" />
-
-        </label>
-
-        <label>Percentual de reajuste (%)
-
-          <input type="number" id="rentChangePercent" min="-100" step="0.01" placeholder="Ex.: 10" inputmode="decimal" />
-
-        </label>
-
-        <label>Novo valor absoluto (R$)
-
-          <input type="number" id="rentChangeAbsolute" min="0" step="0.01" placeholder="Opcional" inputmode="decimal" />
-
-        </label>
-
-        <button id="addRentChange" class="btn btn-ghost" type="button">Adicionar reajuste</button>
-
-      </section>
-
-      <label>Dia de vencimento
-
-        <input type="number" id="unitDueDay" placeholder="Ex.: 5" inputmode="numeric" min="1" max="31" step="1" />
-
-      </label>
-
-      <label>Início da locação
-
-        <input type="month" id="unitStartYm" />
-
-        <small class="field-help">Deixe em branco para considerar o ano todo.</small>
-
-      </label>
-
-      <label>Fim da locação
-
-        <input type="month" id="unitEndYm" />
-
-        <small class="field-help">Deixe em branco para considerar sem fim.</small>
-
-      </label>
-
-      <label>Nome do inquilino
-
-        <input type="text" id="tenantName" placeholder="Opcional" autocomplete="name" />
-
-      </label>
-
-      <label>Telefone do inquilino
-
-        <input type="tel" id="tenantPhone" placeholder="(11) 99999-9999" autocomplete="tel" />
-
-      </label>
-
-      <label>E-mail do inquilino
-
-        <input type="email" id="tenantEmail" placeholder="Opcional" autocomplete="email" />
-
-      </label>
-
-      <label>Observações do inquilino
-
-        <textarea id="tenantNotes" rows="3" placeholder="Opcional"></textarea>
-
-      </label>
-
-      <div class="modal-actions">
-
-        <button id="deleteUnit" class="btn btn-danger" hidden>Excluir</button>
-
-        <span class="spacer"></span>
-
-        <button id="cancelModal" class="btn btn-ghost">Cancelar</button>
-
-        <button id="saveUnit" class="btn btn-primary">Salvar</button>
-
-      </div>
-
-    </div>
-
-  </div>
-
- 
-
-  <!-- Modal de gasto -->
-
-  <div class="modal-backdrop" id="expenseModal" hidden>
-
-    <div class="modal">
-
-      <h2 id="expenseModalTitle">Novo gasto</h2>
-
-      <label>Data
-
-        <input type="month" id="expenseYm" />
-
-      </label>
-	  
-	  <label>Empreendimento
-	  <select id="expenseEmpreendimento"></select>
-	  </label>
-
-      <label>Categoria
-
-        <select id="expenseCategory">
-
-          <option>Manutenção</option>
-
-          <option>Mão de obra</option>
-
-          <option>IPTU</option>
-
-          <option>Água</option>
-
-          <option>Luz</option>
-
-          <option>Outros</option>
-
-        </select>
-
-      </label>
-
-      <label>Valor (R$)
-
-        <input type="number" id="expenseAmount" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 350,00" />
-
-      </label>
-
-      <label>Descrição (opcional)
-
-        <input type="text" id="expenseDescription" maxlength="160" placeholder="Ex.: Conserto do portão" autocomplete="off" />
-
-      </label>
-
-      <label id="recurrenceArea" class="recurrence-field">
-
-        <span><input type="checkbox" id="expenseRepeat" /> Repetir por N meses</span>
-
-        <input type="number" id="expenseRepeatCount" min="1" max="60" step="1" value="1" inputmode="numeric" aria-label="Quantidade de meses" />
-
-        <small class="field-help">Cria um gasto independente para cada mês, por até 60 meses.</small>
-
-      </label>
-
-      <div class="modal-actions">
-
-        <button id="deleteExpense" class="btn btn-danger" hidden type="button">Excluir</button>
-
-        <span class="spacer"></span>
-
-        <button id="cancelExpense" class="btn btn-ghost" type="button">Cancelar</button>
-
-        <button id="saveExpense" class="btn btn-primary" type="button">Salvar</button>
-
-      </div>
-
-    </div>
-
-  </div>
-
- 
-
-  <!-- Modal de configurações -->
-
-  <div class="modal-backdrop" id="settingsModal" hidden>
-
-    <div class="modal settings-modal">
-
-      <h2>Configurações</h2>
-
-      <p class="settings-note">Defina os encargos aplicados aos pagamentos em atraso.</p>
-
-      <label>Multa (%)
-
-        <input type="number" id="finePercent" inputmode="decimal" min="0" step="0.01" />
-
-      </label>
-
-      <label>Juros (% ao dia)
-
-        <input type="number" id="dailyInterestPercent" inputmode="decimal" min="0" step="0.01" />
-
-      </label>
-
-      <label>Nome do recebedor
-
-        <input type="text" id="receiverName" placeholder="Opcional" autocomplete="name" />
-
-        <small class="field-help">Será exibido nos recibos.</small>
-
-      </label>
-
-      <section class="category-section">
-
-        <h3>Categorias de gasto</h3>
-
-        <p id="categoryStatus" class="settings-note">Edite as opções disponíveis para os gastos.</p>
-
-        <div id="categoryList"></div>
-
-        <div class="category-add">
-
-          <input id="newCategory" type="text" maxlength="60" placeholder="Nova categoria" autocomplete="off" />
-
-          <button id="addCategory" class="btn btn-ghost" type="button">Adicionar</button>
-
+        <header class="app-header">
+            <div class="header-top">
+                <h1 id="appTitle">Meus Imóveis</h1>
+
+                <div class="header-controls">
+                    <div class="year-nav">
+                        <button
+                            id="settingsButton"
+                            class="icon-btn"
+                            type="button"
+                            aria-label="Configurações"
+                            title="Configurações"
+                        >
+                            ⚙
+                        </button>
+
+                        <button
+                            id="prevYear"
+                            class="icon-btn"
+                            aria-label="Ano anterior"
+                        >
+                            ‹
+                        </button>
+
+                        <span id="yearLabel">2026</span>
+
+                        <button
+                            id="nextYear"
+                            class="icon-btn"
+                            aria-label="Próximo ano"
+                        >
+                            ›
+                        </button>
+                    </div>
+
+                    <div class="emp">
+                        <label class="enterprise-selector">
+                            <select id="empreendimentoFilter">
+                                <option value="todos">Todos</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <p class="hint">
+                Toque para alternar:
+                <br />
+                <span class="chip chip-pendente">Pendente</span> →
+                <span class="chip chip-pago">Pago</span> →
+                <span class="chip chip-pago-atrasado">Pago (atraso)</span> →
+                <span class="chip chip-atrasado">Atrasado</span>
+            </p>
+        </header>
+
+        <main>
+            <div class="filter-bar" aria-label="Filtros das unidades">
+                <label class="filter-search"
+                    >Buscar unidade
+
+                    <input
+                        id="unitSearch"
+                        type="search"
+                        placeholder="Nome da unidade"
+                        autocomplete="off"
+                    />
+                </label>
+
+                <label
+                    >Filtrar por status
+
+                    <select id="statusFilter">
+                        <option value="todos">Todos</option>
+
+                        <option value="atrasados">Atrasados</option>
+
+                        <option value="pendentes">Pendentes</option>
+
+                        <option value="pagos">Pagos</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="table-wrap">
+                <table id="grid">
+                    <thead></thead>
+
+                    <tbody></tbody>
+
+                    <tfoot></tfoot>
+                </table>
+            </div>
+
+            <div id="filterEmpty" class="empty" hidden>
+                <p>Nenhuma unidade encontrada.</p>
+
+                <p>Ajuste os filtros para ver outras unidades.</p>
+            </div>
+
+            <div id="empty" class="empty" hidden>
+                <p>Nenhuma unidade cadastrada ainda.</p>
+
+                <p>Toque em <strong>+ Nova unidade</strong> para começar.</p>
+            </div>
+
+            <div class="summary" id="summary"></div>
+
+            <section class="expenses-section" aria-labelledby="expensesTitle">
+                <div class="expense-header">
+                    <div>
+                        <h2 id="expensesTitle">Gastos gerais</h2>
+
+                        <p>Despesas do portfólio em<span id="expensesYear">2026</span>.</p>
+                    </div>
+
+					Gastos no ano: <strong id="expensesTotal">R$ 0,00</strong>
+					<button id="toggleExpenses" class="btn btn-ghost" type="button" hidden>Mostrar meses</button>
+                    <br />
+                    <br />
+                    <button id="addExpense" class="btn btn-primary" type="button">+ Novo gasto</button>
+                </div>
+
+                <div id="expensesList"></div>
+            </section>
+
+            <div class="backup-toolbar" aria-label="Backup dos dados">
+                <span class="backup-title"
+                    >Seus dados ficam salvos na Nuvem.</span
+                >
+
+                <div class="backup-actions">
+                    <button
+                        id="exportBackup"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Exportar backup
+                    </button>
+
+                    <button
+                        id="importBackup"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Importar backup
+                    </button>
+
+                    <input
+                        id="backupFile"
+                        type="file"
+                        accept="application/json"
+                        hidden
+                    />
+                </div>
+            </div>
+        </main>
+
+        <button id="addUnit" class="fab" aria-label="Nova unidade">
+            + Nova unidade
+        </button>
+
+        <!-- Modal de unidade -->
+
+        <div class="modal-backdrop" id="modal" hidden>
+            <div class="modal">
+                <h2 id="modalTitle">Nova unidade</h2>
+
+                <label
+                    >Nome da unidade
+
+                    <input
+                        type="text"
+                        id="unitName"
+                        placeholder="Ex.: Unidade 01"
+                        autocomplete="off"
+                    />
+                </label>
+
+                <label
+                    >Empreendimento
+                    <select id="unitEmpreendimento"></select>
+                </label>
+
+                <label
+                    >Valor do aluguel (R$)
+
+                    <input
+                        type="number"
+                        id="unitRent"
+                        placeholder="Ex.: 1200"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                    />
+                </label>
+
+                <section class="rent-changes-section">
+                    <h3>Reajuste de aluguel</h3>
+
+                    <p class="field-help">
+                        O valor acima é o aluguel base. Cada reajuste vale a
+                        partir do mês informado.
+                    </p>
+
+                    <div id="rentChangesList"></div>
+
+                    <label
+                        >Aplicar a partir de
+
+                        <input type="month" id="rentChangeYm" />
+                    </label>
+
+                    <label
+                        >Percentual de reajuste (%)
+
+                        <input
+                            type="number"
+                            id="rentChangePercent"
+                            min="-100"
+                            step="0.01"
+                            placeholder="Ex.: 10"
+                            inputmode="decimal"
+                        />
+                    </label>
+
+                    <label
+                        >Novo valor absoluto (R$)
+
+                        <input
+                            type="number"
+                            id="rentChangeAbsolute"
+                            min="0"
+                            step="0.01"
+                            placeholder="Opcional"
+                            inputmode="decimal"
+                        />
+                    </label>
+
+                    <button
+                        id="addRentChange"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Adicionar reajuste
+                    </button>
+                </section>
+
+                <label
+                    >Dia de vencimento
+
+                    <input
+                        type="number"
+                        id="unitDueDay"
+                        placeholder="Ex.: 5"
+                        inputmode="numeric"
+                        min="1"
+                        max="31"
+                        step="1"
+                    />
+                </label>
+
+                <label
+                    >Início da locação
+
+                    <input type="month" id="unitStartYm" />
+
+                    <small class="field-help"
+                        >Deixe em branco para considerar o ano todo.</small
+                    >
+                </label>
+
+                <label
+                    >Fim da locação
+
+                    <input type="month" id="unitEndYm" />
+
+                    <small class="field-help"
+                        >Deixe em branco para considerar sem fim.</small
+                    >
+                </label>
+
+                <label
+                    >Nome do inquilino
+
+                    <input
+                        type="text"
+                        id="tenantName"
+                        placeholder="Opcional"
+                        autocomplete="name"
+                    />
+                </label>
+
+                <label
+                    >Telefone do inquilino
+
+                    <input
+                        type="tel"
+                        id="tenantPhone"
+                        placeholder="(11) 99999-9999"
+                        autocomplete="tel"
+                    />
+                </label>
+
+                <label
+                    >E-mail do inquilino
+
+                    <input
+                        type="email"
+                        id="tenantEmail"
+                        placeholder="Opcional"
+                        autocomplete="email"
+                    />
+                </label>
+
+                <label
+                    >Observações do inquilino
+
+                    <textarea
+                        id="tenantNotes"
+                        rows="3"
+                        placeholder="Opcional"
+                    ></textarea>
+                </label>
+
+                <div class="modal-actions">
+                    <button id="deleteUnit" class="btn btn-danger" hidden>
+                        Excluir
+                    </button>
+
+                    <span class="spacer"></span>
+
+                    <button id="cancelModal" class="btn btn-ghost">
+                        Cancelar
+                    </button>
+
+                    <button id="saveUnit" class="btn btn-primary">
+                        Salvar
+                    </button>
+                </div>
+            </div>
         </div>
 
-      </section>
+        <!-- Modal de gasto -->
 
+        <div class="modal-backdrop" id="expenseModal" hidden>
+            <div class="modal">
+                <h2 id="expenseModalTitle">Novo gasto</h2>
 
+                <label
+                    >Data
 
+                    <input type="month" id="expenseYm" />
+                </label>
 
+                <label
+                    >Empreendimento
+                    <select id="expenseEmpreendimento"></select>
+                </label>
 
-<section class="enterprise-section">
-  <h3>Empreendimentos</h3>
-  <p id="enterpriseStatus" class="settings-note">
-    Organize unidades e gastos por empreendimento.
-  </p>
-  <div id="enterpriseList"></div>
-  <div class="category-add">
-    <input id="newEnterprise" type="text" maxlength="80" placeholder="Novo empreendimento" autocomplete="off" />
-    <button id="addEnterprise" class="btn btn-ghost" type="button">Adicionar</button>
-  </div>
-</section>
+                <label
+                    >Categoria
 
-<section class="cloud-section">
-  <h3>Conta / Nuvem</h3>
-  <p id="cloudStatus" class="settings-note">A sincronização é opcional. Seus dados continuam disponíveis neste dispositivo.</p>
-  <div id="cloudSignedOut">
-    <label>E-mail
-      <input type="email" id="cloudEmail" autocomplete="email" placeholder="voce@exemplo.com" />
-    </label>
-    <label>Senha
-      <input type="password" id="cloudPassword" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres" />
-    </label>
-    <div class="cloud-actions">
-      <button id="cloudSignIn" class="btn btn-primary" type="button">Entrar</button>
-      <button id="cloudSignUp" class="btn btn-ghost" type="button">Criar conta</button>
-    </div>
-  </div>
-  <div id="cloudSignedIn" hidden>
-    <p class="cloud-user">Conectado como <strong id="cloudUserEmail"></strong></p>
-    <p id="syncStatus" class="settings-note">Sincronizando...</p>
-    <button id="cloudSignOut" class="btn btn-ghost" type="button">Sair</button>
-  </div>
-  <p id="cloudError" class="cloud-error" role="alert"></p>
-  <div id="cloudReconcile" class="cloud-reconcile" hidden>
-    <p id="cloudReconcileText"></p>
-    <div class="cloud-actions">
-      <button id="useCloudData" class="btn btn-primary" type="button">Usar dados da nuvem</button>
-      <button id="useLocalData" class="btn btn-ghost" type="button">Enviar dados deste aparelho</button>
-    </div>
-  </div>
-</section>
+                    <select id="expenseCategory">
+                        <option>Manutenção</option>
 
+                        <option>Mão de obra</option>
 
+                        <option>IPTU</option>
 
+                        <option>Água</option>
 
+                        <option>Luz</option>
 
+                        <option>Outros</option>
+                    </select>
+                </label>
 
+                <label
+                    >Valor (R$)
 
-      <section class="security-section">
+                    <input
+                        type="number"
+                        id="expenseAmount"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                        placeholder="Ex.: 350,00"
+                    />
+                </label>
 
-        <h3>Segurança</h3>
+                <label
+                    >Descrição (opcional)
 
-        <p id="securityStatus" class="settings-note"></p>
+                    <input
+                        type="text"
+                        id="expenseDescription"
+                        maxlength="160"
+                        placeholder="Ex.: Conserto do portão"
+                        autocomplete="off"
+                    />
+                </label>
 
-        <label id="currentPinLabel">PIN atual
+                <label id="recurrenceArea" class="recurrence-field">
+                    <span
+                        ><input type="checkbox" id="expenseRepeat" /> Repetir
+                        por N meses</span
+                    >
 
-          <input type="password" id="currentPin" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" />
+                    <input
+                        type="number"
+                        id="expenseRepeatCount"
+                        min="1"
+                        max="60"
+                        step="1"
+                        value="1"
+                        inputmode="numeric"
+                        aria-label="Quantidade de meses"
+                    />
 
-        </label>
+                    <small class="field-help"
+                        >Cria um gasto independente para cada mês, por até 60
+                        meses.</small
+                    >
+                </label>
 
-        <label>Novo PIN
+                <div class="modal-actions">
+                    <button
+                        id="deleteExpense"
+                        class="btn btn-danger"
+                        hidden
+                        type="button"
+                    >
+                        Excluir
+                    </button>
 
-          <input type="password" id="newPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" />
+                    <span class="spacer"></span>
 
-        </label>
+                    <button
+                        id="cancelExpense"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Cancelar
+                    </button>
 
-        <label>Confirmar novo PIN
-
-          <input type="password" id="confirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" />
-
-        </label>
-
-        <div class="security-actions">
-
-          <button id="savePin" class="btn btn-primary" type="button">Salvar PIN</button>
-
-          <button id="removePin" class="btn btn-danger" type="button">Remover PIN</button>
-
+                    <button
+                        id="saveExpense"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Salvar
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <label id="biometricArea" class="checkbox-label" hidden>
+        <!-- Modal de configurações -->
 
-          <span><input type="checkbox" id="biometricToggle" /> Usar biometria</span>
+        <div class="modal-backdrop" id="settingsModal" hidden>
+            <div class="modal settings-modal">
+                <h2>Configurações</h2>
 
-          <small class="field-help">O PIN continua disponível como alternativa.</small>
+                <p class="settings-note">
+                    Defina os encargos aplicados aos pagamentos em atraso.
+                </p>
 
-        </label>
+                <label
+                    >Multa (%)
 
-      </section>
+                    <input
+                        type="number"
+                        id="finePercent"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                    />
+                </label>
 
-      <div class="modal-actions">
+                <label
+                    >Juros (% ao dia)
 
-        <span class="spacer"></span>
+                    <input
+                        type="number"
+                        id="dailyInterestPercent"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                    />
+                </label>
 
-        <button id="cancelSettings" class="btn btn-ghost" type="button">Cancelar</button>
+                <label
+                    >Nome do recebedor
 
-        <button id="saveSettings" class="btn btn-primary" type="button">Salvar</button>
+                    <input
+                        type="text"
+                        id="receiverName"
+                        placeholder="Opcional"
+                        autocomplete="name"
+                    />
 
-      </div>
+                    <small class="field-help">Será exibido nos recibos.</small>
+                </label>
 
-    </div>
+                <section class="category-section">
+                    <h3>Categorias de gasto</h3>
 
-  </div>
+                    <p id="categoryStatus" class="settings-note">
+                        Edite as opções disponíveis para os gastos.
+                    </p>
 
- 
+                    <div id="categoryList"></div>
 
-  <!-- Modal de recibo -->
+                    <div class="category-add">
+                        <input
+                            id="newCategory"
+                            type="text"
+                            maxlength="60"
+                            placeholder="Nova categoria"
+                            autocomplete="off"
+                        />
 
-  <div class="modal-backdrop" id="receiptModal" hidden>
+                        <button
+                            id="addCategory"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Adicionar
+                        </button>
+                    </div>
+                </section>
 
-    <div class="modal receipt-modal">
+                <section class="enterprise-section">
+                    <h3>Empreendimentos</h3>
+                    <p id="enterpriseStatus" class="settings-note">
+                        Organize unidades e gastos por empreendimento.
+                    </p>
+                    <div id="enterpriseList"></div>
+                    <div class="category-add">
+                        <input
+                            id="newEnterprise"
+                            type="text"
+                            maxlength="80"
+                            placeholder="Novo empreendimento"
+                            autocomplete="off"
+                        />
+                        <button
+                            id="addEnterprise"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Adicionar
+                        </button>
+                    </div>
+                </section>
 
-      <h2>Residencial Boa Vista</h2>
+                <section class="cloud-section">
+                    <h3>Conta / Nuvem</h3>
+                    <p id="cloudStatus" class="settings-note">
+                        A sincronização é opcional. Seus dados continuam
+                        disponíveis neste dispositivo.
+                    </p>
+                    <div id="cloudSignedOut">
+                        <label
+                            >E-mail
+                            <input
+                                type="email"
+                                id="cloudEmail"
+                                autocomplete="email"
+                                placeholder="voce@exemplo.com"
+                            />
+                        </label>
+                        <label
+                            >Senha
+                            <input
+                                type="password"
+                                id="cloudPassword"
+                                autocomplete="current-password"
+                                minlength="6"
+                                placeholder="Mínimo de 6 caracteres"
+                            />
+                        </label>
+                        <div class="cloud-actions">
+                            <button
+                                id="cloudSignIn"
+                                class="btn btn-primary"
+                                type="button"
+                            >
+                                Entrar
+                            </button>
+                            <button
+                                id="cloudSignUp"
+                                class="btn btn-ghost"
+                                type="button"
+                            >
+                                Criar conta
+                            </button>
+                        </div>
+                    </div>
+                    <div id="cloudSignedIn" hidden>
+                        <p class="cloud-user">
+                            Conectado como <strong id="cloudUserEmail"></strong>
+                        </p>
+                        <p id="syncStatus" class="settings-note">
+                            Sincronizando...
+                        </p>
+                        <button
+                            id="cloudSignOut"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Sair
+                        </button>
+                    </div>
+                    <p id="cloudError" class="cloud-error" role="alert"></p>
+                    <div id="cloudReconcile" class="cloud-reconcile" hidden>
+                        <p id="cloudReconcileText"></p>
+                        <div class="cloud-actions">
+                            <button
+                                id="useCloudData"
+                                class="btn btn-primary"
+                                type="button"
+                            >
+                                Usar dados da nuvem
+                            </button>
+                            <button
+                                id="useLocalData"
+                                class="btn btn-ghost"
+                                type="button"
+                            >
+                                Enviar dados deste aparelho
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
-      <div id="receiptPreview"></div>
+                <section class="security-section">
+                    <h3>Segurança</h3>
 
-      <div class="modal-actions">
+                    <p id="securityStatus" class="settings-note"></p>
 
-        <span class="spacer"></span>
+                    <label id="currentPinLabel"
+                        >PIN atual
 
-        <button id="cancelReceipt" class="btn btn-ghost" type="button">Fechar</button>
+                        <input
+                            type="password"
+                            id="currentPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="current-password"
+                            maxlength="32"
+                        />
+                    </label>
 
-        <button id="printReceiptButton" class="btn btn-ghost" type="button">Imprimir / PDF</button>
+                    <label
+                        >Novo PIN
 
-        <button id="downloadReceipt" class="btn btn-primary" type="button">Baixar imagem</button>
+                        <input
+                            type="password"
+                            id="newPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="new-password"
+                            minlength="4"
+                            maxlength="32"
+                        />
+                    </label>
 
-      </div>
+                    <label
+                        >Confirmar novo PIN
 
-    </div>
+                        <input
+                            type="password"
+                            id="confirmPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="new-password"
+                            minlength="4"
+                            maxlength="32"
+                        />
+                    </label>
 
-  </div>
+                    <div class="security-actions">
+                        <button
+                            id="savePin"
+                            class="btn btn-primary"
+                            type="button"
+                        >
+                            Salvar PIN
+                        </button>
 
- 
+                        <button
+                            id="removePin"
+                            class="btn btn-danger"
+                            type="button"
+                        >
+                            Remover PIN
+                        </button>
+                    </div>
 
-  <div id="printReceipt" class="print-receipt"></div>
+                    <label id="biometricArea" class="checkbox-label" hidden>
+                        <span
+                            ><input type="checkbox" id="biometricToggle" /> Usar
+                            biometria</span
+                        >
 
- 
+                        <small class="field-help"
+                            >O PIN continua disponível como alternativa.</small
+                        >
+                    </label>
+                </section>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js"></script>
+                <div class="modal-actions">
+                    <span class="spacer"></span>
 
-</body>
+                    <button
+                        id="cancelSettings"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Cancelar
+                    </button>
 
+                    <button
+                        id="saveSettings"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de recibo -->
+
+        <div class="modal-backdrop" id="receiptModal" hidden>
+            <div class="modal receipt-modal">
+                <h2>Residencial Boa Vista</h2>
+
+                <div id="receiptPreview"></div>
+
+                <div class="modal-actions">
+                    <span class="spacer"></span>
+
+                    <button
+                        id="cancelReceipt"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Fechar
+                    </button>
+
+                    <button
+                        id="printReceiptButton"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Imprimir / PDF
+                    </button>
+
+                    <button
+                        id="downloadReceipt"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Baixar imagem
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="printReceipt" class="print-receipt"></div>
+
+        <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+        <script src="app.js"></script>
+    </body>
 </html>
