@@ -1991,9 +1991,6 @@
                     openExpenseModal(button.dataset.expenseEdit);
                 });
             });
-		expensesList.querySelectorAll("details.expense-month").forEach(function (item) {
-			item.addEventListener("toggle", updateToggleExpensesButton);
-		});
 		applyExpensesVisibility();
     }
 	
