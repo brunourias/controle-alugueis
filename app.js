@@ -3484,31 +3484,25 @@
     "</div>";
 
   }
+  
+    function printAfter(target) {
+	    var cleanup = function () {
+		    target.innerHTML = "";
+			window.removeEventListener("afterprint", cleanup);		   
+		};
+		window.addEventListener("afterprint", cleanup);
+		window.print();
+	}
 
 	function printAnnualReport() {
 		printReport.innerHTML = buildAnnualReportHtml();
-
-		// Aguarda o navegador renderizar o relatório antes de abrir a impressão
-		setTimeout(function () {
-			window.print();
-		}, 150);
-	}
-
-	// Limpa o relatório após a impressão
-	window.addEventListener("afterprint", function () {
-		printReport.innerHTML = "";
-	});
+		printAfter(printReport);
+	};
 	
     function printReceiptDocument() {
         if (!receiptContext) return;
-
         printReceipt.innerHTML = receiptMarkup(receiptContext);
-
-        window.print();
-
-        setTimeout(function () {
-            printReceipt.innerHTML = "";
-        }, 0);
+        printAfter(printReceipt);
     }
 
     document.getElementById("prevYear").addEventListener("click", function () {
