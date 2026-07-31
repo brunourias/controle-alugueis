@@ -621,6 +621,9 @@ tfoot td {
     margin-top: 16px;
 }
 
+.summary-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
+.summary-bar h2 { margin: 0; color: var(--teal-dark); font-size: 1.05rem; }
+
 .summary-card {
     padding: 16px;
     border: 1px solid var(--line);
@@ -1410,6 +1413,21 @@ tfoot td {
     display: none;
 }
 
+.print-report { display: none; }
+.annual-report { max-width: 760px; margin: 0 auto; padding: 24px; color: #173333; font-size: 13px; }
+.annual-report h1 { margin: 0 0 4px; font-size: 22px; }
+.annual-report .ar-meta { margin: 0 0 18px; color: #55706c; font-size: 12px; }
+.annual-report .ar-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.annual-report .ar-total { border: 1px solid #cfe0dd; border-radius: 8px; padding: 10px; }
+.annual-report .ar-total span { display: block; color: #55706c; font-size: 11px; }
+.annual-report .ar-total strong { font-size: 16px; }
+.annual-report .ar-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
+.annual-report .ar-table th, .annual-report .ar-table td { border: 1px solid #cfe0dd; padding: 6px 8px; text-align: left; }
+.annual-report .ar-table td.num, .annual-report .ar-table th.num { text-align: right; }
+.annual-report .ar-table tfoot td, .annual-report .ar-table .ar-total-row td { font-weight: 700; background: #f2f8f7; }
+.annual-report .ar-neg { color: #a52d3b; }
+.annual-report h3 { margin: 0 0 8px; font-size: 15px; }
+
 [hidden] {
     display: none !important;
 }
@@ -1486,7 +1504,11 @@ tfoot td {
     body>#printReceipt {
         display: block !important;
     }
-
+    
+	body>#printReport{
+		display: block !important;
+    }
+	
     body>#printReceipt .receipt-paper {
         max-width: 720px;
         margin: 0 auto;
