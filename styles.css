@@ -270,6 +270,11 @@ main {
     padding: 18px;
 }
 
+.cloud-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid #e8c88d; border-radius: 14px; background: #fff9eb; box-shadow: 0 5px 18px #2046420b; }
+.cloud-banner p { flex: 1 1 240px; margin: 0; color: var(--ink); font-size: .8rem; line-height: 1.45; }
+.cloud-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; font-size: .8rem; line-height: 1.45; }
+.cloud-banner-actions .btn { min-height: 38px; }
+
 .filter-bar {
     display: none !important;
     align-items: center;
@@ -981,6 +986,8 @@ tfoot td {
     background: #123b3a66;
 }
 
+.auth-backdrop { z-index: 40; background: var(--teal-dark); place-items: center; }
+
 .modal {
     width: min(100%, 440px);
     max-height: min(calc(100dvh - 32px), 700px);
@@ -990,6 +997,8 @@ tfoot td {
     background: var(--surface);
     box-shadow: 0 16px 50px #123b3a36;
 }
+
+.auth-error { min-height: 18px; margin: 8px 0 0; color: #ffd9dc; font-size: .8rem; font-weight: 700; }
 
 .settings-modal {
     width: min(100%, 440px);
@@ -1167,6 +1176,9 @@ tfoot td {
     background: #ffe8e9;
 }
 
+.security-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.security-section h3 { margin: 0 0 7px; color: var(--teal-dark); font-size: 1rem; }
+
 .security-section {
     display: none !important;
     margin-top: 22px;
@@ -1306,11 +1318,7 @@ tfoot td {
     line-height: 1.45;
 }
 
-.security-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
+.security-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .checkbox-label {
     margin-top: 18px !important;
