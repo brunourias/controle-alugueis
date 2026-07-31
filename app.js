@@ -3487,9 +3487,17 @@
 
 	function printAnnualReport() {
 		printReport.innerHTML = buildAnnualReportHtml();
-		window.print();
-		setTimeout(function () { printReport.innerHTML = ""; }, 0);
+
+		// Aguarda o navegador renderizar o relatório antes de abrir a impressão
+		setTimeout(function () {
+			window.print();
+		}, 150);
 	}
+
+	// Limpa o relatório após a impressão
+	window.addEventListener("afterprint", function () {
+		printReport.innerHTML = "";
+	});
 	
     function printReceiptDocument() {
         if (!receiptContext) return;
