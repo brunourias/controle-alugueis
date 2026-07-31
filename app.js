@@ -2,7 +2,8 @@
     "use strict";
 
     var STORAGE_KEY = "controle-alugueis-v1";
-    var LOCK_STORAGE_KEY = "controle-alugueis-lock";
+	var LOCK_STORAGE_KEY = "controle-alugueis-lock";
+    var SETUP_FLAG_KEY = "controle-alugueis-lock-setup";
 
     var ENTERPRISE_SELECTION_KEY = "controle-alugueis-empreendimento";
 
@@ -70,8 +71,9 @@
 	var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
-    var lockConfig = loadLockConfig();
-    var appUnlocked = !lockConfig;
+	var lockConfig = loadLockConfig();
+	var appUnlocked = false;
+	var authMode = "login";
 
     var grid = document.getElementById("grid");
     var tableWrap = grid.parentElement;
@@ -84,10 +86,6 @@
 	var toggleExpensesButton =  document.getElementById("toggleExpenses");
     var expensesTotal = document.getElementById("expensesTotal");
     var expensesYear = document.getElementById("expensesYear");
-    var lockScreen = document.getElementById("lockScreen");
-    var unlockForm = document.getElementById("unlockForm");
-    var unlockPin = document.getElementById("unlockPin");
-    var unlockBiometric = document.getElementById("unlockBiometric");
     var lockError = document.getElementById("lockError");
     var modal = document.getElementById("modal");
     var settingsModal = document.getElementById("settingsModal");
@@ -95,6 +93,19 @@
     var receiptPreview = document.getElementById("receiptPreview");
     var printReceipt = document.getElementById("printReceipt");
 	var printReport = document.getElementById("printReport");
+	var authModal = document.getElementById("authModal");
+var authTitle = document.getElementById("authTitle");
+var authMessage = document.getElementById("authMessage");
+var authForm = document.getElementById("authForm");
+var authNewLabel = document.getElementById("authNewLabel");
+var authNewPin = document.getElementById("authNewPin");
+var authConfirmLabel = document.getElementById("authConfirmLabel");
+var authConfirmPin = document.getElementById("authConfirmPin");
+var authPinLabel = document.getElementById("authPinLabel");
+var authPin = document.getElementById("authPin");
+var authError = document.getElementById("authError");
+var authSkip = document.getElementById("authSkip");
+var authSubmit = document.getElementById("authSubmit");
     var unitName = document.getElementById("unitName");
     var unitRent = document.getElementById("unitRent");
     var unitDueDay = document.getElementById("unitDueDay");
@@ -123,8 +134,6 @@
     var confirmPin = document.getElementById("confirmPin");
     var savePinButton = document.getElementById("savePin");
     var removePinButton = document.getElementById("removePin");
-    var biometricArea = document.getElementById("biometricArea");
-    var biometricToggle = document.getElementById("biometricToggle");
     var backupFile = document.getElementById("backupFile");
     var expenseModal = document.getElementById("expenseModal");
     var expenseModalTitle = document.getElementById("expenseModalTitle");
@@ -162,6 +171,10 @@
     var cloudReconcileText = document.getElementById("cloudReconcileText");
     var useCloudData = document.getElementById("useCloudData");
     var useLocalData = document.getElementById("useLocalData");
+	var cloudBanner = document.getElementById("cloudBanner");
+    var cloudBannerText = document.getElementById("cloudBannerText");
+    var bannerUseCloud = document.getElementById("bannerUseCloud");
+    var bannerUseLocal = document.getElementById("bannerUseLocal");
     var firebaseAuth = null;
     var firebaseDb = null;
     var firebaseUser = null;
@@ -591,6 +604,14 @@
             ((value.expenses || []).length === 1 ? "" : "s")
         );
     }
+	
+	function setCloudReconcilePrompt(remoteState) {
+  var message = "Há dados diferentes entre a nuvem (" + cloudCounts(remoteState) + ") e este aparelho (" + cloudCounts(state) + "). Escolha qual versão deseja manter.";
+  cloudReconcileText.textContent = message;
+  cloudReconcile.hidden = false;
+  cloudBannerText.textContent = message;
+  cloudBanner.hidden = false;
+}
 
     function cloudDocRef() {
         return firebaseDb && firebaseUser
@@ -695,111 +716,43 @@
 
     function finishCloudReconciliation() {
         cloudReconcile.hidden = true;
+		cloudBanner.hidden = true;
         cloudPendingRemote = null;
-
-        setCloudStatus("Conta conectada. Sincronização automática ativa.");
-        setSyncStatus("Sincronizado");
-
         subscribeCloud();
     }
 
-    function reconcileCloud() {
-        var ref = cloudDocRef();
-
-        if (!ref) return;
-
-        setSyncStatus("Sincronizando...");
-
-        ref.get()
-            .then(function (snapshot) {
-                var data = snapshot.exists ? snapshot.data() || {} : null;
-
-                var remoteState =
-                    data && data.payload ? normalizeState(data.payload) : null;
-
-                cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
-
-                if (!remoteState) {
-                    writeCloudState();
-
-                    subscribeCloud();
-
-                    return;
-                }
-
-                var localEmpty =
-                    state.units.length === 0 && state.expenses.length === 0;
-
-                if (localEmpty) {
-                    applyRemoteState(remoteState);
-
-                    finishCloudReconciliation();
-
-                    return;
-                }
-
-                if (cloudStatesEqual(state, remoteState)) {
-                    finishCloudReconciliation();
-                    setSyncStatus("Sincronizado");
-                    return;
-                }
-
-                cloudPendingRemote = remoteState;
-
-                cloudReconcileText.textContent =
-                    "Há dados diferentes entre a nuvem (" +
-                    cloudCounts(remoteState) +
-                    ") e este aparelho (" +
-                    cloudCounts(state) +
-                    "). Escolha qual versão deseja manter.";
-
-                cloudReconcile.hidden = false;
-
-                setSyncStatus("Aguardando escolha");
-
-                function sortObject(value) {
-                    if (Array.isArray(value)) {
-                        return value.map(sortObject);
-                    }
-
-                    if (value && typeof value === "object") {
-                        var obj = {};
-
-                        Object.keys(value)
-                            .sort()
-                            .forEach(function (key) {
-                                obj[key] = sortObject(value[key]);
-                            });
-
-                        return obj;
-                    }
-
-                    return value;
-                }
-
-                function cloudStatesEqual(left, right) {
-                    return (
-                        JSON.stringify(
-                            sortObject(
-                                normalizeState(JSON.parse(JSON.stringify(left)))
-                            )
-                        ) ===
-                        JSON.stringify(
-                            sortObject(
-                                normalizeState(
-                                    JSON.parse(JSON.stringify(right))
-                                )
-                            )
-                        )
-                    );
-                }
-            })
-            .catch(function (error) {
-                setCloudError(cloudErrorMessage(error));
-
-                setSyncStatus("Não sincronizado — salvo localmente");
-            });
+   function reconcileCloud() {
+  var ref = cloudDocRef();
+  if (!ref) return;
+  setSyncStatus("Sincronizando...");
+  ref.get().then(function (snapshot) {
+    var data = snapshot.exists ? (snapshot.data() || {}) : null;
+    var remoteState = data && data.payload ? normalizeState(data.payload) : null;
+    cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
+    if (!remoteState) {
+      writeCloudState();
+      subscribeCloud();
+      return;
     }
+    var localEmpty = state.units.length === 0 && state.expenses.length === 0;
+    if (localEmpty) {
+      applyRemoteState(remoteState);
+      finishCloudReconciliation();
+      return;
+    }
+    if (cloudStatesEqual(state, remoteState)) {
+      finishCloudReconciliation();
+      setSyncStatus("Sincronizado");
+      return;
+    }
+    cloudPendingRemote = remoteState;
+    setCloudReconcilePrompt(remoteState);
+    setSyncStatus("Aguardando escolha");
+  }).catch(function (error) {
+    setCloudError(cloudErrorMessage(error));
+    setSyncStatus("Não sincronizado - salvo localmente");
+  });
+}
 
     function chooseCloudData() {
         if (!cloudPendingRemote) return;
@@ -940,6 +893,8 @@
             setCloudError(cloudErrorMessage(error));
         });
     }
+	
+	
 
     function hasSubtleCrypto() {
         return (
@@ -1020,148 +975,100 @@
     }
 
     function saveLockConfig(config) {
+		
         lockConfig = config;
-        if (config)
-            localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(config));
+        if (config) localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(config));
         else localStorage.removeItem(LOCK_STORAGE_KEY);
-        //--------------------------------------------------------------------------------------------
     }
 
-    async function isBiometricAvailable() {
-        if (
-            !window.PublicKeyCredential ||
-            !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
-        )
-            return false;
-        try {
-            return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-        } catch (error) {
-            return false;
-        }
-    }
-
-    function randomBytes(length) {
+        function randomBytes(length) {
         var bytes = new Uint8Array(length);
         crypto.getRandomValues(bytes);
         return bytes;
-    }
-
-    function hideLockScreen() {
-        lockScreen.hidden = true;
-        appUnlocked = true;
     }
 
     function showLockError(message) {
         lockError.textContent = message;
     }
 
-    async function unlockWithPin(pin) {
-        if (!isValidPin(pin)) {
-            showLockError("Digite um PIN numérico com pelo menos 4 dígitos.");
-            return false;
-        }
-        if (!(await verifyPin(pin, lockConfig))) {
-            showLockError("PIN incorreto. Tente novamente.");
-            unlockPin.select();
-            return false;
-        }
-        hideLockScreen();
-        render();
-        return true;
-    }
+    
+function showAuthError(message) { authError.textContent = message; }
 
-    async function createBiometricCredential() {
-        if (
-            !lockConfig ||
-            !window.PublicKeyCredential ||
-            !navigator.credentials ||
-            !navigator.credentials.create
-        )
-            throw new Error("Biometria indisponível.");
-        var credential = await navigator.credentials.create({
-            publicKey: {
-                challenge: randomBytes(32),
-                rp: { name: "Controle de Aluguéis" },
-                user: {
-                    id: randomBytes(16),
-                    name: "controle-alugueis",
-                    displayName: "Controle de Aluguéis",
-                },
-                pubKeyCredParams: [
-                    { type: "public-key", alg: -7 },
-                    { type: "public-key", alg: -257 },
-                ],
-                authenticatorSelection: {
-                    authenticatorAttachment: "platform",
-                    userVerification: "required",
-                },
-                timeout: 60000,
-            },
-        });
-        if (!credential)
-            throw new Error("Não foi possível criar a credencial.");
-        lockConfig.credentialId = bytesToBase64Url(
-            new Uint8Array(credential.rawId)
-        );
-        saveLockConfig(lockConfig);
-    }
-    //--------------------------------------------------------------------------------------------
-    async function unlockWithBiometric() {
-        if (
-            !lockConfig ||
-            !lockConfig.credentialId ||
-            !navigator.credentials ||
-            !navigator.credentials.get
-        )
-            return;
-        try {
-            var assertion = await navigator.credentials.get({
-                publicKey: {
-                    challenge: randomBytes(32),
-                    allowCredentials: [
-                        {
-                            type: "public-key",
-                            id: base64UrlToBytes(lockConfig.credentialId),
-                        },
-                    ],
-                    userVerification: "required",
-                    timeout: 60000,
-                },
-            });
-            if (!assertion) throw new Error("Biometria não confirmada.");
-            hideLockScreen();
-            render();
-        } catch (error) {
-            showLockError("Não foi possível confirmar a biometria. Use o PIN.");
-        }
-    }
+function openAuthCreate() {
 
-    async function updateBiometricVisibility() {
-        var available = await isBiometricAvailable();
-        biometricArea.hidden = !available;
-        biometricToggle.disabled = !lockConfig;
-        unlockBiometric.hidden =
-            !available || !lockConfig || !lockConfig.credentialId;
-        if (available)
-            biometricToggle.checked = !!(lockConfig && lockConfig.credentialId);
-        return available;
-    }
+  authMode = "create";
 
-    async function initializeLock() {
-        if (!lockConfig) {
-            hideLockScreen();
-            render();
-            return;
-        }
-        if (!hasSubtleCrypto()) {
-            showLockError(
-                "Este navegador não oferece criptografia segura para desbloquear."
-            );
-            return;
-        }
-        updateBiometricVisibility();
-        unlockPin.focus();
-    }
+  authTitle.textContent = "Criar PIN de acesso";
+
+  authMessage.textContent = "Defina um PIN (mín. 4 dígitos) para proteger o app neste aparelho.";
+
+  authNewLabel.hidden = false; authConfirmLabel.hidden = false; authPinLabel.hidden = true; authSkip.hidden = false;
+
+  authSubmit.textContent = "Criar PIN";
+
+  authNewPin.value = ""; authConfirmPin.value = ""; authPin.value = ""; showAuthError("");
+
+  authModal.hidden = false; setTimeout(function () { authNewPin.focus(); }, 0);
+
+}
+
+function openAuthLogin() {
+
+  authMode = "login";
+
+  authTitle.textContent = "Entrar";
+
+  authMessage.textContent = "Digite seu PIN para acessar.";
+
+  authNewLabel.hidden = true; authConfirmLabel.hidden = true; authPinLabel.hidden = false; authSkip.hidden = true;
+
+  authSubmit.textContent = "Entrar";
+
+  authPin.value = ""; showAuthError("");
+
+  authModal.hidden = false; setTimeout(function () { authPin.focus(); }, 0);
+
+}
+
+function closeAuth() { authModal.hidden = true; }
+
+async function submitAuth(event) {
+
+  event.preventDefault();
+
+  if (!hasSubtleCrypto()) { showAuthError("Este navegador não oferece criptografia segura para usar PIN."); return; }
+
+  if (authMode === "create") {
+
+    if (!isValidPin(authNewPin.value)) { showAuthError("O PIN deve ter pelo menos 4 dígitos numéricos."); return; }
+
+    if (authNewPin.value !== authConfirmPin.value) { showAuthError("A confirmação não confere."); return; }
+
+    var salt = bytesToBase64Url(randomBytes(16));
+
+    saveLockConfig({ salt: salt, hash: await hashPin(authNewPin.value, salt) });
+
+    localStorage.setItem(SETUP_FLAG_KEY, "1"); appUnlocked = true; closeAuth(); render(); return;
+
+  }
+
+  if (await verifyPin(authPin.value, lockConfig)) { appUnlocked = true; closeAuth(); render(); return; }
+
+  showAuthError("PIN incorreto."); authPin.select();
+
+}
+
+function initAuth() {
+
+  render();
+
+  if (lockConfig) { openAuthLogin(); return; }
+
+  if (localStorage.getItem(SETUP_FLAG_KEY) !== "1") { openAuthCreate(); return; }
+
+  appUnlocked = true;
+
+}
 
     function exportBackup() {
         var date = new Date().toISOString().slice(0, 10);
@@ -2774,12 +2681,11 @@
         confirmPin.value = "";
         currentPinLabel.hidden = !lockConfig;
         removePinButton.hidden = !lockConfig;
-        //securityStatus.textContent = lockConfig ? "Um PIN protege o acesso neste dispositivo." : "Nenhum PIN configurado neste dispositivo.";
+        securityStatus.textContent = lockConfig ? "Um PIN protege o acesso neste dispositivo." : "Nenhum PIN configurado neste dispositivo.";
         securityStatus.style.color = "";
         renderCategoryManager();
         renderEnterpriseManager();
         setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
-        updateBiometricVisibility();
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
         settingsModal.hidden = false;
@@ -2824,101 +2730,112 @@
     }
 
     async function savePin() {
-        if (!hasSubtleCrypto()) {
-            securityStatus.textContent =
-                "Este navegador não oferece criptografia segura para usar PIN.";
-            return;
-            //--------------------------------------------------------------------------------------------
-        }
-        if (lockConfig && !(await verifyPin(currentPin.value, lockConfig))) {
-            securityStatus.textContent = "PIN atual incorreto.";
-            securityStatus.style.color = "#a52d3b";
-            currentPin.focus();
-            return;
-        }
-        if (!isValidPin(newPin.value)) {
-            securityStatus.textContent =
-                "O novo PIN deve ter pelo menos 4 dígitos numéricos.";
-            securityStatus.style.color = "#a52d3b";
-            newPin.focus();
-            return;
-        }
-        if (newPin.value !== confirmPin.value) {
-            securityStatus.textContent =
-                "A confirmação do novo PIN não confere.";
-            securityStatus.style.color = "#a52d3b";
-            confirmPin.focus();
-            return;
-        }
-        var salt = bytesToBase64Url(randomBytes(16));
-        var config = {
-            salt: salt,
-            hash: await hashPin(newPin.value, salt),
-            credentialId: lockConfig ? lockConfig.credentialId : null,
-        };
-        saveLockConfig(config);
-        currentPin.value = "";
-        newPin.value = "";
-        confirmPin.value = "";
-        currentPinLabel.hidden = false;
-        removePinButton.hidden = false;
-        securityStatus.textContent = "PIN salvo neste dispositivo.";
-        securityStatus.style.color = "#0f766e";
-        updateBiometricVisibility();
+
+    if (!hasSubtleCrypto()) {
+
+      securityStatus.textContent = "Este navegador não oferece criptografia segura para usar PIN.";
+
+      return;
+
     }
 
-    async function removePin() {
-        if (!lockConfig) return;
-        if (!(await verifyPin(currentPin.value, lockConfig))) {
-            securityStatus.textContent = "PIN atual incorreto.";
-            securityStatus.style.color = "#a52d3b";
-            currentPin.focus();
-            return;
-        }
-        saveLockConfig(null);
-        if (navigator.credentials && navigator.credentials.preventSilentAccess)
-            navigator.credentials.preventSilentAccess().catch(function () {});
-        currentPin.value = "";
-        newPin.value = "";
-        confirmPin.value = "";
-        currentPinLabel.hidden = true;
-        removePinButton.hidden = true;
-        securityStatus.textContent =
-            "PIN removido. O acesso não está mais bloqueado.";
-        securityStatus.style.color = "#0f766e";
-        updateBiometricVisibility();
+    if (lockConfig && !(await verifyPin(currentPin.value, lockConfig))) {
+
+      securityStatus.textContent = "PIN atual incorreto.";
+
+      securityStatus.style.color = "#a52d3b";
+
+      currentPin.focus();
+
+      return;
+
     }
 
-    async function toggleBiometric() {
-        if (!biometricToggle.checked) {
-            if (lockConfig) {
-                lockConfig.credentialId = null;
-                //--------------------------------------------------------------------------------------------
-                saveLockConfig(lockConfig);
-            }
-            unlockBiometric.hidden = true;
-            securityStatus.textContent = "Biometria desativada.";
-            securityStatus.style.color = "#0f766e";
-            return;
-        }
-        if (!lockConfig) {
-            biometricToggle.checked = false;
-            securityStatus.textContent =
-                "Salve um PIN antes de ativar a biometria.";
-            securityStatus.style.color = "#a52d3b";
-            return;
-        }
-        try {
-            await createBiometricCredential();
-            unlockBiometric.hidden = false;
-            securityStatus.textContent = "Biometria ativada.";
-            securityStatus.style.color = "#0f766e";
-        } catch (error) {
-            biometricToggle.checked = false;
-            securityStatus.textContent = "Não foi possível ativar a biometria.";
-            securityStatus.style.color = "#a52d3b";
-        }
+    if (!isValidPin(newPin.value)) {
+
+      securityStatus.textContent = "O novo PIN deve ter pelo menos 4 dígitos numéricos.";
+
+      securityStatus.style.color = "#a52d3b";
+
+      newPin.focus();
+
+      return;
+
     }
+
+    if (newPin.value !== confirmPin.value) {
+
+      securityStatus.textContent = "A confirmação do novo PIN não confere.";
+
+      securityStatus.style.color = "#a52d3b";
+
+      confirmPin.focus();
+
+      return;
+
+    }
+
+    var salt = bytesToBase64Url(randomBytes(16));
+
+    saveLockConfig({ salt: salt, hash: await hashPin(newPin.value, salt) });
+
+    localStorage.setItem(SETUP_FLAG_KEY, "1");
+
+    appUnlocked = true;
+
+    currentPin.value = "";
+
+    newPin.value = "";
+
+    confirmPin.value = "";
+
+    currentPinLabel.hidden = false;
+
+    removePinButton.hidden = false;
+
+    securityStatus.textContent = "PIN salvo neste dispositivo.";
+
+    securityStatus.style.color = "#0f766e";
+
+  }
+
+ 
+
+  async function removePin() {
+
+    if (!lockConfig) return;
+
+    if (!(await verifyPin(currentPin.value, lockConfig))) {
+
+      securityStatus.textContent = "PIN atual incorreto.";
+
+      securityStatus.style.color = "#a52d3b";
+
+      currentPin.focus();
+
+      return;
+
+    }
+
+    saveLockConfig(null);
+
+    localStorage.setItem(SETUP_FLAG_KEY, "1");
+
+    currentPin.value = "";
+
+    newPin.value = "";
+
+    confirmPin.value = "";
+
+    currentPinLabel.hidden = true;
+
+    removePinButton.hidden = true;
+
+    securityStatus.textContent = "PIN removido. O app abrirá sem senha.";
+
+    securityStatus.style.color = "#0f766e";
+
+  }
 
     function saveUnit() {
         var name = unitName.value.trim();
@@ -3579,19 +3496,17 @@
         .getElementById("saveSettings")
         .addEventListener("click", saveSettings);
 
-    unlockForm.addEventListener("submit", function (event) {
-        event.preventDefault();
-
-        unlockWithPin(unlockPin.value);
-    });
-
-    unlockBiometric.addEventListener("click", unlockWithBiometric);
-
+  authForm.addEventListener("submit", submitAuth);
+  authSkip.addEventListener("click", function () {
+  if (authMode !== "create") return;
+  localStorage.setItem(SETUP_FLAG_KEY, "1");
+  appUnlocked = true;
+  closeAuth();
+  render();
+});
     savePinButton.addEventListener("click", savePin);
 
     removePinButton.addEventListener("click", removePin);
-
-    biometricToggle.addEventListener("change", toggleBiometric);
 
     document
         .getElementById("cancelReceipt")
@@ -3656,6 +3571,9 @@
     useCloudData.addEventListener("click", chooseCloudData);
 
     useLocalData.addEventListener("click", chooseLocalData);
+	
+	bannerUseCloud.addEventListener("click", chooseCloudData);
+	bannerUseLocal.addEventListener("click", chooseLocalData);	
 
     window.addEventListener("online", function () {
         if (firebaseUser) setSyncStatus("Sincronizando...");
@@ -3700,7 +3618,7 @@
 
     initFirebase();
 
-    initializeLock();
+    initAuth();
 
     if ("serviceWorker" in navigator) {
         var reloadingForUpdate = false;
