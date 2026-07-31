@@ -94,6 +94,7 @@
     var receiptModal = document.getElementById("receiptModal");
     var receiptPreview = document.getElementById("receiptPreview");
     var printReceipt = document.getElementById("printReceipt");
+	var printReport = document.getElementById("printReport");
     var unitName = document.getElementById("unitName");
     var unitRent = document.getElementById("unitRent");
     var unitDueDay = document.getElementById("unitDueDay");
@@ -3323,7 +3324,173 @@
 	  var base = whatsappUrl(receiptContext.unit.tenantPhone);
 	  window.open((base ? base : "https://wa.me/") + "?text=" + encodeURIComponent(text), "_blank");
 	}
+	
+	function buildAnnualReportHtml() {
 
+    var units = scopedUnits();
+
+    var expenses = scopedExpenses();
+
+    var yearText = String(selectedYear);
+
+    var scope = selectedEmpreendimentoId === "todos" ? "Todos os empreendimentos" : empreendimentoName(selectedEmpreendimentoId);
+
+    var annualReceived = 0;
+
+    var annualOverdue = 0;
+
+    units.forEach(function (unit) {
+
+      months.forEach(function (_, i) {
+
+        if (!isActive(unit, i)) return;
+
+        if (statusFor(unit, i) === "pago") annualReceived += rentForMonth(unit, selectedYear, i);
+
+        if (effectiveStatus(unit, i) === "atrasado") {
+
+          var updated = updatedAmount(unit, i);
+
+          annualOverdue += updated === null ? rentForMonth(unit, selectedYear, i) : updated;
+
+        }
+
+      });
+
+    });
+
+    var annualExpenses = expenses.reduce(function (sum, expense) {
+
+      return sum + (expense.ym.slice(0, 4) === yearText ? expense.amount : 0);
+
+    }, 0);
+
+    var annualNet = annualReceived - annualExpenses;
+
+    var monthly = months.map(function (_, i) {
+
+      var received = units.reduce(function (sum, unit) {
+
+        return sum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0);
+
+      }, 0);
+
+      var spent = expenses.reduce(function (sum, expense) {
+
+        return sum + (expense.ym === monthKey(i) ? expense.amount : 0);
+
+      }, 0);
+
+      return { received: received, expenses: spent, net: received - spent };
+
+    });
+
+    var unitRows = units.slice().sort(function (a, b) {
+
+      return a.name.localeCompare(b.name, "pt-BR");
+
+    }).map(function (unit) {
+
+      var paid = 0;
+
+      var paidLate = 0;
+
+      var overdueMonths = 0;
+
+      var overdue = 0;
+
+      var received = 0;
+
+      months.forEach(function (_, i) {
+
+        if (!isActive(unit, i)) return;
+
+        if (statusFor(unit, i) === "pago") {
+
+          paid += 1;
+
+          received += rentForMonth(unit, selectedYear, i);
+
+        }
+
+        if (isPaidLate(unit, i)) paidLate += 1;
+
+        if (effectiveStatus(unit, i) === "atrasado") {
+
+          overdueMonths += 1;
+
+          var updated = updatedAmount(unit, i);
+
+          overdue += updated === null ? rentForMonth(unit, selectedYear, i) : updated;
+
+        }
+
+      });
+
+      var title = escapeHtml(unit.name);
+
+      if (selectedEmpreendimentoId === "todos") title += " <small>(" + escapeHtml(empreendimentoName(unit.empreendimentoId)) + ")</small>";
+
+      if (unit.tenantName) title += "<br><small>Inquilino: " + escapeHtml(unit.tenantName) + "</small>";
+
+      return "<tr><td>" + title + "</td><td class=\"num\">" + paid + "</td><td class=\"num\">" + paidLate + "</td><td class=\"num\">" + (overdueMonths ? money(overdue) + " (" + overdueMonths + " " + (overdueMonths === 1 ? "mês" : "meses") + ")" : "—") + "</td><td class=\"num\">" + money(received) + "</td></tr>";
+
+    }).join("");
+
+    var totalCard = function (label, value, negative) {
+
+      return "<div class=\"ar-total\"><span>" + label + "</span><strong class=\"" + (negative ? "ar-neg" : "") + "\">" + money(value) + "</strong></div>";
+
+    };
+
+    return "<div class=\"annual-report\">" +
+
+      "<h1>Resumo do ano " + selectedYear + "</h1>" +
+
+      "<p class=\"ar-meta\">" + escapeHtml(scope) + " · Emitido em " + escapeHtml(formatDate(new Date())) + (state.settings.receiverName ? " · Recebedor: " + escapeHtml(state.settings.receiverName) : "") + "</p>" +
+
+      "<div class=\"ar-totals\">" +
+
+        totalCard("Recebido", annualReceived, false) +
+
+        totalCard("Gastos", annualExpenses, false) +
+
+        totalCard("Líquido", annualNet, annualNet < 0) +
+
+        totalCard("Em atraso", annualOverdue, annualOverdue > 0) +
+
+      "</div>" +
+
+      "<h3>Resumo mensal</h3>" +
+
+      "<table class=\"ar-table\"><thead><tr><th>Mês</th><th class=\"num\">Recebido</th><th class=\"num\">Gastos</th><th class=\"num\">Líquido</th></tr></thead><tbody>" +
+
+        monthly.map(function (row, i) {
+
+          return "<tr><td>" + fullMonths[i] + "</td><td class=\"num\">" + money(row.received) + "</td><td class=\"num\">" + money(row.expenses) + "</td><td class=\"num " + (row.net < 0 ? "ar-neg" : "") + "\">" + money(row.net) + "</td></tr>";
+
+        }).join("") +
+
+      "</tbody><tfoot><tr class=\"ar-total-row\"><td>Total</td><td class=\"num\">" + money(annualReceived) + "</td><td class=\"num\">" + money(annualExpenses) + "</td><td class=\"num " + (annualNet < 0 ? "ar-neg" : "") + "\">" + money(annualNet) + "</td></tr></tfoot></table>" +
+
+      "<h3>Resumo por unidade</h3>" +
+
+      "<table class=\"ar-table\"><thead><tr><th>Unidade</th><th class=\"num\">Pagos</th><th class=\"num\">Pagos c/ atraso</th><th class=\"num\">Em atraso</th><th class=\"num\">Recebido</th></tr></thead><tbody>" +
+
+        (unitRows || "<tr><td colspan=\"5\">Nenhuma unidade cadastrada</td></tr>") +
+
+      "</tbody></table>" +
+
+    "</div>";
+
+  }
+
+	function printAnnualReport() {
+		printReport.innerHTML = buildAnnualReportHtml();
+		window.print();
+		setTimeout(function () { printReport.innerHTML = ""; }, 0);
+	}
+	
     function printReceiptDocument() {
         if (!receiptContext) return;
 
@@ -3439,6 +3606,10 @@
     document
         .getElementById("printReceiptButton")
         .addEventListener("click", printReceiptDocument);
+		
+    document
+        .getElementById("printAnnual")
+        .addEventListener("click", printAnnualReport);		
 
     document
         .getElementById("exportBackup")
