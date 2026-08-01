@@ -777,16 +777,23 @@ var authSubmit = document.getElementById("authSubmit");
       return;
     }
     var localEmpty = state.units.length === 0 && state.expenses.length === 0;
-    if (localEmpty) {
-      applyRemoteState(remoteState);
-      finishCloudReconciliation();
-      return;
-    }
-    if (cloudStatesEqual(state, remoteState)) {
-      finishCloudReconciliation();
-      setSyncStatus("Sincronizado");
-      return;
-    }
+	if (localEmpty) {
+		applyRemoteState(remoteState);
+		finishCloudReconciliation();
+
+		setCloudStatus("Conta conectada. Sincronização automática ativa.");
+		setSyncStatus("Sincronizado");
+
+		return;
+	}
+	if (cloudStatesEqual(state, remoteState)) {
+		finishCloudReconciliation();
+
+		setCloudStatus("Conta conectada. Sincronização automática ativa.");
+		setSyncStatus("Sincronizado");
+
+		return;
+	}
     cloudPendingRemote = remoteState;
     setCloudReconcilePrompt(remoteState);
     setSyncStatus("Aguardando escolha");
