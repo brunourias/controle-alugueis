@@ -3444,19 +3444,27 @@ function initAuth() {
 
   }
   
-    function printAfter(target) {
-	    var cleanup = function () {
-		    target.innerHTML = "";
-			window.removeEventListener("afterprint", cleanup);		   
-		};
-		window.addEventListener("afterprint", cleanup);
-		window.print();
-	}
+function printAfter(target) {
 
-	function printAnnualReport() {
-		printReport.innerHTML = buildAnnualReportHtml();
-		printAfter(printReport);
-	};
+    var cleanup = function () {
+        target.innerHTML = "";
+        window.removeEventListener("afterprint", cleanup);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+
+    setTimeout(function () {
+        window.print();
+    }, 100);
+}
+
+function printAnnualReport() {
+    printReport.innerHTML = buildAnnualReportHtml();
+
+    setTimeout(function () {
+        printAfter(printReport);
+    }, 300);
+}
 	
     function printReceiptDocument() {
         if (!receiptContext) return;
