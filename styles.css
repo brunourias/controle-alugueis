@@ -1513,22 +1513,54 @@ tfoot td {
 }
 
 @media print {
-    body>* {
+
+    html,
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    body > * {
         display: none !important;
     }
 
-    body>#printReceipt {
+    #printReceipt,
+    #printReport {
         display: block !important;
+        position: static !important;
+        visibility: visible !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
     }
-    
-	body>#printReport{
-		display: block !important;
-    }
-	
-    body>#printReceipt .receipt-paper {
+
+    #printReceipt .receipt-paper {
         max-width: 720px;
         margin: 0 auto;
         padding: 36px;
         border: 0;
+    }
+
+    #printReport .annual-report {
+        display: block !important;
+        visibility: visible !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: 20px !important;
+        background: #fff !important;
+        color: #000 !important;
+        overflow: visible !important;
+    }
+
+    #printReport table {
+        page-break-inside: avoid;
+    }
+
+    #printReport h1,
+    #printReport h2,
+    #printReport h3 {
+        page-break-after: avoid;
     }
 }
