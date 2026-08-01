@@ -3459,37 +3459,58 @@ function initAuth() {
 
   }
   
-function printAfter(target) {
+		function printAfter(target) {
 
-    var cleanup = function () {
-        target.innerHTML = "";
-        window.removeEventListener("afterprint", cleanup);
-    };
+			var cleanup = function () {
+				target.innerHTML = "";
+				window.removeEventListener("afterprint", cleanup);
+			};
 
-    window.addEventListener("afterprint", cleanup);
+			window.addEventListener("afterprint", cleanup);
 
-    requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-            window.print();
-        });
-    });
-}
+			requestAnimationFrame(function () {
+				requestAnimationFrame(function () {
+					window.print();
+				});
+			});
+		}
 
-function printAnnualReport() {
+		function printAnnualReport() {
 
-    printReport.innerHTML = buildAnnualReportHtml();
+			var reportHtml = buildAnnualReportHtml();
 
-    requestAnimationFrame(function () {
+			var win = window.open("", "_blank");
 
-        requestAnimationFrame(function () {
+			if (!win) {
+				alert("Não foi possível abrir a janela de impressão.");
+				return;
+			}
 
-            printAfter(printReport);
+			win.document.open();
 
-        });
+			win.document.write(
+				"<!DOCTYPE html>" +
+				"<html>" +
+				"<head>" +
+				"<meta charset='utf-8'>" +
+				"<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+				"<title>Resumo do Ano</title>" +
+				"<link rel='stylesheet' href='styles.css'>" +
+				"</head>" +
+				"<body>" +
+				reportHtml +
+				"</body>" +
+				"</html>"
+			);
 
-    });
+			win.document.close();
 
-}
+			win.onload = function () {
+				win.focus();
+				win.print();
+				win.close();
+			};
+		}
 	
     function printReceiptDocument() {
         if (!receiptContext) return;
