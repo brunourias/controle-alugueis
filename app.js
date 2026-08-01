@@ -1797,6 +1797,7 @@ function initAuth() {
                 });
                 return {
                     name: unit.name,
+					tenantName: unit.tenantName,
                     enterprise: empreendimentoName(unit.empreendimentoId),
                     openLate: openLate,
                     paidLate: paidLate,
@@ -1832,17 +1833,23 @@ function initAuth() {
                                     ")</small>"
                                   : "";
                           return (
-                              '<div class="late-row"><div><strong>' +
-                              escapeHtml(row.name) +
-                              rowEnterprise +
-                              "</strong><span>" +
-                              detail +
-                              '</span></div><b class="' +
-                              (row.total ? "late-count" : "on-time") +
-                              '">' +
-                              row.total +
-                              "</b></div>"
-                          );
+							'<div class="late-row"><div><strong>' +
+							escapeHtml(row.name) +
+							rowEnterprise +
+							"</strong>" +
+							(row.tenantName
+								? '<div class="tenant-name">' +
+								  escapeHtml(row.tenantName) +
+								  "</div>"
+								: "") +
+							"<span>" +
+							detail +
+							'</span></div><b class="' +
+							(row.total ? "late-count" : "on-time") +
+							'">' +
+							row.total +
+							"</b></div>"
+						);
                       })
                       .join("") +
                   "</div>"
