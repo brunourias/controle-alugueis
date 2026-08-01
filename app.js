@@ -1603,7 +1603,6 @@ function initAuth() {
                     '" role="button" tabindex="0"><span class="unit-name">' +
                     escapeHtml(unit.name) +
                     "</span>" +
-                    enterprise +
                     tenant +
                     '<span class="rent">' +
                     money(currentRent) +
