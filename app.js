@@ -561,6 +561,11 @@ var authSubmit = document.getElementById("authSubmit");
     }
 
     function cloudErrorMessage(error) {
+		
+		console.error("Firebase:", error);
+        console.error("Código:", error && error.code);
+        console.error("Mensagem:", error && error.message);
+	
         var code = error && error.code ? error.code : "";
 
         if (code === "auth/invalid-email") return "Informe um e-mail válido.";
@@ -612,6 +617,43 @@ var authSubmit = document.getElementById("authSubmit");
   cloudBannerText.textContent = message;
   cloudBanner.hidden = false;
 }
+
+				function sortObject(value) {
+                    if (Array.isArray(value)) {
+                        return value.map(sortObject);
+                    }
+
+                    if (value && typeof value === "object") {
+                        var obj = {};
+
+                        Object.keys(value)
+                            .sort()
+                            .forEach(function (key) {
+                                obj[key] = sortObject(value[key]);
+                            });
+
+                        return obj;
+                    }
+
+                    return value;
+                }
+
+                function cloudStatesEqual(left, right) {
+                    return (
+                        JSON.stringify(
+                            sortObject(
+                                normalizeState(JSON.parse(JSON.stringify(left)))
+                            )
+                        ) ===
+                        JSON.stringify(
+                            sortObject(
+                                normalizeState(
+                                    JSON.parse(JSON.stringify(right))
+                                )
+                            )
+                        )
+                    );
+                }
 
     function cloudDocRef() {
         return firebaseDb && firebaseUser
