@@ -610,6 +610,29 @@ var authSubmit = document.getElementById("authSubmit");
         );
     }
 	
+	function updateConnectionStatus() {
+
+		if (!firebaseUser)
+			return;
+
+		if (!navigator.onLine) {
+
+			setCloudStatus(
+				"Conta conectada. Trabalhando offline."
+			);
+
+			setSyncStatus(
+				"Offline — alterações salvas localmente"
+			);
+
+			return;
+		}
+
+		setCloudStatus(
+			"Conta conectada. Sincronização automática ativa."
+		);
+	}
+	
 	function setCloudReconcilePrompt(remoteState) {
   var message = "Há dados diferentes entre a nuvem (" + cloudCounts(remoteState) + ") e este aparelho (" + cloudCounts(state) + "). Escolha qual versão deseja manter.";
   cloudReconcileText.textContent = message;
@@ -664,7 +687,7 @@ var authSubmit = document.getElementById("authSubmit");
     function scheduleCloudWrite() {
         if (!firebaseUser || !firebaseDb || cloudApplyingRemote) return;
 
-        setSyncStatus("Sincronizando...");
+        updateConnectionStatus();
 
         clearTimeout(cloudWriteTimer);
 
@@ -768,7 +791,7 @@ var authSubmit = document.getElementById("authSubmit");
    function reconcileCloud() {
   var ref = cloudDocRef();
   if (!ref) return;
-  setSyncStatus("Sincronizando...");
+  updateConnectionStatus();;
   ref.get().then(function (snapshot) {
     var data = snapshot.exists ? (snapshot.data() || {}) : null;
     var remoteState = data && data.payload ? normalizeState(data.payload) : null;
@@ -783,16 +806,14 @@ var authSubmit = document.getElementById("authSubmit");
 		applyRemoteState(remoteState);
 		finishCloudReconciliation();
 
-		setCloudStatus("Conta conectada. Sincronização automática ativa.");
-		setSyncStatus("Sincronizado");
+		updateConnectionStatus();
 
 		return;
 	}
 	if (cloudStatesEqual(state, remoteState)) {
 		finishCloudReconciliation();
 
-		setCloudStatus("Conta conectada. Sincronização automática ativa.");
-		setSyncStatus("Sincronizado");
+		updateConnectionStatus();
 
 		return;
 	}
@@ -3651,7 +3672,7 @@ function initAuth() {
 	bannerUseLocal.addEventListener("click", chooseLocalData);	
 
     window.addEventListener("online", function () {
-        if (firebaseUser) setSyncStatus("Sincronizando...");
+        if (firebaseUser) updateConnectionStatus();;
     });
 
     window.addEventListener("offline", function () {
