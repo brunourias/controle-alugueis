@@ -3477,40 +3477,19 @@ function initAuth() {
 
 		function printAnnualReport() {
 
-			var reportHtml = buildAnnualReportHtml();
+			printReport.innerHTML = buildAnnualReportHtml();
 
-			var win = window.open("", "_blank");
+			requestAnimationFrame(function () {
+				requestAnimationFrame(function () {
+					window.print();
+				});
+			});
 
-			if (!win) {
-				alert("Não foi possível abrir a janela de impressão.");
-				return;
-			}
-
-			win.document.open();
-
-			win.document.write(
-				"<!DOCTYPE html>" +
-				"<html>" +
-				"<head>" +
-				"<meta charset='utf-8'>" +
-				"<meta name='viewport' content='width=device-width,initial-scale=1'>" +
-				"<title>Resumo do Ano</title>" +
-				"<link rel='stylesheet' href='styles.css'>" +
-				"</head>" +
-				"<body>" +
-				reportHtml +
-				"</body>" +
-				"</html>"
-			);
-
-			win.document.close();
-
-			win.onload = function () {
-				win.focus();
-				win.print();
-				win.close();
-			};
 		}
+
+		window.onafterprint = function () {
+			printReport.innerHTML = "";
+		};
 	
     function printReceiptDocument() {
         if (!receiptContext) return;
