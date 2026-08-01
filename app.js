@@ -685,15 +685,17 @@ var authSubmit = document.getElementById("authSubmit");
             updatedAt: updatedAt,
         })
             .then(function () {
-                cloudUpdatedAt = updatedAt;
-                cloudPendingRemote = null;
-                cloudReconcile.hidden = true;
+			cloudUpdatedAt = updatedAt;
+			cloudPendingRemote = null;
 
-                setCloudStatus(
-                    "Conta conectada. Sincronização automática ativa."
-                );
-                setSyncStatus("Sincronizado");
-            })
+			cloudReconcile.hidden = true;
+			cloudBanner.hidden = true;
+
+			setCloudStatus(
+				"Conta conectada. Sincronização automática ativa."
+			);
+			setSyncStatus("Sincronizado");
+		})
             .catch(function (error) {
                 setCloudError(cloudErrorMessage(error));
 
