@@ -3459,17 +3459,27 @@ function printAfter(target) {
 
     window.addEventListener("afterprint", cleanup);
 
-    setTimeout(function () {
-        window.print();
-    }, 100);
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            window.print();
+        });
+    });
 }
 
 function printAnnualReport() {
+
     printReport.innerHTML = buildAnnualReportHtml();
 
-    setTimeout(function () {
-        printAfter(printReport);
-    }, 300);
+    requestAnimationFrame(function () {
+
+        requestAnimationFrame(function () {
+
+            printAfter(printReport);
+
+        });
+
+    });
+
 }
 	
     function printReceiptDocument() {
