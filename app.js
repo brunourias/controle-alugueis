@@ -3497,62 +3497,70 @@ function initAuth() {
 		}
 
 		function printAnnualReport() {
-			var reportHtml = buildAnnualReportHtml(); //[cite: 1]
+			var reportHtml = buildAnnualReportHtml();
 			
-			// Verifica se o usuário está em um dispositivo móvel/Android
-			var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+			// Cria uma janela temporária exclusiva para a impressão/salvar em PDF
+			var printWindow = window.open("", "_blank");
+			
+			if (printWindow) {
+				printWindow.document.write(`
+					<!DOCTYPE html>
+					<html>
+					<head>
+						<title>Resumo do Ano - ${selectedYear}</title>
+						<meta name="viewport" content="width=device-width, initial-scale=1.0">
+						<style>
+							/* Estilos focados em centralização e layout limpo */
+							* { box-sizing: border-box; }
+							body { 
+								font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+								margin: 0; 
+								padding: 20px; 
+								color: #173333; 
+								background-color: #fff;
+								display: flex;
+								justify-content: center;
+							}
+							.annual-report { 
+								width: 100%; 
+								max-width: 800px; /* Mantém o relatório centralizado e com largura legível */
+								margin: 0 auto;
+							}
+							.ar-totals { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+							.ar-total { flex: 1; min-width: 140px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+							.ar-total span { display: block; font-size: 12px; color: #666; }
+							.ar-total strong { font-size: 16px; }
+							.ar-neg { color: #a52d3b; }
+							.ar-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+							.ar-table th, .ar-table td { border: 1px solid #e0e0e0; padding: 10px 8px; text-align: left; font-size: 13px; }
+							.ar-table th.num, .ar-table td.num { text-align: right; }
+							.ar-total-row { font-weight: bold; background: #f0f0f0; }
 
-			if (isMobile) {
-				// No celular, abre o relatório em uma nova janela/aba formatada
-				var printWindow = window.open("", "_blank");
-				if (printWindow) {
-					printWindow.document.write(`
-						<!DOCTYPE html>
-						<html>
-						<head>
-							<title>Resumo do Ano - ${selectedYear}</title>
-							<meta name="viewport" content="width=device-width, initial-scale=1.0">
-							<style>
-								body { font-family: sans-serif; padding: 20px; color: #173333; }
-								.annual-report { max-width: 100%; }
-								.ar-totals { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-								.ar-total { flex: 1; min-width: 140px; background: #f4f4f4; padding: 10px; border-radius: 6px; }
-								.ar-total span { display: block; font-size: 12px; color: #666; }
-								.ar-total strong { font-size: 16px; }
-								.ar-neg { color: #a52d3b; }
-								.ar-table { width: 100%; border-collapse: collapse; margin-mb: 20px; }
-								.ar-table th, .ar-table td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
-								.ar-table th.num, .ar-table td.num { text-align: right; }
-								.ar-total-row { font-weight: bold; background: #eee; }
-								@media print {
-									body { padding: 0; }
-								}
-							</style>
-						</head>
-						<body>
+							@media print {
+								body { padding: 0; display: block; }
+								.annual-report { max-width: 100%; margin: 0; }
+							}
+						</style>
+					</head>
+					<body>
+						<div class="annual-report">
 							${reportHtml}
-							<script>
-								// Aguarda o carregamento para disparar a impressão ou alerta
-								window.onload = function() {
-									setTimeout(function() {
-										window.print();
-									}, 500);
-								};
-							</script>
-						</body>
-						</html>
-					`);
-					printWindow.document.close();
-				} else {
-					alert("Por favor, permita pop-ups para visualizar o relatório no celular.");
-				}
+						</div>
+						<script>
+							window.onload = function() {
+								setTimeout(function() {
+									window.print();
+								}, 300);
+							};
+						</script>
+					</body>
+					</html>
+				`);
+				printWindow.document.close();
 			} else {
-				// Fluxo padrão para Computadores / Desktop[cite: 1]
-				printReport.innerHTML = reportHtml;//[cite: 1]
-				printAfter(printReport);//[cite: 1]
+				alert("Por favor, permita pop-ups no navegador para gerar o relatório.");
 			}
 		}
-
 		window.onafterprint = function () {
 			printReport.innerHTML = "";
 		};
@@ -3562,72 +3570,6 @@ function initAuth() {
         printReceipt.innerHTML = receiptMarkup(receiptContext);
         printAfter(printReceipt);
     }
-	
-	// 1. Função chamada para ABRIR o relatório na tela do app
-function openAnnualReport() {
-    var reportHtml = buildAnnualReportHtml();
-    
-    // Insere o HTML dentro do container do modal
-    document.getElementById("annualReportContainer").innerHTML = reportHtml;
-    
-    // Exibe o modal centralizado na tela
-    document.getElementById("annualReportModal").style.display = "flex";
-}
-
-// 2. Função para FECHAR o modal
-function closeAnnualReportModal() {
-    document.getElementById("annualReportModal").style.display = "none";
-}
-
-// 3. Função para EXPORTAR / IMPRIMIR em PDF (Compatível com Mobile/Android)
-function exportReportToPdf() {
-    var reportHtml = buildAnnualReportHtml();
-    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    if (isMobile) {
-        // No celular Android, abre uma aba própria formatada para o menu de PDF nativo
-        var printWindow = window.open("", "_blank");
-        if (printWindow) {
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Resumo do Ano - ${selectedYear}</title>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <style>
-                        * { box-sizing: border-box; }
-                        body { font-family: sans-serif; padding: 15px; color: #173333; }
-                        .annual-report { max-width: 100%; margin: 0 auto; }
-                        .ar-totals { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-                        .ar-total { flex: 1; min-width: 130px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
-                        .ar-total span { display: block; font-size: 11px; color: #666; }
-                        .ar-total strong { font-size: 15px; }
-                        .ar-neg { color: #a52d3b; }
-                        .ar-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                        .ar-table th, .ar-table td { border: 1px solid #e0e0e0; padding: 8px; text-align: left; font-size: 12px; }
-                        .ar-table th.num, .ar-table td.num { text-align: right; }
-                        .ar-total-row { font-weight: bold; background: #f0f0f0; }
-                    </style>
-                </head>
-                <body>
-                    <div class="annual-report">${reportHtml}</div>
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() { window.print(); }, 400);
-                        };
-                    </script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        } else {
-            alert("Por favor, permita pop-ups para exportar o PDF.");
-        }
-    } else {
-        // No Desktop, usa a janela de impressão nativa diretamente
-        window.print();
-    }
-}
 
     document.getElementById("prevYear").addEventListener("click", function () {
         selectedYear -= 1;
