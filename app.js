@@ -3585,9 +3585,72 @@ function drawReceiptCanvas(data) {
 		};
 	
     function printReceiptDocument() {
-        if (!receiptContext) return;
-        printReceipt.innerHTML = receiptMarkup(receiptContext);
-        printAfter(printReceipt);
+if (!receiptContext) return;
+
+    // 1. Gera o HTML do recibo com os dados do contexto
+    const htmlContent = receiptMarkup(receiptContext);
+
+    // 2. Abre uma nova janela limpa para evitar o bloqueio de renderização do celular
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+        alert('Por favor, permita pop-ups para gerar o PDF do recibo.');
+        return;
+    }
+
+    // 3. Escreve o documento completo com os estilos e dispara a impressão
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Recibo</title>
+            <style>
+                body {
+                    font-family: system-ui, -apple-system, sans-serif;
+                    padding: 20px;
+                    color: #173333;
+                    background: #fff;
+                }
+                .receipt-paper {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 24px;
+                    border: 1px solid #dbe9e7;
+                    border-radius: 14px;
+                }
+                .receipt-paper h3 { margin: 0 0 20px; color: #115e59; font-size: 1.2rem; }
+                .receipt-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #edf3f2; font-size: 0.85rem; }
+                .receipt-line strong { color: #647979; }
+                .receipt-text { margin: 22px 0; font-size: 0.9rem; line-height: 1.6; }
+                .receipt-signature { margin-top: 32px; text-align: center; }
+                .signature-name { font-family: "Brush Script MT", cursive; font-size: 28px; display: block; }
+                .signature-line::after { content: ""; display: block; width: 220px; margin: 0 auto; border-top: 2px solid #b7cfcb; }
+                .signature-label { display: block; margin-top: 8px; font-size: 13px; color: #647979; }
+                @media print {
+                    body { padding: 0; }
+                    .receipt-paper { border: none; box-shadow: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="receipt-paper">
+                ${htmlContent}
+            </div>
+            <script>
+                // O timeout garante que o motor do iOS/Android carregue o HTML antes de abrir a tela de impressão
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 350);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
     }
 
     document.getElementById("prevYear").addEventListener("click", function () {
