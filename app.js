@@ -3158,133 +3158,103 @@ function receiptMarkup(data) {
         return y + lineHeight;
     }
 
-function drawReceiptCanvas(data) {
-        var canvas = document.createElement("canvas");
-        canvas.width = 1000;
-        canvas.height = 1400;
+function drawReceiptCanvas(context) {
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
 
-        var context = canvas.getContext("2d");
-        var left = 90;
-        var width = canvas.width - left * 2;
+    // Configuração de dimensões (Alta resolução para não borrar no mobile)
+    canvas.width = 800;
+    canvas.height = 1000;
 
-        context.fillStyle = "#ffffff";
-        context.fillRect(0, 0, canvas.width, canvas.height);
+    // Fundo Geral
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        context.fillStyle = "#115e59";
-        context.fillRect(0, 0, canvas.width, 24);
+    // Cartão Principal (Borda e Sombra Suave)
+    var margin = 40;
+    var cardWidth = canvas.width - (margin * 2);
+    var cardHeight = canvas.height - (margin * 2);
+    
+    ctx.strokeStyle = "#dbe9e7";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(margin, margin, cardWidth, cardHeight, 20);
+    ctx.stroke();
 
-        context.fillStyle = "#173333";
-        context.font = "700 46px sans-serif";
-        context.fillText("Recibo de Aluguel", left, 120);
+    // Título do Recibo
+    ctx.fillStyle = "#115e59";
+    ctx.font = "bold 32px -apple-system, sans-serif";
+    ctx.fillText("RECIBO DE ALUGUEL", margin + 30, margin + 60);
 
-        var y = 205;
+    // Linha Divisória Superior
+    ctx.strokeStyle = "#edf3f2";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(margin + 30, margin + 85);
+    ctx.lineTo(margin + cardWidth - 30, margin + 85);
+    ctx.stroke();
 
-        context.font = "700 25px sans-serif";
-        context.fillStyle = "#647979";
+    // Dados do Contexto (Chave: Valor)
+    var startY = margin + 130;
+    var lineHeight = 45;
 
-        if (state.settings.receiverName) {
-            context.fillText("Recebedor", left, y);
+    var details = [
+        { label: "Imóvel / Unidade:", value: context.unit ? context.unit.name : "-" },
+        { label: "Inquilino:", value: context.unit ? context.unit.tenantName : "-" },
+        { label: "Referência:", value: (context.month + 1) + "/" + context.year },
+        { label: "Valor Pago:", value: context.amount ? "R$ " + context.amount : "-" },
+        { label: "Data de Pagamento:", value: context.paymentDate || "-" }
+    ];
 
-            context.font = "400 28px sans-serif";
-            context.fillStyle = "#173333";
-            context.fillText(state.settings.receiverName, left + 250, y);
+    ctx.font = "18px -apple-system, sans-serif";
 
-            y += 62;
-        }
+    details.forEach(function(item) {
+        // Label
+        ctx.fillStyle = "#647979";
+        ctx.font = "normal 20px -apple-system, sans-serif";
+        ctx.fillText(item.label, margin + 30, startY);
 
-        if (data.unit && data.unit.tenantName) {
-            context.font = "700 25px sans-serif";
-            context.fillStyle = "#647979";
-            context.fillText("Inquilino", left, y);
+        // Valor (Alinhado à direita)
+        ctx.fillStyle = "#173333";
+        ctx.font = "bold 20px -apple-system, sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(item.value, margin + cardWidth - 30, startY);
+        ctx.textAlign = "left"; // Reseta alinhamento
 
-            context.font = "400 28px sans-serif";
-            context.fillStyle = "#173333";
-            context.fillText(data.unit.tenantName, left + 250, y);
+        // Linha pontilhada de separação
+        ctx.strokeStyle = "#f0f4f4";
+        ctx.beginPath();
+        ctx.moveTo(margin + 30, startY + 15);
+        ctx.lineTo(margin + cardWidth - 30, startY + 15);
+        ctx.stroke();
 
-            y += 62;
-        }
+        startY += lineHeight;
+    });
 
-        [
-            ["Unidade", data.unit.name],
-            ["Valor do aluguel", money(data.amount)],
-            ["Referência", data.monthName + " de " + data.year],
-            ["Data de emissão", data.issuedAt],
-        ].forEach(function (line) {
-            context.font = "700 25px sans-serif";
-            context.fillStyle = "#647979";
-            context.fillText(line[0], left, y);
+    // Seção da Assinatura
+    var sigY = startY + 60;
 
-            context.font = "400 28px sans-serif";
-            context.fillStyle = "#173333";
-            context.fillText(line[1], left + 250, y);
+    // Linha da Assinatura
+    ctx.strokeStyle = "#b7cfcb";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo((canvas.width / 2) - 150, sigY);
+    ctx.lineTo((canvas.width / 2) + 150, sigY);
+    ctx.stroke();
 
-            y += 62;
-        });
+    // Nome na Assinatura (Estilo Cursivo)
+    ctx.fillStyle = "#115e59";
+    ctx.font = "italic 36px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.fillText(context.landlordName || "Locador", canvas.width / 2, sigY - 15);
 
-        y += 35;
+    // Subtítulo Assinatura
+    ctx.fillStyle = "#647979";
+    ctx.font = "16px -apple-system, sans-serif";
+    ctx.fillText("Assinatura do Locador", canvas.width / 2, sigY + 30);
 
-        context.font = "400 31px sans-serif";
-        context.fillStyle = "#173333";
-
-        y = wrapCanvasText(
-            context,
-            "Recebi de forma integral a importância de " +
-                money(data.amount) +
-                " referente ao aluguel da " +
-                data.unit.name +
-                " no mês de " +
-                data.monthName +
-                " de " +
-                data.year +
-                ".",
-            left,
-            y,
-            width,
-            48
-        );
-
-        if (data.status === "pago-atrasado") {
-            y += 20;
-            context.font = "700 26px sans-serif";
-            context.fillStyle = "#a45b05";
-            context.fillText("Pagamento efetuado em atraso.", left, y);
-        }
-
-        // ================= ASSINATURA =================
-
-        var signatureWidth = 320;
-        var signatureCenter = left + width / 2;
-        var signatureLeft = signatureCenter - signatureWidth / 2;
-        var signatureRight = signatureCenter + signatureWidth / 2;
-
-        context.textAlign = "center";
-
-        // Nome do recebedor
-        context.font = "italic 34px serif";
-        context.fillStyle = "#173333";
-        context.fillText(
-            state.settings.receiverName || "Recebedor",
-            signatureCenter,
-            1160
-        );
-
-        // Linha abaixo do nome
-        context.strokeStyle = "#b7cfcb";
-        context.lineWidth = 2;
-        context.beginPath();
-        context.moveTo(signatureLeft, 1185);
-        context.lineTo(signatureRight, 1185);
-        context.stroke();
-
-        // Legenda
-        context.font = "400 24px sans-serif";
-        context.fillStyle = "#647979";
-        context.fillText("Assinatura do recebedor", signatureCenter, 1235);
-
-        context.textAlign = "left";
-
-        return canvas;
-    }
+    return canvas;
+}
 
     function slugify(value) {
         return (
