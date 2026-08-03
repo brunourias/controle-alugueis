@@ -3157,6 +3157,19 @@ function receiptMarkup(data) {
         if (line) context.fillText(line, x, y);
         return y + lineHeight;
     }
+	
+	// Função auxiliar para formatar em Reais (R$)
+	function formatCurrency(value) {
+		if (!value) return "0,00";
+		// Se for string, troca vírgula por ponto para o parseFloat ler os centavos corretamente
+		var normalizedValue = typeof value === 'string' ? value.replace(',', '.') : value;
+		var numberValue = parseFloat(normalizedValue) || 0;
+
+		return numberValue.toLocaleString('pt-BR', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		});
+	}
 
 	function drawReceiptCanvas(context) {
 		var canvas = document.createElement("canvas");
@@ -3194,12 +3207,12 @@ function receiptMarkup(data) {
 		var rowHeight = 48;
 
 		var details = [
-			{ label: "Recebedor", value: context.landlordName || context.receiverName || "-" },
+			{ label: "Recebedor", value: state.settings.receiverName || "-" },
 			{ label: "Inquilino", value: context.tenantName || (context.unit ? context.unit.tenantName : "-") },
 			{ label: "Unidade", value: context.unitName || (context.unit ? context.unit.name : "-") },
-			{ label: "Valor do aluguel", value: context.formattedAmount || (context.amount ? "R$ " + context.amount : "-") },
-			{ label: "Referência", value: context.referencePeriod || "-" },
-			{ label: "Data de emissão", value: context.issueDate || context.paymentDate || "-" }
+			{ label: "Valor do aluguel", value: context.amount ? "R$ " + formatCurrency(context.amount) : "-" },
+			{ label: "Referência", value: context.monthName + " de " + context.year || "-" },
+			{ label: "Data de emissão", value: context.issuedAt || "-" }
 		];
 
 		details.forEach(function (item) {
@@ -3231,9 +3244,9 @@ function receiptMarkup(data) {
 
 		// 3. Texto Descritivo Declaratório
 		var descriptionText = context.descriptionText || 
-			("Recebi de forma integral a importância de " + (context.formattedAmount || ("R$ " + context.amount)) + 
+			("Recebi de forma integral a importância de " + "R$ " + formatCurrency(context.amount) + 
 			" referente ao aluguel da " + (context.unitName || (context.unit ? context.unit.name : "")) + 
-			" no mês de " + (context.referencePeriod || "") + ".");
+			" no mês de " + context.monthName + " de " + context.year + ".");
 
 		ctx.fillStyle = "#223331";
 		ctx.font = "18px sans-serif";
@@ -3267,7 +3280,7 @@ function receiptMarkup(data) {
 		ctx.fillStyle = "#0d5c58";
 		ctx.font = "38px cursive, sans-serif";
 		ctx.textAlign = "center";
-		ctx.fillText(context.landlordName || context.receiverName || "Bruno Urias", centerX, sigY);
+		ctx.fillText(context.receiverName || "Bruno Urias", centerX, sigY);
 
 		// Linha de Assinatura
 		ctx.strokeStyle = "#a9c7c3";
