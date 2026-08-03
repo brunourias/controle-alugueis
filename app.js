@@ -3191,132 +3191,170 @@ function receiptMarkup(data) {
 		});
 	}
 
-	function drawReceiptCanvas(context) {
-		var canvas = document.createElement("canvas");
-		var ctx = canvas.getContext("2d");
+function drawReceiptCanvas(context) {
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
 
-		// Dimensões do Canvas (Proporção adequada para o layout da imagem)
-		canvas.width = 800;
-		canvas.height = 950;
+    // Dimensões do Canvas
+    canvas.width = 800;
+    canvas.height = 950;
 
-		// Fundo Geral
-		ctx.fillStyle = "#ffffff";
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Fundo
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-		// Borda Externa do Cartão
-		var margin = 30;
-		var cardWidth = canvas.width - (margin * 2);
-		var cardHeight = canvas.height - (margin * 2);
+    // Cartão
+    var margin = 30;
+    var cardWidth = canvas.width - (margin * 2);
+    var cardHeight = canvas.height - (margin * 2);
 
-		ctx.strokeStyle = "#d1e2e0";
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
-		ctx.stroke();
+    ctx.strokeStyle = "#d1e2e0";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
+    ctx.stroke();
 
-		var contentMargin = margin + 40;
-		var contentWidth = cardWidth - 80;
+    var contentMargin = margin + 40;
+    var contentWidth = cardWidth - 80;
 
-		// 1. Título
-		ctx.fillStyle = "#0d5c58";
-		ctx.font = "bold 28px sans-serif";
-		ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
+    // Título
+    ctx.fillStyle = "#0d5c58";
+    ctx.font = "bold 28px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
 
-		// 2. Mapeamento dos Campos
-		var startY = margin + 120;
-		var rowHeight = 48;
+    // Dados
+    var startY = margin + 120;
+    var rowHeight = 48;
 
-		var details = [
-			{ label: "Recebedor", value: state.settings.receiverName || "-" },
-			{ label: "Inquilino", value: context.tenantName || (context.unit ? context.unit.tenantName : "-") },
-			{ label: "Unidade", value: context.unitName || (context.unit ? context.unit.name : "-") },
-			{ label: "Valor do aluguel", value: context.amount ? "R$ " + formatCurrency(context.amount) : "-" },
-			{ label: "Referência", value: context.monthName + " de " + context.year || "-" },
-			{ label: "Data de emissão", value: context.issuedAt || "-" }
-		];
+    var details = [
+        { label: "Recebedor", value: state.settings.receiverName || "-" },
+        { label: "Inquilino", value: context.tenantName || (context.unit ? context.unit.tenantName : "-") },
+        { label: "Unidade", value: context.unitName || (context.unit ? context.unit.name : "-") },
+        { label: "Valor do aluguel", value: context.amount ? "R$ " + formatCurrency(context.amount) : "-" },
+        { label: "Referência", value: context.monthName + " de " + context.year },
+        { label: "Data de emissão", value: context.issuedAt || "-" }
+    ];
 
-		details.forEach(function (item) {
-			// Label (Esquerda)
-			ctx.fillStyle = "#556b69";
-			ctx.font = "bold 18px sans-serif";
-			ctx.textAlign = "left";
-			ctx.fillText(item.label, contentMargin, startY);
+    details.forEach(function (item) {
 
-			// Valor (Direita)
-			ctx.fillStyle = "#223331";
-			ctx.font = "normal 18px sans-serif";
-			ctx.textAlign = "right";
-			ctx.fillText(item.value, contentMargin + contentWidth, startY);
+        ctx.fillStyle = "#556b69";
+        ctx.font = "bold 18px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(item.label, contentMargin, startY);
 
-			// Linha divisória fina
-			ctx.strokeStyle = "#e8f0ef";
-			ctx.lineWidth = 1;
-			ctx.beginPath();
-			ctx.moveTo(contentMargin, startY + 15);
-			ctx.lineTo(contentMargin + contentWidth, startY + 15);
-			ctx.stroke();
+        ctx.fillStyle = "#223331";
+        ctx.font = "18px sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(item.value, contentMargin + contentWidth, startY);
 
-			startY += rowHeight;
-		});
+        ctx.strokeStyle = "#e8f0ef";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(contentMargin, startY + 15);
+        ctx.lineTo(contentMargin + contentWidth, startY + 15);
+        ctx.stroke();
 
-		// Reset de alinhamento
-		ctx.textAlign = "left";
+        startY += rowHeight;
+    });
 
-		// 3. Texto Descritivo Declaratório
-		var descriptionText = context.descriptionText || 
-			("Recebi de forma integral a importância de " + "R$ " + formatCurrency(context.amount) + 
-			" referente ao aluguel da " + (context.unitName || (context.unit ? context.unit.name : "")) + 
-			" no mês de " + context.monthName + " de " + context.year + ".");
+    ctx.textAlign = "left";
 
-		ctx.fillStyle = "#223331";
-		ctx.font = "18px sans-serif";
+    // Texto do recibo
+    var descriptionText =
+        context.descriptionText ||
+        ("Recebi de forma integral a importância de R$ " +
+            formatCurrency(context.amount) +
+            " referente ao aluguel da " +
+            (context.unitName || (context.unit ? context.unit.name : "")) +
+            " no mês de " +
+            context.monthName +
+            " de " +
+            context.year +
+            ".");
 
-		// Quebra de linha automática para o texto de recibo
-		function wrapText(text, x, y, maxWidth, lineHeight) {
-			var words = text.split(" ");
-			var line = "";
-			for (var n = 0; n < words.length; n++) {
-				var testLine = line + words[n] + " ";
-				var metrics = ctx.measureText(testLine);
-				if (metrics.width > maxWidth && n > 0) {
-					ctx.fillText(line, x, y);
-					line = words[n] + " ";
-					y += lineHeight;
-				} else {
-					line = testLine;
-				}
-			}
-			ctx.fillText(line, x, y);
-			return y;
-		}
+    ctx.fillStyle = "#223331";
+    ctx.font = "18px sans-serif";
 
-		var textEndY = wrapText(descriptionText, contentMargin, startY + 30, contentWidth, 28);
+    function wrapText(text, x, y, maxWidth, lineHeight) {
+        var words = text.split(" ");
+        var line = "";
 
-		// 4. Assinatura
-		var sigY = textEndY + 80;
-		var centerX = canvas.width / 2;
+        for (var n = 0; n < words.length; n++) {
+            var testLine = line + words[n] + " ";
+            var width = ctx.measureText(testLine).width;
 
-		// Nome da Assinatura (Estilo Manuscrito/Destaque)
-		ctx.fillStyle = "#0d5c58";
-		ctx.font = "38px cursive, sans-serif";
-		ctx.textAlign = "center";
-		ctx.fillText(context.receiverName || "Bruno Urias", centerX, sigY);
+            if (width > maxWidth && n > 0) {
+                ctx.fillText(line, x, y);
+                line = words[n] + " ";
+                y += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
 
-		// Linha de Assinatura
-		ctx.strokeStyle = "#a9c7c3";
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.moveTo(centerX - 120, sigY + 12);
-		ctx.lineTo(centerX + 120, sigY + 12);
-		ctx.stroke();
+        ctx.fillText(line, x, y);
+        return y;
+    }
 
-		// Rótulo da Assinatura
-		ctx.fillStyle = "#637d7a";
-		ctx.font = "15px sans-serif";
-		ctx.fillText("Assinatura do recebedor", centerX, sigY + 35);
+    var textEndY = wrapText(descriptionText, contentMargin, startY + 30, contentWidth, 28);
 
-		return canvas;
-	}
+    // ==========================================================
+    // AVISO DE PAGAMENTO EM ATRASO
+    // ==========================================================
+    if (context.status === "pago-atrasado") {
+
+        var boxY = textEndY + 25;
+        var boxHeight = 60;
+
+        // Fundo
+        ctx.fillStyle = "#FFF3CD";
+        ctx.fillRect(contentMargin, boxY, contentWidth, boxHeight);
+
+        // Borda
+        ctx.strokeStyle = "#FFE69C";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(contentMargin, boxY, contentWidth, boxHeight);
+
+        // Texto
+        ctx.fillStyle = "#664D03";
+        ctx.font = "bold 18px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(
+            "Pagamento efetuado em atraso.",
+            contentMargin + 18,
+            boxY + 37
+        );
+
+        textEndY = boxY + boxHeight;
+    }
+
+    // Assinatura
+    var sigY = textEndY + 60;
+    var centerX = canvas.width / 2;
+
+    ctx.fillStyle = "#0d5c58";
+    ctx.font = "38px cursive, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+        context.receiverName || state.settings.receiverName || "Recebedor",
+        centerX,
+        sigY
+    );
+
+    ctx.strokeStyle = "#a9c7c3";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 120, sigY + 12);
+    ctx.lineTo(centerX + 120, sigY + 12);
+    ctx.stroke();
+
+    ctx.fillStyle = "#637d7a";
+    ctx.font = "15px sans-serif";
+    ctx.fillText("Assinatura do recebedor", centerX, sigY + 35);
+
+    return canvas;
+}
 
     function slugify(value) {
         return (
