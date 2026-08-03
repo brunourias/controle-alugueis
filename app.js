@@ -68,6 +68,7 @@
     var pendingRentChanges = [];
     var editingExpenseId = null;
     var expensesExpanded = false;
+	var summaryCardsExpanded = false;	
 	var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -1878,6 +1879,7 @@ function initAuth() {
             "</section>";
         summary.innerHTML =
             overdueAlert +
+			'<div id=\"summaryCards\" class=\"summary-cards\">' +
             '<div class="summary-card"><div class="summary-label">Recebido neste mês</div><div class="summary-value">' +
             money(received) +
             '</div><div class="summary-detail">' +
@@ -1914,9 +1916,26 @@ function initAuth() {
             (annualNet < 0 ? "summary-negative" : "") +
             '"><div class="summary-label">Líquido no ano</div><div class="summary-value">' +
             money(annualNet) +
-            '</div><div class="summary-detail">Recebido menos gastos</div></div>' +
+            '</div><div class="summary-detail">Recebido menos gastos</div></div></div>' +
             report;
+			var unitSummaryToggleBtn = document.getElementById("toggleUnitSummary");
+			if (unitSummaryToggleBtn) {
+				unitSummaryToggleBtn.addEventListener("click", function () {
+					unitSummaryExpanded = !unitSummaryExpanded;
+					var list = document.getElementById("unitSummaryList");
+					if (list) list.hidden = !unitSummaryExpanded;
+					unitSummaryToggleBtn.textContent = unitSummaryExpanded ? "Ocultar" : "Mostrar";
+				});
+			}
+			applySummaryCardsVisibility();
     }
+	
+	function applySummaryCardsVisibility() {
+	  var cards = document.getElementById("summaryCards");
+	  if (cards) cards.hidden = !summaryCardsExpanded;
+	  var btn = document.getElementById("toggleSummaryCards");
+	  if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar" : "Mostrar";
+	}
 
     function renderExpenses() {
         expensesYear.textContent = selectedYear;
@@ -3769,7 +3788,12 @@ if (!receiptContext) return;
 		
     document
         .getElementById("printAnnual")
-        .addEventListener("click", printAnnualReport);		
+        .addEventListener("click", printAnnualReport);	
+
+	document.getElementById("toggleSummaryCards").addEventListener("click", function () {
+	  summaryCardsExpanded = !summaryCardsExpanded;
+	  applySummaryCardsVisibility();
+	});		
 
     document
         .getElementById("exportBackup")
