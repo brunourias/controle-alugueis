@@ -730,6 +730,11 @@ tfoot td {
     border: 1px solid var(--line);
     border-radius: 16px;
     background: #ffffffa8;}
+	
+.summary-cards { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.summary-cards[hidden] { display: none; }
+.summary-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+	
 .summary-bar h2 { margin: 0; color: var(--teal-dark); font-size: 1.05rem; }
 
 .summary-card {
