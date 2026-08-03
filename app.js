@@ -3158,103 +3158,132 @@ function receiptMarkup(data) {
         return y + lineHeight;
     }
 
-function drawReceiptCanvas(context) {
-    var canvas = document.createElement("canvas");
-    var ctx = canvas.getContext("2d");
+	function drawReceiptCanvas(context) {
+		var canvas = document.createElement("canvas");
+		var ctx = canvas.getContext("2d");
 
-    // Configuração de dimensões (Alta resolução para não borrar no mobile)
-    canvas.width = 800;
-    canvas.height = 1000;
+		// Dimensões do Canvas (Proporção adequada para o layout da imagem)
+		canvas.width = 800;
+		canvas.height = 950;
 
-    // Fundo Geral
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+		// Fundo Geral
+		ctx.fillStyle = "#ffffff";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Cartão Principal (Borda e Sombra Suave)
-    var margin = 40;
-    var cardWidth = canvas.width - (margin * 2);
-    var cardHeight = canvas.height - (margin * 2);
-    
-    ctx.strokeStyle = "#dbe9e7";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(margin, margin, cardWidth, cardHeight, 20);
-    ctx.stroke();
+		// Borda Externa do Cartão
+		var margin = 30;
+		var cardWidth = canvas.width - (margin * 2);
+		var cardHeight = canvas.height - (margin * 2);
 
-    // Título do Recibo
-    ctx.fillStyle = "#115e59";
-    ctx.font = "bold 32px -apple-system, sans-serif";
-    ctx.fillText("RECIBO DE ALUGUEL", margin + 30, margin + 60);
+		ctx.strokeStyle = "#d1e2e0";
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
+		ctx.stroke();
 
-    // Linha Divisória Superior
-    ctx.strokeStyle = "#edf3f2";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(margin + 30, margin + 85);
-    ctx.lineTo(margin + cardWidth - 30, margin + 85);
-    ctx.stroke();
+		var contentMargin = margin + 40;
+		var contentWidth = cardWidth - 80;
 
-    // Dados do Contexto (Chave: Valor)
-    var startY = margin + 130;
-    var lineHeight = 45;
+		// 1. Título
+		ctx.fillStyle = "#0d5c58";
+		ctx.font = "bold 28px sans-serif";
+		ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
 
-    var details = [
-        { label: "Imóvel / Unidade:", value: context.unit ? context.unit.name : "-" },
-        { label: "Inquilino:", value: context.unit ? context.unit.tenantName : "-" },
-        { label: "Referência:", value: (context.month + 1) + "/" + context.year },
-        { label: "Valor Pago:", value: context.amount ? "R$ " + context.amount : "-" },
-        { label: "Data de Pagamento:", value: context.paymentDate || "-" }
-    ];
+		// 2. Mapeamento dos Campos
+		var startY = margin + 120;
+		var rowHeight = 48;
 
-    ctx.font = "18px -apple-system, sans-serif";
+		var details = [
+			{ label: "Recebedor", value: context.landlordName || context.receiverName || "-" },
+			{ label: "Inquilino", value: context.tenantName || (context.unit ? context.unit.tenantName : "-") },
+			{ label: "Unidade", value: context.unitName || (context.unit ? context.unit.name : "-") },
+			{ label: "Valor do aluguel", value: context.formattedAmount || (context.amount ? "R$ " + context.amount : "-") },
+			{ label: "Referência", value: context.referencePeriod || "-" },
+			{ label: "Data de emissão", value: context.issueDate || context.paymentDate || "-" }
+		];
 
-    details.forEach(function(item) {
-        // Label
-        ctx.fillStyle = "#647979";
-        ctx.font = "normal 20px -apple-system, sans-serif";
-        ctx.fillText(item.label, margin + 30, startY);
+		details.forEach(function (item) {
+			// Label (Esquerda)
+			ctx.fillStyle = "#556b69";
+			ctx.font = "bold 18px sans-serif";
+			ctx.textAlign = "left";
+			ctx.fillText(item.label, contentMargin, startY);
 
-        // Valor (Alinhado à direita)
-        ctx.fillStyle = "#173333";
-        ctx.font = "bold 20px -apple-system, sans-serif";
-        ctx.textAlign = "right";
-        ctx.fillText(item.value, margin + cardWidth - 30, startY);
-        ctx.textAlign = "left"; // Reseta alinhamento
+			// Valor (Direita)
+			ctx.fillStyle = "#223331";
+			ctx.font = "normal 18px sans-serif";
+			ctx.textAlign = "right";
+			ctx.fillText(item.value, contentMargin + contentWidth, startY);
 
-        // Linha pontilhada de separação
-        ctx.strokeStyle = "#f0f4f4";
-        ctx.beginPath();
-        ctx.moveTo(margin + 30, startY + 15);
-        ctx.lineTo(margin + cardWidth - 30, startY + 15);
-        ctx.stroke();
+			// Linha divisória fina
+			ctx.strokeStyle = "#e8f0ef";
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(contentMargin, startY + 15);
+			ctx.lineTo(contentMargin + contentWidth, startY + 15);
+			ctx.stroke();
 
-        startY += lineHeight;
-    });
+			startY += rowHeight;
+		});
 
-    // Seção da Assinatura
-    var sigY = startY + 60;
+		// Reset de alinhamento
+		ctx.textAlign = "left";
 
-    // Linha da Assinatura
-    ctx.strokeStyle = "#b7cfcb";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo((canvas.width / 2) - 150, sigY);
-    ctx.lineTo((canvas.width / 2) + 150, sigY);
-    ctx.stroke();
+		// 3. Texto Descritivo Declaratório
+		var descriptionText = context.descriptionText || 
+			("Recebi de forma integral a importância de " + (context.formattedAmount || ("R$ " + context.amount)) + 
+			" referente ao aluguel da " + (context.unitName || (context.unit ? context.unit.name : "")) + 
+			" no mês de " + (context.referencePeriod || "") + ".");
 
-    // Nome na Assinatura (Estilo Cursivo)
-    ctx.fillStyle = "#115e59";
-    ctx.font = "italic 36px Georgia, serif";
-    ctx.textAlign = "center";
-    ctx.fillText(context.landlordName || "Locador", canvas.width / 2, sigY - 15);
+		ctx.fillStyle = "#223331";
+		ctx.font = "18px sans-serif";
 
-    // Subtítulo Assinatura
-    ctx.fillStyle = "#647979";
-    ctx.font = "16px -apple-system, sans-serif";
-    ctx.fillText("Assinatura do Locador", canvas.width / 2, sigY + 30);
+		// Quebra de linha automática para o texto de recibo
+		function wrapText(text, x, y, maxWidth, lineHeight) {
+			var words = text.split(" ");
+			var line = "";
+			for (var n = 0; n < words.length; n++) {
+				var testLine = line + words[n] + " ";
+				var metrics = ctx.measureText(testLine);
+				if (metrics.width > maxWidth && n > 0) {
+					ctx.fillText(line, x, y);
+					line = words[n] + " ";
+					y += lineHeight;
+				} else {
+					line = testLine;
+				}
+			}
+			ctx.fillText(line, x, y);
+			return y;
+		}
 
-    return canvas;
-}
+		var textEndY = wrapText(descriptionText, contentMargin, startY + 30, contentWidth, 28);
+
+		// 4. Assinatura
+		var sigY = textEndY + 80;
+		var centerX = canvas.width / 2;
+
+		// Nome da Assinatura (Estilo Manuscrito/Destaque)
+		ctx.fillStyle = "#0d5c58";
+		ctx.font = "38px cursive, sans-serif";
+		ctx.textAlign = "center";
+		ctx.fillText(context.landlordName || context.receiverName || "Bruno Urias", centerX, sigY);
+
+		// Linha de Assinatura
+		ctx.strokeStyle = "#a9c7c3";
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.moveTo(centerX - 120, sigY + 12);
+		ctx.lineTo(centerX + 120, sigY + 12);
+		ctx.stroke();
+
+		// Rótulo da Assinatura
+		ctx.fillStyle = "#637d7a";
+		ctx.font = "15px sans-serif";
+		ctx.fillText("Assinatura do recebedor", centerX, sigY + 35);
+
+		return canvas;
+	}
 
     function slugify(value) {
         return (
