@@ -1131,17 +1131,18 @@ async function submitAuth(event) {
 
 }
 
-function initAuth() {
-
-  render();
-
-  if (lockConfig) { openAuthLogin(); return; }
-
-  if (localStorage.getItem(SETUP_FLAG_KEY) !== "1") { openAuthCreate(); return; }
-
-  appUnlocked = true;
-
-}
+	function initAuth() {
+	  render();
+	  if (lockConfig) {
+		  openAuthLogin();
+		  return; 
+	  }
+	  if (localStorage.getItem(SETUP_FLAG_KEY) !== "1") { 
+		openAuthCreate(); 
+		return; 
+	  }
+	  appUnlocked = true;
+	}
 
     function exportBackup() {
         var date = new Date().toISOString().slice(0, 10);
@@ -3879,7 +3880,13 @@ if (!receiptContext) return;
         if (!receiptModal.hidden) closeReceipt();
     });
 
-    window.addEventListener("pageshow", collapseExpenseMonths);
+    window.addEventListener("pageshow", function (event) {
+		collapseExpenseMonths();
+		if (event.persisted && lockConfig) {
+			appUnlocked = false;
+			openAuthLogin();
+		}
+	});
 
     updateCloudUi();
 
