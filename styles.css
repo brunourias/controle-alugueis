@@ -721,7 +721,26 @@ tfoot td {
     margin-top: 16px;
 }
 
-.summary-bar {     display: flex;
+@media (max-width: 768px) {
+
+    .summary-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .summary-bar-actions {
+        display: flex;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .summary-bar-actions .btn {
+        flex: 1;
+    }
+}
+
+.summary-bar {     display: block;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
