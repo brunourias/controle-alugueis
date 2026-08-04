@@ -2039,7 +2039,7 @@ async function submitAuth(event) {
                     .join("");
 
                 return (
-                    '<details class="expense-month" open>' +
+                    '<details class="expense-month">' +
                     '<summary class="expense-month-header">' +
                     '<div class="expense-month-title">' +
                     "<h3>" +
