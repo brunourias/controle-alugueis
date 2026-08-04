@@ -762,6 +762,15 @@ tfoot td {
     padding: 8px 16px;
     min-height: 36px;
     transition: .2s;
+	-webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.summary-bar-actions .btn-ghost:focus,
+.summary-bar-actions .btn-ghost:focus-visible,
+.summary-bar-actions .btn-ghost:active {
+    outline: none;
+    box-shadow: none;
 }
 
 .summary-bar-actions .btn-ghost:hover {
