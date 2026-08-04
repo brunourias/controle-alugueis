@@ -3300,30 +3300,35 @@ function drawReceiptCanvas(context) {
     var textEndY = wrapText(descriptionText, contentMargin, startY + 30, contentWidth, 28);
 
     // ==========================================================
-    // AVISO DE PAGAMENTO EM ATRASO
+    // AVISO DE PAGAMENTO EM ATRASO (COM CANTOS ARREDONDADOS)
     // ==========================================================
     if (context.status === "pago-atrasado") {
 
         var boxY = textEndY + 25;
-        var boxHeight = 60;
+        var boxHeight = 56;
+        var borderRadius = 8; // Raio dos cantos arredondados
 
-        // Fundo
+        // Desenhar Fundo Arredondado
         ctx.fillStyle = "#FFF3CD";
-        ctx.fillRect(contentMargin, boxY, contentWidth, boxHeight);
+        ctx.beginPath();
+        ctx.roundRect(contentMargin, boxY, contentWidth, boxHeight, borderRadius);
+        ctx.fill();
 
-        // Borda
+        // Desenhar Borda Arredondada
         ctx.strokeStyle = "#FFE69C";
         ctx.lineWidth = 1;
-        ctx.strokeRect(contentMargin, boxY, contentWidth, boxHeight);
+        ctx.beginPath();
+        ctx.roundRect(contentMargin, boxY, contentWidth, boxHeight, borderRadius);
+        ctx.stroke();
 
-        // Texto
+        // Texto do Aviso
         ctx.fillStyle = "#664D03";
-        ctx.font = "bold 18px sans-serif";
+        ctx.font = "bold 20px Arial";
         ctx.textAlign = "left";
         ctx.fillText(
             "Pagamento efetuado em atraso.",
-            contentMargin + 18,
-            boxY + 37
+            contentMargin + 20,
+            boxY + 35
         );
 
         textEndY = boxY + boxHeight;
@@ -3334,7 +3339,7 @@ function drawReceiptCanvas(context) {
     var centerX = canvas.width / 2;
 
     ctx.fillStyle = "#0d5c58";
-    ctx.font = "38px cursive, sans-serif";
+    ctx.font = '30px "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive';
     ctx.textAlign = "center";
     ctx.fillText(
         context.receiverName || state.settings.receiverName || "Recebedor",
@@ -3654,66 +3659,139 @@ function drawReceiptCanvas(context) {
 			printReport.innerHTML = "";
 		};
 	
-    function printReceiptDocument() {
-if (!receiptContext) return;
+function printReceiptDocument() {
+    if (!receiptContext) return;
 
     // 1. Gera o HTML do recibo com os dados do contexto
-    const htmlContent = receiptMarkup(receiptContext);
+    var htmlContent = receiptMarkup(receiptContext);
 
-    // 2. Abre uma nova janela limpa para evitar o bloqueio de renderização do celular
-    const printWindow = window.open('', '_blank');
+    // 2. Abre uma nova janela limpa
+    var printWindow = window.open('', '_blank');
     
     if (!printWindow) {
         alert('Por favor, permita pop-ups para gerar o PDF do recibo.');
         return;
     }
 
-    // 3. Escreve o documento completo com os estilos e dispara a impressão
+    // 3. Escreve o documento completo com o CSS corrigido
     printWindow.document.write(`
         <!DOCTYPE html>
         <html lang="pt-BR">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Recibo</title>
+            <title>Recibo de Aluguel</title>
             <style>
+                * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                    box-sizing: border-box;
+                }
+
                 body {
                     font-family: system-ui, -apple-system, sans-serif;
-                    padding: 20px;
-                    color: #173333;
-                    background: #fff;
+                    padding: 40px 20px;
+                    margin: 0;
+                    background-color: #ffffff;
+                    color: #223331;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                 }
+
                 .receipt-paper {
+                    width: 100%;
                     max-width: 600px;
-                    margin: 0 auto;
-                    padding: 24px;
-                    border: 1px solid #dbe9e7;
-                    border-radius: 14px;
+                    background: #ffffff;
+                    border: 1px solid #d1e2e0;
+                    border-radius: 12px;
+                    padding: 32px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
                 }
-                .receipt-paper h3 { margin: 0 0 20px; color: #115e59; font-size: 1.2rem; }
-                .receipt-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #edf3f2; font-size: 0.85rem; }
-                .receipt-line strong { color: #647979; }
-                .receipt-text { margin: 22px 0; font-size: 0.9rem; line-height: 1.6; }
-                .receipt-signature { margin-top: 32px; text-align: center; }
-                .signature-name { font-family: "Brush Script MT", cursive; font-size: 28px; display: block; }
-                .signature-line::after { content: ""; display: block; width: 220px; margin: 0 auto; border-top: 2px solid #b7cfcb; }
-                .signature-label { display: block; margin-top: 8px; font-size: 13px; color: #647979; }
+
+                .receipt-paper h3 {
+                    margin-top: 0;
+                    margin-bottom: 24px;
+                    color: #0d5c58;
+                    font-size: 24px;
+                }
+
+                .receipt-line {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 10px 0;
+                    border-bottom: 1px solid #e8f0ef;
+                    font-size: 15px;
+                }
+
+                .receipt-line strong {
+                    color: #556b69;
+                }
+
+                .receipt-text {
+                    margin-top: 24px;
+                    line-height: 1.6;
+                    font-size: 15px;
+                }
+
+                .receipt-note {
+                    margin-top: 16px;
+                    padding: 12px;
+                    background-color: #ffedc2;
+                    border: 1px solid #f2d48a;
+                    border-radius: 6px;
+                    color: #a45b48;
+                    font-weight: bold;
+                    font-size: 14px;
+                }
+
+                .receipt-signature {
+                    margin-top: 48px;
+                    text-align: center;
+                }
+
+                .signature-line {
+                    border-bottom: 1px solid #a9c7c3;
+                    width: 240px;
+                    margin: 0 auto 8px auto;
+                    padding-bottom: 4px;
+                }
+
+                .signature-name {
+					width: 100%;
+					/* ocupa a mesma largura da linha */
+					text-align: center;
+					font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive;
+					font-size: 30px;
+					margin-bottom: 8px;
+                }
+
+                .signature-label {
+                    font-size: 13px;
+                    color: #637d7a;
+                }
+
                 @media print {
-                    body { padding: 0; }
-                    .receipt-paper { border: none; box-shadow: none; }
+                    body {
+                        padding: 0;
+                        background: none;
+                    }
+                    .receipt-paper {
+                        border: 1px solid #ccc;
+                        box-shadow: none;
+                        max-width: 100%;
+                    }
                 }
             </style>
         </head>
         <body>
-            <div class="receipt-paper">
-                ${htmlContent}
-            </div>
+            ${htmlContent}
             <script>
-                // O timeout garante que o motor do iOS/Android carregue o HTML antes de abrir a tela de impressão
                 window.onload = function() {
                     setTimeout(function() {
                         window.print();
-                    }, 350);
+                    }, 300);
                 };
             </script>
         </body>
@@ -3721,7 +3799,7 @@ if (!receiptContext) return;
     `);
 
     printWindow.document.close();
-    }
+}
 
     document.getElementById("prevYear").addEventListener("click", function () {
         selectedYear -= 1;
