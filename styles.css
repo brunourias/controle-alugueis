@@ -733,8 +733,22 @@ tfoot td {
 	
 .summary-cards { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .summary-cards[hidden] { display: none; }
-.summary-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-	
+.summary-bar-actions .btn-ghost {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0d5c58;
+    background: #eef6f5;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 8px 16px;
+    min-height: 36px;
+    transition: .2s;
+}
+
+.summary-bar-actions .btn-ghost:hover {
+    background: #e3f0ee;
+}
+    	
 .summary-bar h2 { margin: 0; color: var(--teal-dark); font-size: 1.05rem; }
 
 .summary-card {
@@ -1264,11 +1278,27 @@ tfoot td {
 .btn-primary {
     color: white;
     background: var(--teal);
+
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    min-height: 36px;
+    line-height: 1.2;
+    border-radius: 12px;
+    transition: background-color .2s ease, color .2s ease;
 }
 
 .btn-ghost {
-    color: var(--muted);
+    color: #0d5c58;
     background: #edf3f2;
+
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    min-height: 36px;
+    line-height: 1.2;
+    border-radius: 12px;
+    transition: background-color .2s ease, color .2s ease;
 }
 
 .btn-danger {
