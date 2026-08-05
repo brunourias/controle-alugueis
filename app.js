@@ -2,7 +2,7 @@
     "use strict";
 
     var STORAGE_KEY = "controle-alugueis-v1";
-	var LOCK_STORAGE_KEY = "controle-alugueis-lock";
+    var LOCK_STORAGE_KEY = "controle-alugueis-lock";
     var SETUP_FLAG_KEY = "controle-alugueis-lock-setup";
 
     var ENTERPRISE_SELECTION_KEY = "controle-alugueis-empreendimento";
@@ -68,13 +68,13 @@
     var pendingRentChanges = [];
     var editingExpenseId = null;
     var expensesExpanded = false;
-	var summaryCardsExpanded = false;	
-	var didInitialScroll = false;
+    var summaryCardsExpanded = false;
+    var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
-	var lockConfig = loadLockConfig();
-	var appUnlocked = false;
-	var authMode = "login";
+    var lockConfig = loadLockConfig();
+    var appUnlocked = false;
+    var authMode = "login";
 
     var grid = document.getElementById("grid");
     var tableWrap = grid.parentElement;
@@ -84,7 +84,7 @@
     var statusFilter = document.getElementById("statusFilter");
     var summary = document.getElementById("summary");
     var expensesList = document.getElementById("expensesList");
-	var toggleExpensesButton =  document.getElementById("toggleExpenses");
+    var toggleExpensesButton = document.getElementById("toggleExpenses");
     var expensesTotal = document.getElementById("expensesTotal");
     var expensesYear = document.getElementById("expensesYear");
     var lockError = document.getElementById("lockError");
@@ -93,20 +93,20 @@
     var receiptModal = document.getElementById("receiptModal");
     var receiptPreview = document.getElementById("receiptPreview");
     var printReceipt = document.getElementById("printReceipt");
-	var printReport = document.getElementById("printReport");
-	var authModal = document.getElementById("authModal");
-var authTitle = document.getElementById("authTitle");
-var authMessage = document.getElementById("authMessage");
-var authForm = document.getElementById("authForm");
-var authNewLabel = document.getElementById("authNewLabel");
-var authNewPin = document.getElementById("authNewPin");
-var authConfirmLabel = document.getElementById("authConfirmLabel");
-var authConfirmPin = document.getElementById("authConfirmPin");
-var authPinLabel = document.getElementById("authPinLabel");
-var authPin = document.getElementById("authPin");
-var authError = document.getElementById("authError");
-var authSkip = document.getElementById("authSkip");
-var authSubmit = document.getElementById("authSubmit");
+    var printReport = document.getElementById("printReport");
+    var authModal = document.getElementById("authModal");
+    var authTitle = document.getElementById("authTitle");
+    var authMessage = document.getElementById("authMessage");
+    var authForm = document.getElementById("authForm");
+    var authNewLabel = document.getElementById("authNewLabel");
+    var authNewPin = document.getElementById("authNewPin");
+    var authConfirmLabel = document.getElementById("authConfirmLabel");
+    var authConfirmPin = document.getElementById("authConfirmPin");
+    var authPinLabel = document.getElementById("authPinLabel");
+    var authPin = document.getElementById("authPin");
+    var authError = document.getElementById("authError");
+    var authSkip = document.getElementById("authSkip");
+    var authSubmit = document.getElementById("authSubmit");
     var unitName = document.getElementById("unitName");
     var unitRent = document.getElementById("unitRent");
     var unitDueDay = document.getElementById("unitDueDay");
@@ -172,7 +172,7 @@ var authSubmit = document.getElementById("authSubmit");
     var cloudReconcileText = document.getElementById("cloudReconcileText");
     var useCloudData = document.getElementById("useCloudData");
     var useLocalData = document.getElementById("useLocalData");
-	var cloudBanner = document.getElementById("cloudBanner");
+    var cloudBanner = document.getElementById("cloudBanner");
     var cloudBannerText = document.getElementById("cloudBannerText");
     var bannerUseCloud = document.getElementById("bannerUseCloud");
     var bannerUseLocal = document.getElementById("bannerUseLocal");
@@ -562,11 +562,10 @@ var authSubmit = document.getElementById("authSubmit");
     }
 
     function cloudErrorMessage(error) {
-		
-		console.error("Firebase:", error);
+        console.error("Firebase:", error);
         console.error("Código:", error && error.code);
         console.error("Mensagem:", error && error.message);
-	
+
         var code = error && error.code ? error.code : "";
 
         if (code === "auth/invalid-email") return "Informe um e-mail válido.";
@@ -610,74 +609,64 @@ var authSubmit = document.getElementById("authSubmit");
             ((value.expenses || []).length === 1 ? "" : "s")
         );
     }
-	
-	function updateConnectionStatus() {
 
-		if (!firebaseUser)
-			return;
+    function updateConnectionStatus() {
+        if (!firebaseUser) return;
 
-		if (!navigator.onLine) {
+        if (!navigator.onLine) {
+            setCloudStatus("Conta conectada. Trabalhando offline.");
 
-			setCloudStatus(
-				"Conta conectada. Trabalhando offline."
-			);
+            setSyncStatus("Offline — alterações salvas localmente");
 
-			setSyncStatus(
-				"Offline — alterações salvas localmente"
-			);
+            return;
+        }
 
-			return;
-		}
+        setCloudStatus("Conta conectada. Sincronização automática ativa.");
+    }
 
-		setCloudStatus(
-			"Conta conectada. Sincronização automática ativa."
-		);
-	}
-	
-	function setCloudReconcilePrompt(remoteState) {
-  var message = "Há dados diferentes entre a nuvem (" + cloudCounts(remoteState) + ") e este aparelho (" + cloudCounts(state) + "). Escolha qual versão deseja manter.";
-  cloudReconcileText.textContent = message;
-  cloudReconcile.hidden = false;
-  cloudBannerText.textContent = message;
-  cloudBanner.hidden = false;
-}
+    function setCloudReconcilePrompt(remoteState) {
+        var message =
+            "Há dados diferentes entre a nuvem (" +
+            cloudCounts(remoteState) +
+            ") e este aparelho (" +
+            cloudCounts(state) +
+            "). Escolha qual versão deseja manter.";
+        cloudReconcileText.textContent = message;
+        cloudReconcile.hidden = false;
+        cloudBannerText.textContent = message;
+        cloudBanner.hidden = false;
+    }
 
-				function sortObject(value) {
-                    if (Array.isArray(value)) {
-                        return value.map(sortObject);
-                    }
+    function sortObject(value) {
+        if (Array.isArray(value)) {
+            return value.map(sortObject);
+        }
 
-                    if (value && typeof value === "object") {
-                        var obj = {};
+        if (value && typeof value === "object") {
+            var obj = {};
 
-                        Object.keys(value)
-                            .sort()
-                            .forEach(function (key) {
-                                obj[key] = sortObject(value[key]);
-                            });
+            Object.keys(value)
+                .sort()
+                .forEach(function (key) {
+                    obj[key] = sortObject(value[key]);
+                });
 
-                        return obj;
-                    }
+            return obj;
+        }
 
-                    return value;
-                }
+        return value;
+    }
 
-                function cloudStatesEqual(left, right) {
-                    return (
-                        JSON.stringify(
-                            sortObject(
-                                normalizeState(JSON.parse(JSON.stringify(left)))
-                            )
-                        ) ===
-                        JSON.stringify(
-                            sortObject(
-                                normalizeState(
-                                    JSON.parse(JSON.stringify(right))
-                                )
-                            )
-                        )
-                    );
-                }
+    function cloudStatesEqual(left, right) {
+        return (
+            JSON.stringify(
+                sortObject(normalizeState(JSON.parse(JSON.stringify(left))))
+            ) ===
+            JSON.stringify(
+                sortObject(normalizeState(JSON.parse(JSON.stringify(right))))
+            )
+        );
+    }
 
     function cloudDocRef() {
         return firebaseDb && firebaseUser
@@ -709,17 +698,17 @@ var authSubmit = document.getElementById("authSubmit");
             updatedAt: updatedAt,
         })
             .then(function () {
-			cloudUpdatedAt = updatedAt;
-			cloudPendingRemote = null;
+                cloudUpdatedAt = updatedAt;
+                cloudPendingRemote = null;
 
-			cloudReconcile.hidden = true;
-			cloudBanner.hidden = true;
+                cloudReconcile.hidden = true;
+                cloudBanner.hidden = true;
 
-			setCloudStatus(
-				"Conta conectada. Sincronização automática ativa."
-			);
-			setSyncStatus("Sincronizado");
-		})
+                setCloudStatus(
+                    "Conta conectada. Sincronização automática ativa."
+                );
+                setSyncStatus("Sincronizado");
+            })
             .catch(function (error) {
                 setCloudError(cloudErrorMessage(error));
 
@@ -784,48 +773,52 @@ var authSubmit = document.getElementById("authSubmit");
 
     function finishCloudReconciliation() {
         cloudReconcile.hidden = true;
-		cloudBanner.hidden = true;
+        cloudBanner.hidden = true;
         cloudPendingRemote = null;
         subscribeCloud();
     }
 
-   function reconcileCloud() {
-  var ref = cloudDocRef();
-  if (!ref) return;
-  updateConnectionStatus();;
-  ref.get().then(function (snapshot) {
-    var data = snapshot.exists ? (snapshot.data() || {}) : null;
-    var remoteState = data && data.payload ? normalizeState(data.payload) : null;
-    cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
-    if (!remoteState) {
-      writeCloudState();
-      subscribeCloud();
-      return;
+    function reconcileCloud() {
+        var ref = cloudDocRef();
+        if (!ref) return;
+        updateConnectionStatus();
+        ref.get()
+            .then(function (snapshot) {
+                var data = snapshot.exists ? snapshot.data() || {} : null;
+                var remoteState =
+                    data && data.payload ? normalizeState(data.payload) : null;
+                cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
+                if (!remoteState) {
+                    writeCloudState();
+                    subscribeCloud();
+                    return;
+                }
+                var localEmpty =
+                    state.units.length === 0 && state.expenses.length === 0;
+                if (localEmpty) {
+                    applyRemoteState(remoteState);
+                    finishCloudReconciliation();
+
+                    updateConnectionStatus();
+
+                    return;
+                }
+                if (cloudStatesEqual(state, remoteState)) {
+                    finishCloudReconciliation();
+
+                    updateConnectionStatus();
+
+                    return;
+                }
+                cloudPendingRemote = remoteState;
+                setCloudReconcilePrompt(remoteState);
+                setSyncStatus("Aguardando escolha");
+            })
+            .catch(function (error) {
+                setCloudError(cloudErrorMessage(error));
+                setSyncStatus("Não sincronizado - salvo localmente");
+            });
     }
-    var localEmpty = state.units.length === 0 && state.expenses.length === 0;
-	if (localEmpty) {
-		applyRemoteState(remoteState);
-		finishCloudReconciliation();
-
-		updateConnectionStatus();
-
-		return;
-	}
-	if (cloudStatesEqual(state, remoteState)) {
-		finishCloudReconciliation();
-
-		updateConnectionStatus();
-
-		return;
-	}
-    cloudPendingRemote = remoteState;
-    setCloudReconcilePrompt(remoteState);
-    setSyncStatus("Aguardando escolha");
-  }).catch(function (error) {
-    setCloudError(cloudErrorMessage(error));
-    setSyncStatus("Não sincronizado - salvo localmente");
-  });
-}
 
     function chooseCloudData() {
         if (!cloudPendingRemote) return;
@@ -966,8 +959,6 @@ var authSubmit = document.getElementById("authSubmit");
             setCloudError(cloudErrorMessage(error));
         });
     }
-	
-	
 
     function hasSubtleCrypto() {
         return (
@@ -1048,13 +1039,13 @@ var authSubmit = document.getElementById("authSubmit");
     }
 
     function saveLockConfig(config) {
-		
         lockConfig = config;
-        if (config) localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(config));
+        if (config)
+            localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(config));
         else localStorage.removeItem(LOCK_STORAGE_KEY);
     }
 
-        function randomBytes(length) {
+    function randomBytes(length) {
         var bytes = new Uint8Array(length);
         crypto.getRandomValues(bytes);
         return bytes;
@@ -1064,85 +1055,121 @@ var authSubmit = document.getElementById("authSubmit");
         lockError.textContent = message;
     }
 
-    
-function showAuthError(message) { authError.textContent = message; }
+    function showAuthError(message) {
+        authError.textContent = message;
+    }
 
-function openAuthCreate() {
+    function openAuthCreate() {
+        authMode = "create";
 
-  authMode = "create";
+        authTitle.textContent = "Criar PIN de acesso";
 
-  authTitle.textContent = "Criar PIN de acesso";
+        authMessage.textContent =
+            "Defina um PIN (mín. 4 dígitos) para proteger o app neste aparelho.";
 
-  authMessage.textContent = "Defina um PIN (mín. 4 dígitos) para proteger o app neste aparelho.";
+        authNewLabel.hidden = false;
+        authConfirmLabel.hidden = false;
+        authPinLabel.hidden = true;
+        authSkip.hidden = false;
 
-  authNewLabel.hidden = false; authConfirmLabel.hidden = false; authPinLabel.hidden = true; authSkip.hidden = false;
+        authSubmit.textContent = "Criar PIN";
 
-  authSubmit.textContent = "Criar PIN";
+        authNewPin.value = "";
+        authConfirmPin.value = "";
+        authPin.value = "";
+        showAuthError("");
 
-  authNewPin.value = ""; authConfirmPin.value = ""; authPin.value = ""; showAuthError("");
+        authModal.hidden = false;
+        setTimeout(function () {
+            authNewPin.focus();
+        }, 0);
+    }
 
-  authModal.hidden = false; setTimeout(function () { authNewPin.focus(); }, 0);
+    function openAuthLogin() {
+        authMode = "login";
 
-}
+        authTitle.textContent = "Entrar";
 
-function openAuthLogin() {
+        authMessage.textContent = "Digite seu PIN para acessar.";
 
-  authMode = "login";
+        authNewLabel.hidden = true;
+        authConfirmLabel.hidden = true;
+        authPinLabel.hidden = false;
+        authSkip.hidden = true;
 
-  authTitle.textContent = "Entrar";
+        authSubmit.textContent = "Entrar";
 
-  authMessage.textContent = "Digite seu PIN para acessar.";
+        authPin.value = "";
+        showAuthError("");
 
-  authNewLabel.hidden = true; authConfirmLabel.hidden = true; authPinLabel.hidden = false; authSkip.hidden = true;
+        authModal.hidden = false;
+        setTimeout(function () {
+            authPin.focus();
+        }, 0);
+    }
 
-  authSubmit.textContent = "Entrar";
+    function closeAuth() {
+        authModal.hidden = true;
+    }
 
-  authPin.value = ""; showAuthError("");
+    async function submitAuth(event) {
+        event.preventDefault();
 
-  authModal.hidden = false; setTimeout(function () { authPin.focus(); }, 0);
+        if (!hasSubtleCrypto()) {
+            showAuthError(
+                "Este navegador não oferece criptografia segura para usar PIN."
+            );
+            return;
+        }
 
-}
+        if (authMode === "create") {
+            if (!isValidPin(authNewPin.value)) {
+                showAuthError("O PIN deve ter pelo menos 4 dígitos numéricos.");
+                return;
+            }
 
-function closeAuth() { authModal.hidden = true; }
+            if (authNewPin.value !== authConfirmPin.value) {
+                showAuthError("A confirmação não confere.");
+                return;
+            }
 
-async function submitAuth(event) {
+            var salt = bytesToBase64Url(randomBytes(16));
 
-  event.preventDefault();
+            saveLockConfig({
+                salt: salt,
+                hash: await hashPin(authNewPin.value, salt),
+            });
 
-  if (!hasSubtleCrypto()) { showAuthError("Este navegador não oferece criptografia segura para usar PIN."); return; }
+            localStorage.setItem(SETUP_FLAG_KEY, "1");
+            appUnlocked = true;
+            closeAuth();
+            render();
+            return;
+        }
 
-  if (authMode === "create") {
+        if (await verifyPin(authPin.value, lockConfig)) {
+            appUnlocked = true;
+            closeAuth();
+            render();
+            return;
+        }
 
-    if (!isValidPin(authNewPin.value)) { showAuthError("O PIN deve ter pelo menos 4 dígitos numéricos."); return; }
+        showAuthError("PIN incorreto.");
+        authPin.select();
+    }
 
-    if (authNewPin.value !== authConfirmPin.value) { showAuthError("A confirmação não confere."); return; }
-
-    var salt = bytesToBase64Url(randomBytes(16));
-
-    saveLockConfig({ salt: salt, hash: await hashPin(authNewPin.value, salt) });
-
-    localStorage.setItem(SETUP_FLAG_KEY, "1"); appUnlocked = true; closeAuth(); render(); return;
-
-  }
-
-  if (await verifyPin(authPin.value, lockConfig)) { appUnlocked = true; closeAuth(); render(); return; }
-
-  showAuthError("PIN incorreto."); authPin.select();
-
-}
-
-	function initAuth() {
-	  render();
-	  if (lockConfig) {
-		  openAuthLogin();
-		  return; 
-	  }
-	  if (localStorage.getItem(SETUP_FLAG_KEY) !== "1") { 
-		openAuthCreate(); 
-		return; 
-	  }
-	  appUnlocked = true;
-	}
+    function initAuth() {
+        render();
+        if (lockConfig) {
+            openAuthLogin();
+            return;
+        }
+        if (localStorage.getItem(SETUP_FLAG_KEY) !== "1") {
+            openAuthCreate();
+            return;
+        }
+        appUnlocked = true;
+    }
 
     function exportBackup() {
         var date = new Date().toISOString().slice(0, 10);
@@ -1294,21 +1321,22 @@ async function submitAuth(event) {
         return new Date(selectedYear, month, Math.min(unit.dueDay, lastDay));
     }
 
-	var DUE_SOON_DAYS = 5;
+    var DUE_SOON_DAYS = 5;
 
-	function dueReminder(unit) {
-	  if (selectedYear !== new Date().getFullYear()) return null;
-	  var m = new Date().getMonth();
-	  if (!isActive(unit, m) || statusFor(unit, m) !== "pendente") return null;
-	  if (daysOverdue(unit, m) !== null) return null;
-	  var due = dueDateFor(unit, m);
-	  if (!due) return null;
-	  var today = new Date();
-	  today.setHours(0, 0, 0, 0);
-	  var days = Math.round((due - today) / 86400000);
-	  if (days < 0 || days > DUE_SOON_DAYS) return null;
-	  return days;
-	}
+    function dueReminder(unit) {
+        if (selectedYear !== new Date().getFullYear()) return null;
+        var m = new Date().getMonth();
+        if (!isActive(unit, m) || statusFor(unit, m) !== "pendente")
+            return null;
+        if (daysOverdue(unit, m) !== null) return null;
+        var due = dueDateFor(unit, m);
+        if (!due) return null;
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var days = Math.round((due - today) / 86400000);
+        if (days < 0 || days > DUE_SOON_DAYS) return null;
+        return days;
+    }
 
     function daysOverdue(unit, month) {
         if (!isActive(unit, month)) return null;
@@ -1401,58 +1429,96 @@ async function submitAuth(event) {
         return digits ? "https://wa.me/" + digits : "";
     }
 
-	function chargeMessage(unit) {
-	  var overdueMonths = [];
-	  months.forEach(function (_, i) {
-		if (!isActive(unit, i) || effectiveStatus(unit, i) !== "atrasado") return;
-		var due = dueDateFor(unit, i);
-		var updated = updatedAmount(unit, i);
-		overdueMonths.push({
-		  i: i,
-		  due: due,
-		  amount: updated === null ? rentForMonth(unit, selectedYear, i) : updated
-		});
-	  });
-	  var greeting = "Olá" + (unit.tenantName ? ", " + unit.tenantName : "") + "! ";
-	  if (overdueMonths.length) {
-		var total = overdueMonths.reduce(function (sum, item) { return sum + item.amount; }, 0);
-		var message = greeting + "Sobre o aluguel da " + unit.name + ":\n";
-		message += overdueMonths.map(function (item) {
-		  var dueLabel = item.due
-			? " (venceu em " + String(item.due.getDate()).padStart(2, "0") + "/" +
-	String(item.due.getMonth() + 1).padStart(2, "0") + ")"
-			: "";
-		  return " • " + fullMonths[item.i] + dueLabel + " - valor atualizado " + money(item.amount) + "\n";
-		}).join("");
-		if (overdueMonths.length > 1) message += "Total em aberto: " + money(total) + ".\n";
-		return message + "Pode me confirmar o pagamento? Obrigado.";
-	  }
-	  if (dueReminder(unit) !== null) {
-		var m = new Date().getMonth();
-		var due = dueDateFor(unit, m);
-		var dueLabel = due
-		  ? ", que vence em " + String(due.getDate()).padStart(2, "0") + "/" + String(due.getMonth() + 1).padStart(2, "0")
-		  : "";
-		return greeting + "Passando para lembrar do aluguel da " + unit.name + dueLabel + ", no valor de " + money(rentForMonth(unit, selectedYear, m)) + ". Obrigado.";
-	  }
-	  return null;
-	}
+    function chargeMessage(unit) {
+        var overdueMonths = [];
+        months.forEach(function (_, i) {
+            if (!isActive(unit, i) || effectiveStatus(unit, i) !== "atrasado")
+                return;
+            var due = dueDateFor(unit, i);
+            var updated = updatedAmount(unit, i);
+            overdueMonths.push({
+                i: i,
+                due: due,
+                amount:
+                    updated === null
+                        ? rentForMonth(unit, selectedYear, i)
+                        : updated,
+            });
+        });
+        var greeting =
+            "Olá" + (unit.tenantName ? ", " + unit.tenantName : "") + "! ";
+        if (overdueMonths.length) {
+            var total = overdueMonths.reduce(function (sum, item) {
+                return sum + item.amount;
+            }, 0);
+            var message = greeting + "Sobre o aluguel da " + unit.name + ":\n";
+            message += overdueMonths
+                .map(function (item) {
+                    var dueLabel = item.due
+                        ? " (venceu em " +
+                          String(item.due.getDate()).padStart(2, "0") +
+                          "/" +
+                          String(item.due.getMonth() + 1).padStart(2, "0") +
+                          ")"
+                        : "";
+                    return (
+                        " • " +
+                        fullMonths[item.i] +
+                        dueLabel +
+                        " - valor atualizado " +
+                        money(item.amount) +
+                        "\n"
+                    );
+                })
+                .join("");
+            if (overdueMonths.length > 1)
+                message += "Total em aberto: " + money(total) + ".\n";
+            return message + "Pode me confirmar o pagamento? Obrigado.";
+        }
+        if (dueReminder(unit) !== null) {
+            var m = new Date().getMonth();
+            var due = dueDateFor(unit, m);
+            var dueLabel = due
+                ? ", que vence em " +
+                  String(due.getDate()).padStart(2, "0") +
+                  "/" +
+                  String(due.getMonth() + 1).padStart(2, "0")
+                : "";
+            return (
+                greeting +
+                "Passando para lembrar do aluguel da " +
+                unit.name +
+                dueLabel +
+                ", no valor de " +
+                money(rentForMonth(unit, selectedYear, m)) +
+                ". Obrigado."
+            );
+        }
+        return null;
+    }
 
-	function chargeUrl(unit) {
-	  var msg = chargeMessage(unit);
-	  if (!msg) return "";
-	  var base = whatsappUrl(unit.tenantPhone);
-	  return (base ? base : "https://wa.me/") + "?text=" + encodeURIComponent(msg);
-	}
+    function chargeUrl(unit) {
+        var msg = chargeMessage(unit);
+        if (!msg) return "";
+        var base = whatsappUrl(unit.tenantPhone);
+        return (
+            (base ? base : "https://wa.me/") +
+            "?text=" +
+            encodeURIComponent(msg)
+        );
+    }
 
     function tenantActions(unit) {
         var actions = "";
         var charge = chargeUrl(unit);
-		if (charge) {
-		  actions += "<a class=\"tenant-action charge-btn\" href=\"" + escapeHtml(charge) +
-		  "\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"Cobrar " +
-		  escapeHtml(unit.tenantName || "inquilino") + " pelo WhatsApp\" data-tenant-action>Cobrar</a>";
-		}
+        if (charge) {
+            actions +=
+                '<a class="tenant-action charge-btn" href="' +
+                escapeHtml(charge) +
+                '" target="_blank" rel="noopener noreferrer" aria-label="Cobrar ' +
+                escapeHtml(unit.tenantName || "inquilino") +
+                ' pelo WhatsApp" data-tenant-action>Cobrar</a>';
+        }
         var whatsapp = whatsappUrl(unit.tenantPhone);
         if (whatsapp) {
             actions +=
@@ -1618,10 +1684,18 @@ async function submitAuth(event) {
                     '<span class="enterprise-name">' +
                     escapeHtml(empreendimentoName(unit.empreendimentoId)) +
                     "</span>";
-				var reminderDays = dueReminder(unit);
-				var dueSoon = reminderDays === null ? "" : "<span class=\"due-soon\">" + (reminderDays === 0 ? "Vence hoje" : reminderDays === 1 ?
-				"Vence amanhã" : "Vence em " + reminderDays + " dias") + "</span>";	
-				
+                var reminderDays = dueReminder(unit);
+                var dueSoon =
+                    reminderDays === null
+                        ? ""
+                        : '<span class="due-soon">' +
+                          (reminderDays === 0
+                              ? "Vence hoje"
+                              : reminderDays === 1
+                              ? "Vence amanhã"
+                              : "Vence em " + reminderDays + " dias") +
+                          "</span>";
+
                 return (
                     '<tr><th scope="row"><div class="unit-cell" data-edit="' +
                     escapeHtml(unit.id) +
@@ -1632,7 +1706,8 @@ async function submitAuth(event) {
                     '<span class="rent">' +
                     money(currentRent) +
                     "</span>" +
-                    dueDay + dueSoon +
+                    dueDay +
+                    dueSoon +
                     '<span class="tenant-actions">' +
                     tenantActions(unit) +
                     "</span></div></th>" +
@@ -1820,16 +1895,18 @@ async function submitAuth(event) {
                 });
                 return {
                     name: unit.name,
-					tenantName: unit.tenantName,
+                    tenantName: unit.tenantName,
                     enterprise: empreendimentoName(unit.empreendimentoId),
                     openLate: openLate,
                     paidLate: paidLate,
                     total: openLate + paidLate,
                 };
             })
-			
-			.filter(function (row) { return row.total > 0; })
-			
+
+            .filter(function (row) {
+                return row.total > 0;
+            })
+
             .sort(function (a, b) {
                 return (
                     b.total - a.total || a.name.localeCompare(b.name, "pt-BR")
@@ -1856,23 +1933,23 @@ async function submitAuth(event) {
                                     ")</small>"
                                   : "";
                           return (
-							'<div class="late-row"><div><strong>' +
-							escapeHtml(row.name) +
-							rowEnterprise +
-							"</strong>" +
-							(row.tenantName
-								? '<div class="tenant-name">' +
-								  escapeHtml(row.tenantName) +
-								  "</div>"
-								: "") +
-							"<span>" +
-							detail +
-							'</span></div><b class="' +
-							(row.total ? "late-count" : "on-time") +
-							'">' +
-							row.total +
-							"</b></div>"
-						);
+                              '<div class="late-row"><div><strong>' +
+                              escapeHtml(row.name) +
+                              rowEnterprise +
+                              "</strong>" +
+                              (row.tenantName
+                                  ? '<div class="tenant-name">' +
+                                    escapeHtml(row.tenantName) +
+                                    "</div>"
+                                  : "") +
+                              "<span>" +
+                              detail +
+                              '</span></div><b class="' +
+                              (row.total ? "late-count" : "on-time") +
+                              '">' +
+                              row.total +
+                              "</b></div>"
+                          );
                       })
                       .join("") +
                   "</div>"
@@ -1880,7 +1957,7 @@ async function submitAuth(event) {
             "</section>";
         summary.innerHTML =
             overdueAlert +
-			'<div id=\"summaryCards\" class=\"summary-cards\">' +
+            '<div id="summaryCards" class="summary-cards">' +
             '<div class="summary-card"><div class="summary-label">Recebido neste mês</div><div class="summary-value">' +
             money(received) +
             '</div><div class="summary-detail">' +
@@ -1919,24 +1996,26 @@ async function submitAuth(event) {
             money(annualNet) +
             '</div><div class="summary-detail">Recebido menos gastos</div></div></div>' +
             report;
-			var unitSummaryToggleBtn = document.getElementById("toggleUnitSummary");
-			if (unitSummaryToggleBtn) {
-				unitSummaryToggleBtn.addEventListener("click", function () {
-					unitSummaryExpanded = !unitSummaryExpanded;
-					var list = document.getElementById("unitSummaryList");
-					if (list) list.hidden = !unitSummaryExpanded;
-					unitSummaryToggleBtn.textContent = unitSummaryExpanded ? "Ocultar" : "Mostrar";
-				});
-			}
-			applySummaryCardsVisibility();
+        var unitSummaryToggleBtn = document.getElementById("toggleUnitSummary");
+        if (unitSummaryToggleBtn) {
+            unitSummaryToggleBtn.addEventListener("click", function () {
+                unitSummaryExpanded = !unitSummaryExpanded;
+                var list = document.getElementById("unitSummaryList");
+                if (list) list.hidden = !unitSummaryExpanded;
+                unitSummaryToggleBtn.textContent = unitSummaryExpanded
+                    ? "Ocultar"
+                    : "Mostrar";
+            });
+        }
+        applySummaryCardsVisibility();
     }
-	
-	function applySummaryCardsVisibility() {
-	  var cards = document.getElementById("summaryCards");
-	  if (cards) cards.hidden = !summaryCardsExpanded;
-	  var btn = document.getElementById("toggleSummaryCards");
-	  if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar" : "Mostrar";
-	}
+
+    function applySummaryCardsVisibility() {
+        var cards = document.getElementById("summaryCards");
+        if (cards) cards.hidden = !summaryCardsExpanded;
+        var btn = document.getElementById("toggleSummaryCards");
+        if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar" : "Mostrar";
+    }
 
     function renderExpenses() {
         expensesYear.textContent = selectedYear;
@@ -2066,40 +2145,56 @@ async function submitAuth(event) {
                     openExpenseModal(button.dataset.expenseEdit);
                 });
             });
-		applyExpensesVisibility();
+        applyExpensesVisibility();
     }
-	
-	function expenseMonths() {
-     return expensesList.querySelectorAll("details.expense-month");
-	}
 
-	function applyExpensesVisibility() {
-		var hasGroups = expenseMonths().length > 0;
-		toggleExpensesButton.hidden = !hasGroups;
-		toggleExpensesButton.textContent = expensesExpanded ? "Ocultar meses" : "Mostrar meses";
-		expensesList.hidden = hasGroups && !expensesExpanded;
-	}
+    function expenseMonths() {
+        return expensesList.querySelectorAll("details.expense-month");
+    }
 
-	function toggleExpensesVisibility() {
-		expensesExpanded = !expensesExpanded;
-		if (!expensesExpanded) {
-			expenseMonths().forEach(function (item) { item.open = false; });
-		}
-		applyExpensesVisibility();
-	}
-	function updateToggleExpensesButton() {
-	  var months = expenseMonths();
-	  toggleExpensesButton.hidden = months.length < 2;
-	  var allOpen = months.length > 0 && Array.prototype.every.call(months, function (item) { return item.open; });
-	  toggleExpensesButton.textContent = allOpen ? "Recolher tudo" : "Expandir tudo";
-	}
+    function applyExpensesVisibility() {
+        var hasGroups = expenseMonths().length > 0;
+        toggleExpensesButton.hidden = !hasGroups;
+        toggleExpensesButton.textContent = expensesExpanded
+            ? "Ocultar meses"
+            : "Mostrar meses";
+        expensesList.hidden = hasGroups && !expensesExpanded;
+    }
 
-	function toggleAllExpenseMonths() {
-	  var months = expenseMonths();
-	  var allOpen = months.length > 0 && Array.prototype.every.call(months, function (item) { return item.open; });
-	  months.forEach(function (item) { item.open = !allOpen; });
-	  updateToggleExpensesButton();
-	}
+    function toggleExpensesVisibility() {
+        expensesExpanded = !expensesExpanded;
+        if (!expensesExpanded) {
+            expenseMonths().forEach(function (item) {
+                item.open = false;
+            });
+        }
+        applyExpensesVisibility();
+    }
+    function updateToggleExpensesButton() {
+        var months = expenseMonths();
+        toggleExpensesButton.hidden = months.length < 2;
+        var allOpen =
+            months.length > 0 &&
+            Array.prototype.every.call(months, function (item) {
+                return item.open;
+            });
+        toggleExpensesButton.textContent = allOpen
+            ? "Recolher tudo"
+            : "Expandir tudo";
+    }
+
+    function toggleAllExpenseMonths() {
+        var months = expenseMonths();
+        var allOpen =
+            months.length > 0 &&
+            Array.prototype.every.call(months, function (item) {
+                return item.open;
+            });
+        months.forEach(function (item) {
+            item.open = !allOpen;
+        });
+        updateToggleExpensesButton();
+    }
 
     function toggleStatus(id, month) {
         var unit = state.units.find(function (item) {
@@ -2128,7 +2223,7 @@ async function submitAuth(event) {
             .forEach(function (item) {
                 item.open = false;
             });
-		applyExpensesVisibility()	
+        applyExpensesVisibility();
     }
 
     function openModal(id) {
@@ -2779,7 +2874,9 @@ async function submitAuth(event) {
         confirmPin.value = "";
         currentPinLabel.hidden = !lockConfig;
         removePinButton.hidden = !lockConfig;
-        securityStatus.textContent = lockConfig ? "Um PIN protege o acesso neste dispositivo." : "Nenhum PIN configurado neste dispositivo.";
+        securityStatus.textContent = lockConfig
+            ? "Um PIN protege o acesso neste dispositivo."
+            : "Nenhum PIN configurado neste dispositivo.";
         securityStatus.style.color = "";
         renderCategoryManager();
         renderEnterpriseManager();
@@ -2828,112 +2925,99 @@ async function submitAuth(event) {
     }
 
     async function savePin() {
+        if (!hasSubtleCrypto()) {
+            securityStatus.textContent =
+                "Este navegador não oferece criptografia segura para usar PIN.";
 
-    if (!hasSubtleCrypto()) {
+            return;
+        }
 
-      securityStatus.textContent = "Este navegador não oferece criptografia segura para usar PIN.";
+        if (lockConfig && !(await verifyPin(currentPin.value, lockConfig))) {
+            securityStatus.textContent = "PIN atual incorreto.";
 
-      return;
+            securityStatus.style.color = "#a52d3b";
 
+            currentPin.focus();
+
+            return;
+        }
+
+        if (!isValidPin(newPin.value)) {
+            securityStatus.textContent =
+                "O novo PIN deve ter pelo menos 4 dígitos numéricos.";
+
+            securityStatus.style.color = "#a52d3b";
+
+            newPin.focus();
+
+            return;
+        }
+
+        if (newPin.value !== confirmPin.value) {
+            securityStatus.textContent =
+                "A confirmação do novo PIN não confere.";
+
+            securityStatus.style.color = "#a52d3b";
+
+            confirmPin.focus();
+
+            return;
+        }
+
+        var salt = bytesToBase64Url(randomBytes(16));
+
+        saveLockConfig({ salt: salt, hash: await hashPin(newPin.value, salt) });
+
+        localStorage.setItem(SETUP_FLAG_KEY, "1");
+
+        appUnlocked = true;
+
+        currentPin.value = "";
+
+        newPin.value = "";
+
+        confirmPin.value = "";
+
+        currentPinLabel.hidden = false;
+
+        removePinButton.hidden = false;
+
+        securityStatus.textContent = "PIN salvo neste dispositivo.";
+
+        securityStatus.style.color = "#0f766e";
     }
 
-    if (lockConfig && !(await verifyPin(currentPin.value, lockConfig))) {
+    async function removePin() {
+        if (!lockConfig) return;
 
-      securityStatus.textContent = "PIN atual incorreto.";
+        if (!(await verifyPin(currentPin.value, lockConfig))) {
+            securityStatus.textContent = "PIN atual incorreto.";
 
-      securityStatus.style.color = "#a52d3b";
+            securityStatus.style.color = "#a52d3b";
 
-      currentPin.focus();
+            currentPin.focus();
 
-      return;
+            return;
+        }
 
+        saveLockConfig(null);
+
+        localStorage.setItem(SETUP_FLAG_KEY, "1");
+
+        currentPin.value = "";
+
+        newPin.value = "";
+
+        confirmPin.value = "";
+
+        currentPinLabel.hidden = true;
+
+        removePinButton.hidden = true;
+
+        securityStatus.textContent = "PIN removido. O app abrirá sem senha.";
+
+        securityStatus.style.color = "#0f766e";
     }
-
-    if (!isValidPin(newPin.value)) {
-
-      securityStatus.textContent = "O novo PIN deve ter pelo menos 4 dígitos numéricos.";
-
-      securityStatus.style.color = "#a52d3b";
-
-      newPin.focus();
-
-      return;
-
-    }
-
-    if (newPin.value !== confirmPin.value) {
-
-      securityStatus.textContent = "A confirmação do novo PIN não confere.";
-
-      securityStatus.style.color = "#a52d3b";
-
-      confirmPin.focus();
-
-      return;
-
-    }
-
-    var salt = bytesToBase64Url(randomBytes(16));
-
-    saveLockConfig({ salt: salt, hash: await hashPin(newPin.value, salt) });
-
-    localStorage.setItem(SETUP_FLAG_KEY, "1");
-
-    appUnlocked = true;
-
-    currentPin.value = "";
-
-    newPin.value = "";
-
-    confirmPin.value = "";
-
-    currentPinLabel.hidden = false;
-
-    removePinButton.hidden = false;
-
-    securityStatus.textContent = "PIN salvo neste dispositivo.";
-
-    securityStatus.style.color = "#0f766e";
-
-  }
-
- 
-
-  async function removePin() {
-
-    if (!lockConfig) return;
-
-    if (!(await verifyPin(currentPin.value, lockConfig))) {
-
-      securityStatus.textContent = "PIN atual incorreto.";
-
-      securityStatus.style.color = "#a52d3b";
-
-      currentPin.focus();
-
-      return;
-
-    }
-
-    saveLockConfig(null);
-
-    localStorage.setItem(SETUP_FLAG_KEY, "1");
-
-    currentPin.value = "";
-
-    newPin.value = "";
-
-    confirmPin.value = "";
-
-    currentPinLabel.hidden = true;
-
-    removePinButton.hidden = true;
-
-    securityStatus.textContent = "PIN removido. O app abrirá sem senha.";
-
-    securityStatus.style.color = "#0f766e";
-
-  }
 
     function saveUnit() {
         var name = unitName.value.trim();
@@ -3084,63 +3168,64 @@ async function submitAuth(event) {
         };
     }
 
-function receiptMarkup(data) {
-    var receiver = state.settings.receiverName
-        ? '<div class="receipt-line"><strong>Recebedor</strong><span>' +
-          escapeHtml(state.settings.receiverName) +
-          "</span></div>"
-        : "";
-
-    var tenant = data.unit && data.unit.tenantName
-        ? '<div class="receipt-line"><strong>Inquilino</strong><span>' +
-          escapeHtml(data.unit.tenantName) +
-          "</span></div>"
-        : "";
-
-    var lateNote =
-        data.status === "pago-atrasado"
-            ? '<p class="receipt-note">Pagamento efetuado em atraso.</p>'
+    function receiptMarkup(data) {
+        var receiver = state.settings.receiverName
+            ? '<div class="receipt-line"><strong>Recebedor</strong><span>' +
+              escapeHtml(state.settings.receiverName) +
+              "</span></div>"
             : "";
 
-    return (
-        '<div class="receipt-paper"><h3>Recibo de Aluguel</h3>' +
-        receiver +
-        tenant +
-        '<div class="receipt-line"><strong>Unidade</strong><span>' +
-        escapeHtml(data.unit.name) +
-        "</span></div>" +
-        '<div class="receipt-line"><strong>Valor do aluguel</strong><span>' +
-        money(data.amount) +
-        "</span></div>" +
-        '<div class="receipt-line"><strong>Referência</strong><span>' +
-        data.monthName +
-        " de " +
-        data.year +
-        "</span></div>" +
-        '<div class="receipt-line"><strong>Data de emissão</strong><span>' +
-        data.issuedAt +
-        "</span></div>" +
-        '<p class="receipt-text">Recebi de forma integral a importância de ' +
-        money(data.amount) +
-        " referente ao aluguel da " +
-        escapeHtml(data.unit.name) +
-        " no mês de " +
-        data.monthName +
-        " de " +
-        data.year +
-        ".</p>" +
-        lateNote +
-        '<div class="receipt-signature">' +
-        '<div class="signature-line">' +
-        '<span class="signature-name">' +
-        escapeHtml(state.settings.receiverName || "Recebedor") +
-        "</span>" +
-        "</div>" +
-        '<span class="signature-label">Assinatura do recebedor</span>' +
-        "</div>" +
-        "</div>"
-    );
-}
+        var tenant =
+            data.unit && data.unit.tenantName
+                ? '<div class="receipt-line"><strong>Inquilino</strong><span>' +
+                  escapeHtml(data.unit.tenantName) +
+                  "</span></div>"
+                : "";
+
+        var lateNote =
+            data.status === "pago-atrasado"
+                ? '<p class="receipt-note">Pagamento efetuado em atraso.</p>'
+                : "";
+
+        return (
+            '<div class="receipt-paper"><h3>Recibo de Aluguel</h3>' +
+            receiver +
+            tenant +
+            '<div class="receipt-line"><strong>Unidade</strong><span>' +
+            escapeHtml(data.unit.name) +
+            "</span></div>" +
+            '<div class="receipt-line"><strong>Valor do aluguel</strong><span>' +
+            money(data.amount) +
+            "</span></div>" +
+            '<div class="receipt-line"><strong>Referência</strong><span>' +
+            data.monthName +
+            " de " +
+            data.year +
+            "</span></div>" +
+            '<div class="receipt-line"><strong>Data de emissão</strong><span>' +
+            data.issuedAt +
+            "</span></div>" +
+            '<p class="receipt-text">Recebi de forma integral a importância de ' +
+            money(data.amount) +
+            " referente ao aluguel da " +
+            escapeHtml(data.unit.name) +
+            " no mês de " +
+            data.monthName +
+            " de " +
+            data.year +
+            ".</p>" +
+            lateNote +
+            '<div class="receipt-signature">' +
+            '<div class="signature-line">' +
+            '<span class="signature-name">' +
+            escapeHtml(state.settings.receiverName || "Recebedor") +
+            "</span>" +
+            "</div>" +
+            '<span class="signature-label">Assinatura do recebedor</span>' +
+            "</div>" +
+            "</div>"
+        );
+    }
 
     function openReceipt(id, month) {
         var unit = state.units.find(function (item) {
@@ -3177,189 +3262,225 @@ function receiptMarkup(data) {
         if (line) context.fillText(line, x, y);
         return y + lineHeight;
     }
-	
-	// Função auxiliar para formatar em Reais (R$)
-	function formatCurrency(value) {
-		if (!value) return "0,00";
-		// Se for string, troca vírgula por ponto para o parseFloat ler os centavos corretamente
-		var normalizedValue = typeof value === 'string' ? value.replace(',', '.') : value;
-		var numberValue = parseFloat(normalizedValue) || 0;
 
-		return numberValue.toLocaleString('pt-BR', {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		});
-	}
+    // Função auxiliar para formatar em Reais (R$)
+    function formatCurrency(value) {
+        if (!value) return "0,00";
+        // Se for string, troca vírgula por ponto para o parseFloat ler os centavos corretamente
+        var normalizedValue =
+            typeof value === "string" ? value.replace(",", ".") : value;
+        var numberValue = parseFloat(normalizedValue) || 0;
 
-function drawReceiptCanvas(context) {
-    var canvas = document.createElement("canvas");
-    var ctx = canvas.getContext("2d");
+        return numberValue.toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
 
-    // Dimensões do Canvas
-    canvas.width = 800;
-    canvas.height = 950;
+    function drawReceiptCanvas(context) {
+        var canvas = document.createElement("canvas");
+        var ctx = canvas.getContext("2d");
 
-    // Fundo
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Dimensões do Canvas
+        canvas.width = 800;
+        canvas.height = 950;
 
-    // Cartão
-    var margin = 30;
-    var cardWidth = canvas.width - (margin * 2);
-    var cardHeight = canvas.height - (margin * 2);
+        // Fundo
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.strokeStyle = "#d1e2e0";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
-    ctx.stroke();
+        // Cartão
+        var margin = 30;
+        var cardWidth = canvas.width - margin * 2;
+        var cardHeight = canvas.height - margin * 2;
 
-    var contentMargin = margin + 40;
-    var contentWidth = cardWidth - 80;
+        ctx.strokeStyle = "#d1e2e0";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
+        ctx.stroke();
 
-    // Título
-    ctx.fillStyle = "#0d5c58";
-    ctx.font = "bold 28px sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
+        var contentMargin = margin + 40;
+        var contentWidth = cardWidth - 80;
 
-    // Dados
-    var startY = margin + 120;
-    var rowHeight = 48;
-
-    var details = [
-        { label: "Recebedor", value: state.settings.receiverName || "-" },
-        { label: "Inquilino", value: context.tenantName || (context.unit ? context.unit.tenantName : "-") },
-        { label: "Unidade", value: context.unitName || (context.unit ? context.unit.name : "-") },
-        { label: "Valor do aluguel", value: context.amount ? "R$ " + formatCurrency(context.amount) : "-" },
-        { label: "Referência", value: context.monthName + " de " + context.year },
-        { label: "Data de emissão", value: context.issuedAt || "-" }
-    ];
-
-    details.forEach(function (item) {
-
-        ctx.fillStyle = "#556b69";
-        ctx.font = "bold 18px sans-serif";
+        // Título
+        ctx.fillStyle = "#0d5c58";
+        ctx.font = "bold 28px sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(item.label, contentMargin, startY);
+        ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
+
+        // Dados
+        var startY = margin + 120;
+        var rowHeight = 48;
+
+        var details = [
+            { label: "Recebedor", value: state.settings.receiverName || "-" },
+            {
+                label: "Inquilino",
+                value:
+                    context.tenantName ||
+                    (context.unit ? context.unit.tenantName : "-"),
+            },
+            {
+                label: "Unidade",
+                value:
+                    context.unitName ||
+                    (context.unit ? context.unit.name : "-"),
+            },
+            {
+                label: "Valor do aluguel",
+                value: context.amount
+                    ? "R$ " + formatCurrency(context.amount)
+                    : "-",
+            },
+            {
+                label: "Referência",
+                value: context.monthName + " de " + context.year,
+            },
+            { label: "Data de emissão", value: context.issuedAt || "-" },
+        ];
+
+        details.forEach(function (item) {
+            ctx.fillStyle = "#556b69";
+            ctx.font = "bold 18px sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(item.label, contentMargin, startY);
+
+            ctx.fillStyle = "#223331";
+            ctx.font = "18px sans-serif";
+            ctx.textAlign = "right";
+            ctx.fillText(item.value, contentMargin + contentWidth, startY);
+
+            ctx.strokeStyle = "#e8f0ef";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(contentMargin, startY + 15);
+            ctx.lineTo(contentMargin + contentWidth, startY + 15);
+            ctx.stroke();
+
+            startY += rowHeight;
+        });
+
+        ctx.textAlign = "left";
+
+        // Texto do recibo
+        var descriptionText =
+            context.descriptionText ||
+            "Recebi de forma integral a importância de R$ " +
+                formatCurrency(context.amount) +
+                " referente ao aluguel da " +
+                (context.unitName || (context.unit ? context.unit.name : "")) +
+                " no mês de " +
+                context.monthName +
+                " de " +
+                context.year +
+                ".";
 
         ctx.fillStyle = "#223331";
         ctx.font = "18px sans-serif";
-        ctx.textAlign = "right";
-        ctx.fillText(item.value, contentMargin + contentWidth, startY);
 
-        ctx.strokeStyle = "#e8f0ef";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(contentMargin, startY + 15);
-        ctx.lineTo(contentMargin + contentWidth, startY + 15);
-        ctx.stroke();
+        function wrapText(text, x, y, maxWidth, lineHeight) {
+            var words = text.split(" ");
+            var line = "";
 
-        startY += rowHeight;
-    });
+            for (var n = 0; n < words.length; n++) {
+                var testLine = line + words[n] + " ";
+                var width = ctx.measureText(testLine).width;
 
-    ctx.textAlign = "left";
-
-    // Texto do recibo
-    var descriptionText =
-        context.descriptionText ||
-        ("Recebi de forma integral a importância de R$ " +
-            formatCurrency(context.amount) +
-            " referente ao aluguel da " +
-            (context.unitName || (context.unit ? context.unit.name : "")) +
-            " no mês de " +
-            context.monthName +
-            " de " +
-            context.year +
-            ".");
-
-    ctx.fillStyle = "#223331";
-    ctx.font = "18px sans-serif";
-
-    function wrapText(text, x, y, maxWidth, lineHeight) {
-        var words = text.split(" ");
-        var line = "";
-
-        for (var n = 0; n < words.length; n++) {
-            var testLine = line + words[n] + " ";
-            var width = ctx.measureText(testLine).width;
-
-            if (width > maxWidth && n > 0) {
-                ctx.fillText(line, x, y);
-                line = words[n] + " ";
-                y += lineHeight;
-            } else {
-                line = testLine;
+                if (width > maxWidth && n > 0) {
+                    ctx.fillText(line, x, y);
+                    line = words[n] + " ";
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
             }
+
+            ctx.fillText(line, x, y);
+            return y;
         }
 
-        ctx.fillText(line, x, y);
-        return y;
-    }
-
-    var textEndY = wrapText(descriptionText, contentMargin, startY + 30, contentWidth, 28);
-
-    // ==========================================================
-    // AVISO DE PAGAMENTO EM ATRASO (COM CANTOS ARREDONDADOS)
-    // ==========================================================
-    if (context.status === "pago-atrasado") {
-
-        var boxY = textEndY + 25;
-        var boxHeight = 56;
-        var borderRadius = 8; // Raio dos cantos arredondados
-
-        // Desenhar Fundo Arredondado
-        ctx.fillStyle = "#FFF3CD";
-        ctx.beginPath();
-        ctx.roundRect(contentMargin, boxY, contentWidth, boxHeight, borderRadius);
-        ctx.fill();
-
-        // Desenhar Borda Arredondada
-        ctx.strokeStyle = "#FFE69C";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(contentMargin, boxY, contentWidth, boxHeight, borderRadius);
-        ctx.stroke();
-
-        // Texto do Aviso
-        ctx.fillStyle = "#664D03";
-        ctx.font = "bold 20px Arial";
-        ctx.textAlign = "left";
-        ctx.fillText(
-            "Pagamento efetuado em atraso.",
-            contentMargin + 20,
-            boxY + 35
+        var textEndY = wrapText(
+            descriptionText,
+            contentMargin,
+            startY + 30,
+            contentWidth,
+            28
         );
 
-        textEndY = boxY + boxHeight;
+        // ==========================================================
+        // AVISO DE PAGAMENTO EM ATRASO (COM CANTOS ARREDONDADOS)
+        // ==========================================================
+        if (context.status === "pago-atrasado") {
+            var boxY = textEndY + 25;
+            var boxHeight = 56;
+            var borderRadius = 8; // Raio dos cantos arredondados
+
+            // Desenhar Fundo Arredondado
+            ctx.fillStyle = "#FFF3CD";
+            ctx.beginPath();
+            ctx.roundRect(
+                contentMargin,
+                boxY,
+                contentWidth,
+                boxHeight,
+                borderRadius
+            );
+            ctx.fill();
+
+            // Desenhar Borda Arredondada
+            ctx.strokeStyle = "#FFE69C";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(
+                contentMargin,
+                boxY,
+                contentWidth,
+                boxHeight,
+                borderRadius
+            );
+            ctx.stroke();
+
+            // Texto do Aviso
+            ctx.fillStyle = "#664D03";
+            ctx.font = "bold 20px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(
+                "Pagamento efetuado em atraso.",
+                contentMargin + 20,
+                boxY + 35
+            );
+
+            textEndY = boxY + boxHeight;
+        }
+
+        // Assinatura
+        var sigY = textEndY + 60;
+        var centerX = canvas.width / 2;
+
+        ctx.fillStyle = "#0d5c58";
+        ctx.font =
+            '30px "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive';
+        ctx.textAlign = "center";
+        ctx.fillText(
+            context.receiverName || state.settings.receiverName || "Recebedor",
+            centerX,
+            sigY
+        );
+
+        ctx.strokeStyle = "#a9c7c3";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 120, sigY + 12);
+        ctx.lineTo(centerX + 120, sigY + 12);
+        ctx.stroke();
+
+        ctx.fillStyle = "#637d7a";
+        ctx.font = "15px sans-serif";
+        ctx.fillText("Assinatura do recebedor", centerX, sigY + 35);
+
+        return canvas;
     }
-
-    // Assinatura
-    var sigY = textEndY + 60;
-    var centerX = canvas.width / 2;
-
-    ctx.fillStyle = "#0d5c58";
-    ctx.font = '30px "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive';
-    ctx.textAlign = "center";
-    ctx.fillText(
-        context.receiverName || state.settings.receiverName || "Recebedor",
-        centerX,
-        sigY
-    );
-
-    ctx.strokeStyle = "#a9c7c3";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 120, sigY + 12);
-    ctx.lineTo(centerX + 120, sigY + 12);
-    ctx.stroke();
-
-    ctx.fillStyle = "#637d7a";
-    ctx.font = "15px sans-serif";
-    ctx.fillText("Assinatura do recebedor", centerX, sigY + 35);
-
-    return canvas;
-}
 
     function slugify(value) {
         return (
@@ -3390,214 +3511,278 @@ function drawReceiptCanvas(context) {
         link.remove();
     }
 
-	function dataUrlToFile(dataUrl, filename) {
-	  var parts = dataUrl.split(",");
-	  var mime = (parts[0].match(/:(.*?);/) || [])[1] || "image/png";
-	  var binary = atob(parts[1]);
-	  var bytes = new Uint8Array(binary.length);
-	  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-	  return new File([bytes], filename, { type: mime });
-	}
+    function dataUrlToFile(dataUrl, filename) {
+        var parts = dataUrl.split(",");
+        var mime = (parts[0].match(/:(.*?);/) || [])[1] || "image/png";
+        var binary = atob(parts[1]);
+        var bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new File([bytes], filename, { type: mime });
+    }
 
-	function shareReceipt() {
-	  if (!receiptContext) return;
-	  var text = "Segue comprovante de pagamento";
-	  var filename = "recibo-" + slugify(receiptContext.unit.name) + "-" + receiptContext.year + "-" + String(receiptContext.month + 1).padStart(2, "0") + ".png";
-	  var canvas = drawReceiptCanvas(receiptContext);
-	  var file = dataUrlToFile(canvas.toDataURL("image/png"), filename);
-	  if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-		navigator.share({ files: [file], text: text }).catch(function () {});
-		return;
-	  }
-	  downloadReceipt();
-	  var base = whatsappUrl(receiptContext.unit.tenantPhone);
-	  window.open((base ? base : "https://wa.me/") + "?text=" + encodeURIComponent(text), "_blank");
-	}
-	
-	function buildAnnualReportHtml() {
-
-    var units = scopedUnits();
-
-    var expenses = scopedExpenses();
-
-    var yearText = String(selectedYear);
-
-    var scope = selectedEmpreendimentoId === "todos" ? "Todos os empreendimentos" : empreendimentoName(selectedEmpreendimentoId);
-
-    var annualReceived = 0;
-
-    var annualOverdue = 0;
-
-    units.forEach(function (unit) {
-
-      months.forEach(function (_, i) {
-
-        if (!isActive(unit, i)) return;
-
-        if (statusFor(unit, i) === "pago") annualReceived += rentForMonth(unit, selectedYear, i);
-
-        if (effectiveStatus(unit, i) === "atrasado") {
-
-          var updated = updatedAmount(unit, i);
-
-          annualOverdue += updated === null ? rentForMonth(unit, selectedYear, i) : updated;
-
+    function shareReceipt() {
+        if (!receiptContext) return;
+        var text = "Segue comprovante de pagamento";
+        var filename =
+            "recibo-" +
+            slugify(receiptContext.unit.name) +
+            "-" +
+            receiptContext.year +
+            "-" +
+            String(receiptContext.month + 1).padStart(2, "0") +
+            ".png";
+        var canvas = drawReceiptCanvas(receiptContext);
+        var file = dataUrlToFile(canvas.toDataURL("image/png"), filename);
+        if (
+            navigator.canShare &&
+            navigator.canShare({ files: [file] }) &&
+            navigator.share
+        ) {
+            navigator
+                .share({ files: [file], text: text })
+                .catch(function () {});
+            return;
         }
+        downloadReceipt();
+        var base = whatsappUrl(receiptContext.unit.tenantPhone);
+        window.open(
+            (base ? base : "https://wa.me/") +
+                "?text=" +
+                encodeURIComponent(text),
+            "_blank"
+        );
+    }
+
+    function buildAnnualReportHtml() {
+        var units = scopedUnits();
 
-      });
+        var expenses = scopedExpenses();
 
-    });
+        var yearText = String(selectedYear);
 
-    var annualExpenses = expenses.reduce(function (sum, expense) {
-
-      return sum + (expense.ym.slice(0, 4) === yearText ? expense.amount : 0);
-
-    }, 0);
-
-    var annualNet = annualReceived - annualExpenses;
-
-    var monthly = months.map(function (_, i) {
-
-      var received = units.reduce(function (sum, unit) {
-
-        return sum + (isActive(unit, i) && statusFor(unit, i) === "pago" ? rentForMonth(unit, selectedYear, i) : 0);
-
-      }, 0);
-
-      var spent = expenses.reduce(function (sum, expense) {
-
-        return sum + (expense.ym === monthKey(i) ? expense.amount : 0);
-
-      }, 0);
-
-      return { received: received, expenses: spent, net: received - spent };
-
-    });
-
-    var unitRows = units.slice().sort(function (a, b) {
-
-      return a.name.localeCompare(b.name, "pt-BR");
-
-    }).map(function (unit) {
-
-      var paid = 0;
-
-      var paidLate = 0;
-
-      var overdueMonths = 0;
-
-      var overdue = 0;
-
-      var received = 0;
-
-      months.forEach(function (_, i) {
-
-        if (!isActive(unit, i)) return;
-
-        if (statusFor(unit, i) === "pago") {
-
-          paid += 1;
-
-          received += rentForMonth(unit, selectedYear, i);
-
-        }
-
-        if (isPaidLate(unit, i)) paidLate += 1;
-
-        if (effectiveStatus(unit, i) === "atrasado") {
-
-          overdueMonths += 1;
-
-          var updated = updatedAmount(unit, i);
-
-          overdue += updated === null ? rentForMonth(unit, selectedYear, i) : updated;
-
-        }
-
-      });
-
-      var title = escapeHtml(unit.name);
-
-      if (selectedEmpreendimentoId === "todos") title += " <small>(" + escapeHtml(empreendimentoName(unit.empreendimentoId)) + ")</small>";
-
-      if (unit.tenantName) title += "<br><small>Inquilino: " + escapeHtml(unit.tenantName) + "</small>";
-
-      return "<tr><td>" + title + "</td><td class=\"num\">" + paid + "</td><td class=\"num\">" + paidLate + "</td><td class=\"num\">" + (overdueMonths ? money(overdue) + " (" + overdueMonths + " " + (overdueMonths === 1 ? "mês" : "meses") + ")" : "—") + "</td><td class=\"num\">" + money(received) + "</td></tr>";
-
-    }).join("");
-
-    var totalCard = function (label, value, negative) {
-
-      return "<div class=\"ar-total\"><span>" + label + "</span><strong class=\"" + (negative ? "ar-neg" : "") + "\">" + money(value) + "</strong></div>";
-
-    };
-
-    return "<div class=\"annual-report\">" +
-
-      "<h1>Resumo do ano " + selectedYear + "</h1>" +
-
-      "<p class=\"ar-meta\">" + escapeHtml(scope) + " · Emitido em " + escapeHtml(formatDate(new Date())) + (state.settings.receiverName ? " · Recebedor: " + escapeHtml(state.settings.receiverName) : "") + "</p>" +
-
-      "<div class=\"ar-totals\">" +
-
-        totalCard("Recebido", annualReceived, false) +
-
-        totalCard("Gastos", annualExpenses, false) +
-
-        totalCard("Líquido", annualNet, annualNet < 0) +
-
-        totalCard("Em atraso", annualOverdue, annualOverdue > 0) +
-
-      "</div>" +
-
-      "<h3>Resumo mensal</h3>" +
-
-      "<table class=\"ar-table\"><thead><tr><th>Mês</th><th class=\"num\">Recebido</th><th class=\"num\">Gastos</th><th class=\"num\">Líquido</th></tr></thead><tbody>" +
-
-        monthly.map(function (row, i) {
-
-          return "<tr><td>" + fullMonths[i] + "</td><td class=\"num\">" + money(row.received) + "</td><td class=\"num\">" + money(row.expenses) + "</td><td class=\"num " + (row.net < 0 ? "ar-neg" : "") + "\">" + money(row.net) + "</td></tr>";
-
-        }).join("") +
-
-      "</tbody><tfoot><tr class=\"ar-total-row\"><td>Total</td><td class=\"num\">" + money(annualReceived) + "</td><td class=\"num\">" + money(annualExpenses) + "</td><td class=\"num " + (annualNet < 0 ? "ar-neg" : "") + "\">" + money(annualNet) + "</td></tr></tfoot></table>" +
-
-      "<h3>Resumo por unidade</h3>" +
-
-      "<table class=\"ar-table\"><thead><tr><th>Unidade</th><th class=\"num\">Pagos</th><th class=\"num\">Pagos c/ atraso</th><th class=\"num\">Em atraso</th><th class=\"num\">Recebido</th></tr></thead><tbody>" +
-
-        (unitRows || "<tr><td colspan=\"5\">Nenhuma unidade cadastrada</td></tr>") +
-
-      "</tbody></table>" +
-
-    "</div>";
-
-  }
-  
-		function printAfter(target) {
-
-			var cleanup = function () {
-				target.innerHTML = "";
-				window.removeEventListener("afterprint", cleanup);
-			};
-
-			window.addEventListener("afterprint", cleanup);
-
-			requestAnimationFrame(function () {
-				requestAnimationFrame(function () {
-					window.print();
-				});
-			});
-		}
-
-		function printAnnualReport() {
-			var reportHtml = buildAnnualReportHtml();
-			
-			// Cria uma janela temporária exclusiva para a impressão/salvar em PDF
-			var printWindow = window.open("", "_blank");
-			
-			if (printWindow) {
-				printWindow.document.write(`
+        var scope =
+            selectedEmpreendimentoId === "todos"
+                ? "Todos os empreendimentos"
+                : empreendimentoName(selectedEmpreendimentoId);
+
+        var annualReceived = 0;
+
+        var annualOverdue = 0;
+
+        units.forEach(function (unit) {
+            months.forEach(function (_, i) {
+                if (!isActive(unit, i)) return;
+
+                if (statusFor(unit, i) === "pago")
+                    annualReceived += rentForMonth(unit, selectedYear, i);
+
+                if (effectiveStatus(unit, i) === "atrasado") {
+                    var updated = updatedAmount(unit, i);
+
+                    annualOverdue +=
+                        updated === null
+                            ? rentForMonth(unit, selectedYear, i)
+                            : updated;
+                }
+            });
+        });
+
+        var annualExpenses = expenses.reduce(function (sum, expense) {
+            return (
+                sum + (expense.ym.slice(0, 4) === yearText ? expense.amount : 0)
+            );
+        }, 0);
+
+        var annualNet = annualReceived - annualExpenses;
+
+        var monthly = months.map(function (_, i) {
+            var received = units.reduce(function (sum, unit) {
+                return (
+                    sum +
+                    (isActive(unit, i) && statusFor(unit, i) === "pago"
+                        ? rentForMonth(unit, selectedYear, i)
+                        : 0)
+                );
+            }, 0);
+
+            var spent = expenses.reduce(function (sum, expense) {
+                return sum + (expense.ym === monthKey(i) ? expense.amount : 0);
+            }, 0);
+
+            return {
+                received: received,
+                expenses: spent,
+                net: received - spent,
+            };
+        });
+
+        var unitRows = units
+            .slice()
+            .sort(function (a, b) {
+                return a.name.localeCompare(b.name, "pt-BR");
+            })
+            .map(function (unit) {
+                var paid = 0;
+
+                var paidLate = 0;
+
+                var overdueMonths = 0;
+
+                var overdue = 0;
+
+                var received = 0;
+
+                months.forEach(function (_, i) {
+                    if (!isActive(unit, i)) return;
+
+                    if (statusFor(unit, i) === "pago") {
+                        paid += 1;
+
+                        received += rentForMonth(unit, selectedYear, i);
+                    }
+
+                    if (isPaidLate(unit, i)) paidLate += 1;
+
+                    if (effectiveStatus(unit, i) === "atrasado") {
+                        overdueMonths += 1;
+
+                        var updated = updatedAmount(unit, i);
+
+                        overdue +=
+                            updated === null
+                                ? rentForMonth(unit, selectedYear, i)
+                                : updated;
+                    }
+                });
+
+                var title = escapeHtml(unit.name);
+
+                if (selectedEmpreendimentoId === "todos")
+                    title +=
+                        " <small>(" +
+                        escapeHtml(empreendimentoName(unit.empreendimentoId)) +
+                        ")</small>";
+
+                if (unit.tenantName)
+                    title +=
+                        "<br><small>Inquilino: " +
+                        escapeHtml(unit.tenantName) +
+                        "</small>";
+
+                return (
+                    "<tr><td>" +
+                    title +
+                    '</td><td class="num">' +
+                    paid +
+                    '</td><td class="num">' +
+                    paidLate +
+                    '</td><td class="num">' +
+                    (overdueMonths
+                        ? money(overdue) +
+                          " (" +
+                          overdueMonths +
+                          " " +
+                          (overdueMonths === 1 ? "mês" : "meses") +
+                          ")"
+                        : "—") +
+                    '</td><td class="num">' +
+                    money(received) +
+                    "</td></tr>"
+                );
+            })
+            .join("");
+
+        var totalCard = function (label, value, negative) {
+            return (
+                '<div class="ar-total"><span>' +
+                label +
+                '</span><strong class="' +
+                (negative ? "ar-neg" : "") +
+                '">' +
+                money(value) +
+                "</strong></div>"
+            );
+        };
+
+        return (
+            '<div class="annual-report">' +
+            "<h1>Resumo do ano " +
+            selectedYear +
+            "</h1>" +
+            '<p class="ar-meta">' +
+            escapeHtml(scope) +
+            " · Emitido em " +
+            escapeHtml(formatDate(new Date())) +
+            (state.settings.receiverName
+                ? " · Recebedor: " + escapeHtml(state.settings.receiverName)
+                : "") +
+            "</p>" +
+            '<div class="ar-totals">' +
+            totalCard("Recebido", annualReceived, false) +
+            totalCard("Gastos", annualExpenses, false) +
+            totalCard("Líquido", annualNet, annualNet < 0) +
+            totalCard("Em atraso", annualOverdue, annualOverdue > 0) +
+            "</div>" +
+            "<h3>Resumo mensal</h3>" +
+            '<table class="ar-table"><thead><tr><th>Mês</th><th class="num">Recebido</th><th class="num">Gastos</th><th class="num">Líquido</th></tr></thead><tbody>' +
+            monthly
+                .map(function (row, i) {
+                    return (
+                        "<tr><td>" +
+                        fullMonths[i] +
+                        '</td><td class="num">' +
+                        money(row.received) +
+                        '</td><td class="num">' +
+                        money(row.expenses) +
+                        '</td><td class="num ' +
+                        (row.net < 0 ? "ar-neg" : "") +
+                        '">' +
+                        money(row.net) +
+                        "</td></tr>"
+                    );
+                })
+                .join("") +
+            '</tbody><tfoot><tr class="ar-total-row"><td>Total</td><td class="num">' +
+            money(annualReceived) +
+            '</td><td class="num">' +
+            money(annualExpenses) +
+            '</td><td class="num ' +
+            (annualNet < 0 ? "ar-neg" : "") +
+            '">' +
+            money(annualNet) +
+            "</td></tr></tfoot></table>" +
+            "<h3>Resumo por unidade</h3>" +
+            '<table class="ar-table"><thead><tr><th>Unidade</th><th class="num">Pagos</th><th class="num">Pagos c/ atraso</th><th class="num">Em atraso</th><th class="num">Recebido</th></tr></thead><tbody>' +
+            (unitRows ||
+                '<tr><td colspan="5">Nenhuma unidade cadastrada</td></tr>') +
+            "</tbody></table>" +
+            "</div>"
+        );
+    }
+
+    function printAfter(target) {
+        var cleanup = function () {
+            target.innerHTML = "";
+            window.removeEventListener("afterprint", cleanup);
+        };
+
+        window.addEventListener("afterprint", cleanup);
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                window.print();
+            });
+        });
+    }
+
+    function printAnnualReport() {
+        var reportHtml = buildAnnualReportHtml();
+
+        // Cria uma janela temporária exclusiva para a impressão/salvar em PDF
+        var printWindow = window.open("", "_blank");
+
+        if (printWindow) {
+            printWindow.document.write(`
 					<!DOCTYPE html>
 					<html>
 					<head>
@@ -3650,31 +3835,33 @@ function drawReceiptCanvas(context) {
 					</body>
 					</html>
 				`);
-				printWindow.document.close();
-			} else {
-				alert("Por favor, permita pop-ups no navegador para gerar o relatório.");
-			}
-		}
-		window.onafterprint = function () {
-			printReport.innerHTML = "";
-		};
-	
-function printReceiptDocument() {
-    if (!receiptContext) return;
-
-    // 1. Gera o HTML do recibo com os dados do contexto
-    var htmlContent = receiptMarkup(receiptContext);
-
-    // 2. Abre uma nova janela limpa
-    var printWindow = window.open('', '_blank');
-    
-    if (!printWindow) {
-        alert('Por favor, permita pop-ups para gerar o PDF do recibo.');
-        return;
+            printWindow.document.close();
+        } else {
+            alert(
+                "Por favor, permita pop-ups no navegador para gerar o relatório."
+            );
+        }
     }
+    window.onafterprint = function () {
+        printReport.innerHTML = "";
+    };
 
-    // 3. Escreve o documento completo com o CSS corrigido
-    printWindow.document.write(`
+    function printReceiptDocument() {
+        if (!receiptContext) return;
+
+        // 1. Gera o HTML do recibo com os dados do contexto
+        var htmlContent = receiptMarkup(receiptContext);
+
+        // 2. Abre uma nova janela limpa
+        var printWindow = window.open("", "_blank");
+
+        if (!printWindow) {
+            alert("Por favor, permita pop-ups para gerar o PDF do recibo.");
+            return;
+        }
+
+        // 3. Escreve o documento completo com o CSS corrigido
+        printWindow.document.write(`
         <!DOCTYPE html>
         <html lang="pt-BR">
         <head>
@@ -3798,8 +3985,8 @@ function printReceiptDocument() {
         </html>
     `);
 
-    printWindow.document.close();
-}
+        printWindow.document.close();
+    }
 
     document.getElementById("prevYear").addEventListener("click", function () {
         selectedYear -= 1;
@@ -3836,9 +4023,9 @@ function printReceiptDocument() {
         .addEventListener("click", function () {
             openExpenseModal();
         });
-    
-	toggleExpensesButton.addEventListener("click", toggleExpensesVisibility);
-	
+
+    toggleExpensesButton.addEventListener("click", toggleExpensesVisibility);
+
     document
         .getElementById("cancelModal")
         .addEventListener("click", closeModal);
@@ -3875,14 +4062,14 @@ function printReceiptDocument() {
         .getElementById("saveSettings")
         .addEventListener("click", saveSettings);
 
-  authForm.addEventListener("submit", submitAuth);
-  authSkip.addEventListener("click", function () {
-  if (authMode !== "create") return;
-  localStorage.setItem(SETUP_FLAG_KEY, "1");
-  appUnlocked = true;
-  closeAuth();
-  render();
-});
+    authForm.addEventListener("submit", submitAuth);
+    authSkip.addEventListener("click", function () {
+        if (authMode !== "create") return;
+        localStorage.setItem(SETUP_FLAG_KEY, "1");
+        appUnlocked = true;
+        closeAuth();
+        render();
+    });
     savePinButton.addEventListener("click", savePin);
 
     removePinButton.addEventListener("click", removePin);
@@ -3898,19 +4085,21 @@ function printReceiptDocument() {
     document
         .getElementById("shareReceipt")
         .addEventListener("click", shareReceipt);
-		
+
     document
         .getElementById("printReceiptButton")
         .addEventListener("click", printReceiptDocument);
-		
+
     document
         .getElementById("printAnnual")
-        .addEventListener("click", printAnnualReport);	
+        .addEventListener("click", printAnnualReport);
 
-	document.getElementById("toggleSummaryCards").addEventListener("click", function () {
-	  summaryCardsExpanded = !summaryCardsExpanded;
-	  applySummaryCardsVisibility();
-	});		
+    document
+        .getElementById("toggleSummaryCards")
+        .addEventListener("click", function () {
+            summaryCardsExpanded = !summaryCardsExpanded;
+            applySummaryCardsVisibility();
+        });
 
     document
         .getElementById("exportBackup")
@@ -3955,12 +4144,12 @@ function printReceiptDocument() {
     useCloudData.addEventListener("click", chooseCloudData);
 
     useLocalData.addEventListener("click", chooseLocalData);
-	
-	bannerUseCloud.addEventListener("click", chooseCloudData);
-	bannerUseLocal.addEventListener("click", chooseLocalData);	
+
+    bannerUseCloud.addEventListener("click", chooseCloudData);
+    bannerUseLocal.addEventListener("click", chooseLocalData);
 
     window.addEventListener("online", function () {
-        if (firebaseUser) updateConnectionStatus();;
+        if (firebaseUser) updateConnectionStatus();
     });
 
     window.addEventListener("offline", function () {
@@ -3997,12 +4186,12 @@ function printReceiptDocument() {
     });
 
     window.addEventListener("pageshow", function (event) {
-		collapseExpenseMonths();
-		if (event.persisted && lockConfig) {
-			appUnlocked = false;
-			openAuthLogin();
-		}
-	});
+        collapseExpenseMonths();
+        if (event.persisted && lockConfig) {
+            appUnlocked = false;
+            openAuthLogin();
+        }
+    });
 
     updateCloudUi();
 
