@@ -2116,10 +2116,16 @@
                         );
                     })
                     .join("");
-
+					
+					var currentMonthClass =
+					selectedYear === new Date().getFullYear() &&
+					group.month === new Date().getMonth()
+						? " month-current"
+						: "";
+						
                 return (
                     '<details class="expense-month">' +
-                    '<summary class="expense-month-header">' +
+                    '<summary class="expense-month-header' + currentMonthClass + '">' +
                     '<div class="expense-month-title">' +
                     "<h3>" +
                     fullMonths[group.month] +
