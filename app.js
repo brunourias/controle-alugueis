@@ -66,6 +66,7 @@
     var selectedYear = new Date().getFullYear();
     var editingId = null;
     var pendingRentChanges = [];
+	var pendingContractHistory = [];
     var editingExpenseId = null;
     var expensesExpanded = false;
     var summaryCardsExpanded = false;
@@ -122,6 +123,14 @@
     var rentChangePercent = document.getElementById("rentChangePercent");
     var rentChangeAbsolute = document.getElementById("rentChangeAbsolute");
     var addRentChangeButton = document.getElementById("addRentChange");
+	var contractHistoryList = document.getElementById("contractHistoryList");
+var archiveContract = document.getElementById("archiveContract");
+var historyTenant = document.getElementById("historyTenant");
+var historyStart = document.getElementById("historyStart");
+var historyEnd = document.getElementById("historyEnd");
+var historyRent = document.getElementById("historyRent");
+var addContractHistory = document.getElementById("addContractHistory");
+	
     var finePercent = document.getElementById("finePercent");
 
     //--------------------------------------------------------------------------------------------
@@ -490,6 +499,22 @@
                 return index === 0 || change.fromYm !== list[index - 1].fromYm;
             });
     }
+	
+	function normalizeContractHistory(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map(function (item) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    var tenantName = typeof item.tenantName === "string" ? item.tenantName.trim() : "";
+    var startYm = isValidStartYm(item.startYm) ? item.startYm : null;
+    var endYm = isValidStartYm(item.endYm) ? item.endYm : null;
+    var rentValue = item.rent === null || item.rent ===
+undefined || item.rent === "" ? null : Number(item.rent);
+    var rent = rentValue !== null && Number.isFinite(rentValue)
+&& rentValue >= 0 ? rentValue : null;
+    if (!tenantName && !startYm && !endYm && rent === null) return null;
+    return { tenantName: tenantName, startYm: startYm, endYm: endYm, rent: rent };
+  }).filter(function (item) { return item !== null; });
+}
 
     function normalizeUnit(unit) {
         unit.status =
@@ -511,7 +536,8 @@
                 ? Number(unit.rent)
                 : 0;
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
-        if (unit.startYm && unit.endYm && unit.endYm < unit.startYm)
+        unit.contractHistory = normalizeContractHistory(unit.contractHistory);
+		if (unit.startYm && unit.endYm && unit.endYm < unit.startYm)
             unit.endYm = null;
         unit.tenantName =
             typeof unit.tenantName === "string" ? unit.tenantName.trim() : "";
@@ -2256,6 +2282,10 @@
                   return { fromYm: change.fromYm, rent: change.rent };
               })
             : [];
+		pendingContractHistory = unit ? (unit.contractHistory || []).map(function (contract) {
+  return { tenantName: contract.tenantName, startYm: contract.startYm,
+endYm: contract.endYm, rent: contract.rent };
+}) : [];	
         unitDueDay.value =
             unit && Number.isInteger(unit.dueDay) ? unit.dueDay : "";
         unitStartYm.value =
@@ -2265,6 +2295,10 @@
         tenantPhone.value = unit ? unit.tenantPhone : "";
         tenantEmail.value = unit ? unit.tenantEmail : "";
         tenantNotes.value = unit ? unit.tenantNotes : "";
+		historyTenant.value = "";
+historyStart.value = "";
+historyEnd.value = "";
+historyRent.value = "";
         unitDueDay.setCustomValidity("");
         unitStartYm.setCustomValidity("");
         unitEndYm.setCustomValidity("");
@@ -2274,6 +2308,7 @@
         rentChangeYm.setCustomValidity("");
         rentChangeAbsolute.setCustomValidity("");
         renderRentChanges();
+		renderContractHistory();
         document.getElementById("deleteUnit").hidden = !unit;
         modal.hidden = false;
         setTimeout(function () {
@@ -2382,6 +2417,147 @@
         rentChangeAbsolute.setCustomValidity("");
         renderRentChanges();
     }
+	
+	function renderContractHistory() {
+
+  if (!pendingContractHistory.length) {
+
+    contractHistoryList.innerHTML = "<p class=\"rent-changes-empty\">Nenhum contrato encerrado registrado.</p>";
+
+    return;
+
+  }
+
+  contractHistoryList.innerHTML = pendingContractHistory.map(function (contract, index) {
+
+    var period = (contract.startYm ? ymLabel(contract.startYm) : "início?") +
+
+      " até " + (contract.endYm ? ymLabel(contract.endYm) : "sem fim");
+
+    if (contract.rent !== null) period += " · " + money(contract.rent);
+
+    return "<div class=\"rent-change-row\"><div><strong>" +
+
+      escapeHtml(contract.tenantName || "Sem nome") + "</strong><span>" +
+
+      escapeHtml(period) + "</span></div><button class=\"btn btn-danger rent-change-remove\" type=\"button\" data-history-index=\"" +
+
+      index + "\">Remover</button></div>";
+
+  }).join("");
+
+  contractHistoryList.querySelectorAll("[data-history-index]").forEach(function (button) {
+
+    button.addEventListener("click", function () {
+
+      pendingContractHistory.splice(Number(button.dataset.historyIndex), 1);
+
+      renderContractHistory();
+
+    });
+
+  });
+
+}
+
+ 
+
+function archiveCurrentContract() {
+
+  var archivedTenant = tenantName.value.trim();
+
+  var archivedStart = unitStartYm.value || null;
+
+  var archivedEnd = unitEndYm.value || null;
+
+  var archivedRentValue = Number(unitRent.value);
+
+  if (!archivedTenant && !archivedStart && !archivedEnd) {
+
+    tenantName.focus();
+
+    return;
+
+  }
+
+  pendingContractHistory.push({
+
+    tenantName: archivedTenant,
+
+    startYm: archivedStart,
+
+    endYm: archivedEnd,
+
+    rent: Number.isFinite(archivedRentValue) && archivedRentValue >= 0 ? archivedRentValue : null
+
+  });
+
+  tenantName.value = "";
+
+  tenantPhone.value = "";
+
+  tenantEmail.value = "";
+
+  tenantNotes.value = "";
+
+  unitEndYm.value = "";
+
+  if (isValidStartYm(archivedEnd)) {
+
+    var parts = archivedEnd.split("-").map(Number);
+
+    var nextDate = new Date(parts[0], parts[1], 1);
+
+    unitStartYm.value = nextDate.getFullYear() + "-" + String(nextDate.getMonth() + 1).padStart(2, "0");
+
+  }
+
+  renderContractHistory();
+
+  tenantName.focus();
+
+}
+
+ 
+
+function addContractHistoryEntry() {
+
+  var name = historyTenant.value.trim();
+
+  var startYm = historyStart.value || null;
+
+  var endYm = historyEnd.value || null;
+
+  var rentValue = Number(historyRent.value);
+
+  if (!name && !startYm && !endYm) return;
+
+  pendingContractHistory.push({
+
+    tenantName: name,
+
+    startYm: startYm,
+
+    endYm: endYm,
+
+    rent: Number.isFinite(rentValue) && rentValue >= 0 ? rentValue : null
+
+  });
+
+  historyTenant.value = "";
+
+  historyStart.value = "";
+
+  historyEnd.value = "";
+
+  historyRent.value = "";
+
+  renderContractHistory();
+
+}
+	
+	
+	
     //--------------------------------------------------------------------------------------------
     function setCategoryStatus(message, isError) {
         categoryStatus.textContent = message;
@@ -2773,7 +2949,7 @@
         var ym = expenseYm.value;
         var amount = Number(expenseAmount.value);
         if (!isValidStartYm(ym)) {
-            expenseDate.focus();
+            expenseYm.focus();
             return;
         }
         if (!Number.isFinite(amount) || amount < 0) {
@@ -3092,6 +3268,7 @@
                 existing.empreendimentoId = unitEmpreendimento.value;
                 existing.rent = rent;
                 existing.rentChanges = normalizeRentChanges(pendingRentChanges);
+				existing.contractHistory = normalizeContractHistory(pendingContractHistory); 
                 existing.dueDay = dueDay;
                 existing.startYm = startYm;
                 existing.endYm = endYm;
@@ -3109,6 +3286,7 @@
                 name: name,
                 rent: rent,
                 rentChanges: normalizeRentChanges(pendingRentChanges),
+				contractHistory: normalizeContractHistory(pendingContractHistory),
                 dueDay: dueDay,
                 startYm: startYm,
                 endYm: endYm,
@@ -4037,7 +4215,10 @@
         .addEventListener("click", closeModal);
 
     document.getElementById("saveUnit").addEventListener("click", saveUnit);
-
+    
+	archiveContract.addEventListener("click", archiveCurrentContract);
+addContractHistory.addEventListener("click", addContractHistoryEntry); 
+	 
     addRentChangeButton.addEventListener("click", addRentChange);
 
     document.getElementById("deleteUnit").addEventListener("click", deleteUnit);
