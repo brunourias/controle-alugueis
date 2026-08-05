@@ -404,6 +404,32 @@
                         placeholder="Opcional"
                     ></textarea>
                 </label>
+				
+				<section class="contract-history-section">
+  <h3>Histórico de contratos</h3>
+  <p class="field-help">Contratos encerrados desta unidade - apenas registro;
+não entram nas análises nem nos relatórios.</p>
+  <div id="contractHistoryList"></div>
+  <button id="archiveContract" class="btn btn-ghost" type="button">
+Arquivar contrato atual</button>
+  <div class="contract-history-add">
+    <label>Inquilino
+      <input type="text" id="historyTenant" placeholder="Nome" autocomplete="off" />
+    </label>
+    <label>Início
+      <input type="month" id="historyStart" />
+    </label>
+    <label>Fim
+      <input type="month" id="historyEnd" />
+    </label>
+    <label>Valor do aluguel (R$)
+      <input type="number" id="historyRent" min="0" step="0.01"
+inputmode="decimal" placeholder="Opcional" />
+    </label>
+    <button id="addContractHistory" class="btn btn-ghost"
+type="button">Adicionar ao histórico</button>
+  </div>
+</section>
 
                 <div class="modal-actions">
                     <button id="deleteUnit" class="btn btn-danger" hidden>
