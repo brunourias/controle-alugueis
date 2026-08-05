@@ -2,7 +2,10 @@
 <html lang="pt-BR">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+        />
         <meta name="theme-color" content="#0f766e" />
 
         <title>Meus Imóveis</title>
@@ -14,20 +17,42 @@
 
     <body>
         <!-- Tela de Bloqueio / Lock Screen -->
-        <div id="lockScreen" class="lock-screen" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
+        <div
+            id="lockScreen"
+            class="lock-screen"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lockTitle"
+            hidden
+        >
             <div class="lock-card">
                 <div class="lock-icon">🔒</div>
                 <h2 id="lockTitle">Acesso protegido</h2>
                 <p>Digite seu PIN para abrir o controle de aluguéis.</p>
 
                 <form id="unlockForm">
-                    <label>PIN
-                        <input id="unlockPin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" />
+                    <label
+                        >PIN
+                        <input
+                            id="unlockPin"
+                            type="password"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="current-password"
+                            maxlength="32"
+                        />
                     </label>
-                    <button class="btn btn-primary" type="submit">Desbloquear</button>
+                    <button class="btn btn-primary" type="submit">
+                        Desbloquear
+                    </button>
                 </form>
 
-                <button id="unlockBiometric" class="btn btn-ghost biometric-unlock" type="button" hidden>
+                <button
+                    id="unlockBiometric"
+                    class="btn btn-ghost biometric-unlock"
+                    type="button"
+                    hidden
+                >
                     Desbloquear com biometria
                 </button>
 
@@ -42,10 +67,32 @@
 
                 <div class="header-controls">
                     <div class="year-nav">
-                        <button id="settingsButton" class="icon-btn" type="button" aria-label="Configurações" title="Configurações">⚙</button>
-                        <button id="prevYear" class="icon-btn" type="button" aria-label="Ano anterior">‹</button>
+                        <button
+                            id="settingsButton"
+                            class="icon-btn"
+                            type="button"
+                            aria-label="Configurações"
+                            title="Configurações"
+                        >
+                            ⚙
+                        </button>
+                        <button
+                            id="prevYear"
+                            class="icon-btn"
+                            type="button"
+                            aria-label="Ano anterior"
+                        >
+                            ‹
+                        </button>
                         <span id="yearLabel">2026</span>
-                        <button id="nextYear" class="icon-btn" type="button" aria-label="Próximo ano">›</button>
+                        <button
+                            id="nextYear"
+                            class="icon-btn"
+                            type="button"
+                            aria-label="Próximo ano"
+                        >
+                            ›
+                        </button>
                     </div>
 
                     <div class="emp">
@@ -72,17 +119,36 @@
             <div id="cloudBanner" class="cloud-banner" hidden role="alert">
                 <p id="cloudBannerText"></p>
                 <div class="cloud-banner-actions">
-                    <button id="bannerUseCloud" class="btn btn-primary" type="button">Usar nuvem</button>
-                    <button id="bannerUseLocal" class="btn btn-ghost" type="button">Enviar deste aparelho</button>
+                    <button
+                        id="bannerUseCloud"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Usar nuvem
+                    </button>
+                    <button
+                        id="bannerUseLocal"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Enviar deste aparelho
+                    </button>
                 </div>
             </div>
 
             <div class="filter-bar" aria-label="Filtros das unidades">
-                <label class="filter-search">Buscar unidade
-                    <input id="unitSearch" type="search" placeholder="Nome da unidade" autocomplete="off" />
+                <label class="filter-search"
+                    >Buscar unidade
+                    <input
+                        id="unitSearch"
+                        type="search"
+                        placeholder="Nome da unidade"
+                        autocomplete="off"
+                    />
                 </label>
 
-                <label>Filtrar por status
+                <label
+                    >Filtrar por status
                     <select id="statusFilter">
                         <option value="todos">Todos</option>
                         <option value="atrasados">Atrasados</option>
@@ -110,122 +176,246 @@
                 <p>Toque em <strong>+ Nova unidade</strong> para começar.</p>
             </div>
 
-<div class="summary-bar">
-    <h2 class="backup-title">Resumo Financeiro</h2>
+            <div class="summary-bar">
+                <h2 class="backup-title">Resumo Financeiro</h2>
 
-    <div class="summary-bar-actions">
-        <button id="toggleSummaryCards" class="btn btn-ghost" type="button">Mostrar</button>
-        <button id="printAnnual" class="btn btn-ghost" type="button">Resumo do ano</button>
-    </div>
-</div>
+                <div class="summary-bar-actions">
+                    <button
+                        id="toggleSummaryCards"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Mostrar
+                    </button>
+                    <button
+                        id="printAnnual"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Resumo do ano
+                    </button>
+                </div>
+            </div>
 
             <div class="summary" id="summary"></div>
 
             <!-- Seção de Gastos Gerais -->
-            <section class="summary-bar" aria-labelledby="expensesTitle">
-               
-          
-                        <h2 id="expensesTitle">Gastos gerais</h2>
-                        <p class="summary-report-intro">Despesas do portfólio em <span id="expensesYear">2026</span>.</p>
-					
-                       
-                            <span class="summary-report-intro">Gastos no ano: </span>
-                            <strong id="expensesTotal">R$ 0,00</strong>
-							<p></p>
+            <section class="summary-bar">
+                <h2 id="expensesTitle">Gastos gerais</h2>
+                <p class="summary-report-intro">
+                    Despesas do portfólio em
+                    <span id="expensesYear">2026</span>.
+                </p>
 
-                            <button id="toggleExpenses" class="btn btn-ghost" type="button" hidden>Mostrar meses</button>
-                            <button id="addExpense" class="btn btn-primary" type="button">+ Novo gasto</button>
-                      
-                   
-              
+                <span class="summary-report-intro">Gastos no ano: </span>
+                <strong id="expensesTotal">R$ 0,00</strong>
+                <p></p>
+
+                <button
+                    id="toggleExpenses"
+                    class="btn btn-ghost"
+                    type="button"
+                    hidden
+                >
+                    Mostrar meses
+                </button>
+                <button id="addExpense" class="btn btn-primary" type="button">
+                    + Novo gasto
+                </button>
 
                 <div id="expensesList"></div>
             </section>
 
             <div class="backup-toolbar" aria-label="Backup dos dados">
-                <span class="backup-title">Seus dados ficam salvos na Nuvem.</span>
+                <span class="backup-title"
+                    >Seus dados ficam salvos na Nuvem.</span
+                >
                 <div class="backup-actions">
-                    <button id="exportBackup" class="btn btn-ghost" type="button">Exportar backup</button>
-                    <button id="importBackup" class="btn btn-ghost" type="button">Importar backup</button>
-                    <input id="backupFile" type="file" accept="application/json" hidden />
+                    <button
+                        id="exportBackup"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Exportar backup
+                    </button>
+                    <button
+                        id="importBackup"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Importar backup
+                    </button>
+                    <input
+                        id="backupFile"
+                        type="file"
+                        accept="application/json"
+                        hidden
+                    />
                 </div>
             </div>
         </main>
 
-        <button id="addUnit" class="fab" aria-label="Nova unidade">+ Nova unidade</button>
+        <button id="addUnit" class="fab" aria-label="Nova unidade">
+            + Nova unidade
+        </button>
 
         <!-- Modal de Unidade -->
         <div class="modal-backdrop" id="modal" hidden>
             <div class="modal">
                 <h2 id="modalTitle">Nova unidade</h2>
 
-                <label>Nome da unidade
-                    <input type="text" id="unitName" placeholder="Ex.: Unidade 01" autocomplete="off" />
+                <label
+                    >Nome da unidade
+                    <input
+                        type="text"
+                        id="unitName"
+                        placeholder="Ex.: Unidade 01"
+                        autocomplete="off"
+                    />
                 </label>
 
-                <label>Empreendimento
+                <label
+                    >Empreendimento
                     <select id="unitEmpreendimento"></select>
                 </label>
 
-                <label>Valor do aluguel (R$)
-                    <input type="number" id="unitRent" placeholder="Ex.: 1200" inputmode="decimal" min="0" step="0.01" />
+                <label
+                    >Valor do aluguel (R$)
+                    <input
+                        type="number"
+                        id="unitRent"
+                        placeholder="Ex.: 1200"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                    />
                 </label>
 
                 <section class="rent-changes-section">
                     <h3>Reajuste de aluguel</h3>
-                    <p class="field-help">O valor acima é o aluguel base. Cada reajuste vale a partir do mês informado.</p>
+                    <p class="field-help">
+                        O valor acima é o aluguel base. Cada reajuste vale a
+                        partir do mês informado.
+                    </p>
                     <div id="rentChangesList"></div>
 
-                    <label>Aplicar a partir de
+                    <label
+                        >Aplicar a partir de
                         <input type="month" id="rentChangeYm" />
                     </label>
 
-                    <label>Percentual de reajuste (%)
-                        <input type="number" id="rentChangePercent" min="-100" step="0.01" placeholder="Ex.: 10" inputmode="decimal" />
+                    <label
+                        >Percentual de reajuste (%)
+                        <input
+                            type="number"
+                            id="rentChangePercent"
+                            min="-100"
+                            step="0.01"
+                            placeholder="Ex.: 10"
+                            inputmode="decimal"
+                        />
                     </label>
 
-                    <label>Novo valor absoluto (R$)
-                        <input type="number" id="rentChangeAbsolute" min="0" step="0.01" placeholder="Opcional" inputmode="decimal" />
+                    <label
+                        >Novo valor absoluto (R$)
+                        <input
+                            type="number"
+                            id="rentChangeAbsolute"
+                            min="0"
+                            step="0.01"
+                            placeholder="Opcional"
+                            inputmode="decimal"
+                        />
                     </label>
 
-                    <button id="addRentChange" class="btn btn-ghost" type="button">Adicionar reajuste</button>
+                    <button
+                        id="addRentChange"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Adicionar reajuste
+                    </button>
                 </section>
 
-                <label>Dia de vencimento
-                    <input type="number" id="unitDueDay" placeholder="Ex.: 5" inputmode="numeric" min="1" max="31" step="1" />
+                <label
+                    >Dia de vencimento
+                    <input
+                        type="number"
+                        id="unitDueDay"
+                        placeholder="Ex.: 5"
+                        inputmode="numeric"
+                        min="1"
+                        max="31"
+                        step="1"
+                    />
                 </label>
 
-                <label>Início da locação
+                <label
+                    >Início da locação
                     <input type="month" id="unitStartYm" />
-                    <small class="field-help">Deixe em branco para considerar o ano todo.</small>
+                    <small class="field-help"
+                        >Deixe em branco para considerar o ano todo.</small
+                    >
                 </label>
 
-                <label>Fim da locação
+                <label
+                    >Fim da locação
                     <input type="month" id="unitEndYm" />
-                    <small class="field-help">Deixe em branco para considerar sem fim.</small>
+                    <small class="field-help"
+                        >Deixe em branco para considerar sem fim.</small
+                    >
                 </label>
 
-                <label>Nome do inquilino
-                    <input type="text" id="tenantName" placeholder="Opcional" autocomplete="name" />
+                <label
+                    >Nome do inquilino
+                    <input
+                        type="text"
+                        id="tenantName"
+                        placeholder="Opcional"
+                        autocomplete="name"
+                    />
                 </label>
 
-                <label>Telefone do inquilino
-                    <input type="tel" id="tenantPhone" placeholder="(11) 99999-9999" autocomplete="tel" />
+                <label
+                    >Telefone do inquilino
+                    <input
+                        type="tel"
+                        id="tenantPhone"
+                        placeholder="(11) 99999-9999"
+                        autocomplete="tel"
+                    />
                 </label>
 
-                <label>E-mail do inquilino
-                    <input type="email" id="tenantEmail" placeholder="Opcional" autocomplete="email" />
+                <label
+                    >E-mail do inquilino
+                    <input
+                        type="email"
+                        id="tenantEmail"
+                        placeholder="Opcional"
+                        autocomplete="email"
+                    />
                 </label>
 
-                <label>Observações do inquilino
-                    <textarea id="tenantNotes" rows="3" placeholder="Opcional"></textarea>
+                <label
+                    >Observações do inquilino
+                    <textarea
+                        id="tenantNotes"
+                        rows="3"
+                        placeholder="Opcional"
+                    ></textarea>
                 </label>
 
                 <div class="modal-actions">
-                    <button id="deleteUnit" class="btn btn-danger" hidden>Excluir</button>
+                    <button id="deleteUnit" class="btn btn-danger" hidden>
+                        Excluir
+                    </button>
                     <span class="spacer"></span>
-                    <button id="cancelModal" class="btn btn-ghost">Cancelar</button>
-                    <button id="saveUnit" class="btn btn-primary">Salvar</button>
+                    <button id="cancelModal" class="btn btn-ghost">
+                        Cancelar
+                    </button>
+                    <button id="saveUnit" class="btn btn-primary">
+                        Salvar
+                    </button>
                 </div>
             </div>
         </div>
@@ -235,15 +425,18 @@
             <div class="modal">
                 <h2 id="expenseModalTitle">Novo gasto</h2>
 
-                <label>Data
+                <label
+                    >Data
                     <input type="month" id="expenseYm" />
                 </label>
 
-                <label>Empreendimento
+                <label
+                    >Empreendimento
                     <select id="expenseEmpreendimento"></select>
                 </label>
 
-                <label>Categoria
+                <label
+                    >Categoria
                     <select id="expenseCategory">
                         <option>Manutenção</option>
                         <option>Mão de obra</option>
@@ -254,25 +447,74 @@
                     </select>
                 </label>
 
-                <label>Valor (R$)
-                    <input type="number" id="expenseAmount" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 350,00" />
+                <label
+                    >Valor (R$)
+                    <input
+                        type="number"
+                        id="expenseAmount"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                        placeholder="Ex.: 350,00"
+                    />
                 </label>
 
-                <label>Descrição (opcional)
-                    <input type="text" id="expenseDescription" maxlength="160" placeholder="Ex.: Conserto do portão" autocomplete="off" />
+                <label
+                    >Descrição (opcional)
+                    <input
+                        type="text"
+                        id="expenseDescription"
+                        maxlength="160"
+                        placeholder="Ex.: Conserto do portão"
+                        autocomplete="off"
+                    />
                 </label>
 
                 <label id="recurrenceArea" class="recurrence-field">
-                    <span><input type="checkbox" id="expenseRepeat" /> Repetir por N meses</span>
-                    <input type="number" id="expenseRepeatCount" min="1" max="60" step="1" value="1" inputmode="numeric" aria-label="Quantidade de meses" />
-                    <small class="field-help">Cria um gasto independente para cada mês, por até 60 meses.</small>
+                    <span
+                        ><input type="checkbox" id="expenseRepeat" /> Repetir
+                        por N meses</span
+                    >
+                    <input
+                        type="number"
+                        id="expenseRepeatCount"
+                        min="1"
+                        max="60"
+                        step="1"
+                        value="1"
+                        inputmode="numeric"
+                        aria-label="Quantidade de meses"
+                    />
+                    <small class="field-help"
+                        >Cria um gasto independente para cada mês, por até 60
+                        meses.</small
+                    >
                 </label>
 
                 <div class="modal-actions">
-                    <button id="deleteExpense" class="btn btn-danger" hidden type="button">Excluir</button>
+                    <button
+                        id="deleteExpense"
+                        class="btn btn-danger"
+                        hidden
+                        type="button"
+                    >
+                        Excluir
+                    </button>
                     <span class="spacer"></span>
-                    <button id="cancelExpense" class="btn btn-ghost" type="button">Cancelar</button>
-                    <button id="saveExpense" class="btn btn-primary" type="button">Salvar</button>
+                    <button
+                        id="cancelExpense"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="saveExpense"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Salvar
+                    </button>
                 </div>
             </div>
         </div>
@@ -282,67 +524,167 @@
             <div class="modal settings-modal">
                 <h2>Configurações</h2>
 
-                <p class="settings-note">Defina os encargos aplicados aos pagamentos em atraso.</p>
+                <p class="settings-note">
+                    Defina os encargos aplicados aos pagamentos em atraso.
+                </p>
 
-                <label>Multa (%)
-                    <input type="number" id="finePercent" inputmode="decimal" min="0" step="0.01" />
+                <label
+                    >Multa (%)
+                    <input
+                        type="number"
+                        id="finePercent"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                    />
                 </label>
 
-                <label>Juros (% ao dia)
-                    <input type="number" id="dailyInterestPercent" inputmode="decimal" min="0" step="0.01" />
+                <label
+                    >Juros (% ao dia)
+                    <input
+                        type="number"
+                        id="dailyInterestPercent"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                    />
                 </label>
 
-                <label>Nome do recebedor
-                    <input type="text" id="receiverName" placeholder="Opcional" autocomplete="name" />
+                <label
+                    >Nome do recebedor
+                    <input
+                        type="text"
+                        id="receiverName"
+                        placeholder="Opcional"
+                        autocomplete="name"
+                    />
                     <small class="field-help">Será exibido nos recibos.</small>
                 </label>
 
                 <section class="category-section">
                     <h3>Categorias de gasto</h3>
-                    <p id="categoryStatus" class="settings-note">Edite as opções disponíveis para os gastos.</p>
+                    <p id="categoryStatus" class="settings-note">
+                        Edite as opções disponíveis para os gastos.
+                    </p>
                     <div id="categoryList"></div>
                     <div class="category-add">
-                        <input id="newCategory" type="text" maxlength="60" placeholder="Nova categoria" autocomplete="off" />
-                        <button id="addCategory" class="btn btn-ghost" type="button">Adicionar</button>
+                        <input
+                            id="newCategory"
+                            type="text"
+                            maxlength="60"
+                            placeholder="Nova categoria"
+                            autocomplete="off"
+                        />
+                        <button
+                            id="addCategory"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Adicionar
+                        </button>
                     </div>
                 </section>
 
                 <section class="enterprise-section">
                     <h3>Empreendimentos</h3>
-                    <p id="enterpriseStatus" class="settings-note">Organize unidades e gastos por empreendimento.</p>
+                    <p id="enterpriseStatus" class="settings-note">
+                        Organize unidades e gastos por empreendimento.
+                    </p>
                     <div id="enterpriseList"></div>
                     <div class="category-add">
-                        <input id="newEnterprise" type="text" maxlength="80" placeholder="Novo empreendimento" autocomplete="off" />
-                        <button id="addEnterprise" class="btn btn-ghost" type="button">Adicionar</button>
+                        <input
+                            id="newEnterprise"
+                            type="text"
+                            maxlength="80"
+                            placeholder="Novo empreendimento"
+                            autocomplete="off"
+                        />
+                        <button
+                            id="addEnterprise"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Adicionar
+                        </button>
                     </div>
                 </section>
 
                 <section class="cloud-section">
                     <h3>Conta / Nuvem</h3>
-                    <p id="cloudStatus" class="settings-note">A sincronização é opcional. Seus dados continuam disponíveis neste dispositivo.</p>
+                    <p id="cloudStatus" class="settings-note">
+                        A sincronização é opcional. Seus dados continuam
+                        disponíveis neste dispositivo.
+                    </p>
                     <div id="cloudSignedOut">
-                        <label>E-mail
-                            <input type="email" id="cloudEmail" autocomplete="email" placeholder="voce@exemplo.com" />
+                        <label
+                            >E-mail
+                            <input
+                                type="email"
+                                id="cloudEmail"
+                                autocomplete="email"
+                                placeholder="voce@exemplo.com"
+                            />
                         </label>
-                        <label>Senha
-                            <input type="password" id="cloudPassword" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres" />
+                        <label
+                            >Senha
+                            <input
+                                type="password"
+                                id="cloudPassword"
+                                autocomplete="current-password"
+                                minlength="6"
+                                placeholder="Mínimo de 6 caracteres"
+                            />
                         </label>
                         <div class="cloud-actions">
-                            <button id="cloudSignIn" class="btn btn-primary" type="button">Entrar</button>
-                            <button id="cloudSignUp" class="btn btn-ghost" type="button">Criar conta</button>
+                            <button
+                                id="cloudSignIn"
+                                class="btn btn-primary"
+                                type="button"
+                            >
+                                Entrar
+                            </button>
+                            <button
+                                id="cloudSignUp"
+                                class="btn btn-ghost"
+                                type="button"
+                            >
+                                Criar conta
+                            </button>
                         </div>
                     </div>
                     <div id="cloudSignedIn" hidden>
-                        <p class="cloud-user">Conectado como <strong id="cloudUserEmail"></strong></p>
-                        <p id="syncStatus" class="settings-note">Sincronizando...</p>
-                        <button id="cloudSignOut" class="btn btn-ghost" type="button">Sair</button>
+                        <p class="cloud-user">
+                            Conectado como <strong id="cloudUserEmail"></strong>
+                        </p>
+                        <p id="syncStatus" class="settings-note">
+                            Sincronizando...
+                        </p>
+                        <button
+                            id="cloudSignOut"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Sair
+                        </button>
                     </div>
                     <p id="cloudError" class="cloud-error" role="alert"></p>
                     <div id="cloudReconcile" class="cloud-reconcile" hidden>
                         <p id="cloudReconcileText"></p>
                         <div class="cloud-actions">
-                            <button id="useCloudData" class="btn btn-primary" type="button">Usar dados da nuvem</button>
-                            <button id="useLocalData" class="btn btn-ghost" type="button">Enviar dados deste aparelho</button>
+                            <button
+                                id="useCloudData"
+                                class="btn btn-primary"
+                                type="button"
+                            >
+                                Usar dados da nuvem
+                            </button>
+                            <button
+                                id="useLocalData"
+                                class="btn btn-ghost"
+                                type="button"
+                            >
+                                Enviar dados deste aparelho
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -350,25 +692,75 @@
                 <section class="security-section">
                     <h3>Segurança</h3>
                     <p id="securityStatus" class="settings-note"></p>
-                    <label id="currentPinLabel">PIN atual
-                        <input type="password" id="currentPin" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" />
+                    <label id="currentPinLabel"
+                        >PIN atual
+                        <input
+                            type="password"
+                            id="currentPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="current-password"
+                            maxlength="32"
+                        />
                     </label>
-                    <label>Novo PIN
-                        <input type="password" id="newPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" />
+                    <label
+                        >Novo PIN
+                        <input
+                            type="password"
+                            id="newPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="new-password"
+                            minlength="4"
+                            maxlength="32"
+                        />
                     </label>
-                    <label>Confirmar novo PIN
-                        <input type="password" id="confirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" />
+                    <label
+                        >Confirmar novo PIN
+                        <input
+                            type="password"
+                            id="confirmPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="new-password"
+                            minlength="4"
+                            maxlength="32"
+                        />
                     </label>
                     <div class="security-actions">
-                        <button id="savePin" class="btn btn-primary" type="button">Salvar PIN</button>
-                        <button id="removePin" class="btn btn-danger" type="button">Remover PIN</button>
+                        <button
+                            id="savePin"
+                            class="btn btn-primary"
+                            type="button"
+                        >
+                            Salvar PIN
+                        </button>
+                        <button
+                            id="removePin"
+                            class="btn btn-danger"
+                            type="button"
+                        >
+                            Remover PIN
+                        </button>
                     </div>
                 </section>
 
                 <div class="modal-actions">
                     <span class="spacer"></span>
-                    <button id="cancelSettings" class="btn btn-ghost" type="button">Cancelar</button>
-                    <button id="saveSettings" class="btn btn-primary" type="button">Salvar</button>
+                    <button
+                        id="cancelSettings"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="saveSettings"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Salvar
+                    </button>
                 </div>
             </div>
         </div>
@@ -382,10 +774,34 @@
 
                 <div class="modal-actions">
                     <span class="spacer"></span>
-                    <button id="cancelReceipt" class="btn btn-ghost" type="button">Fechar</button>
-                    <button id="printReceiptButton" class="btn btn-ghost" type="button">Imprimir / PDF</button>
-                    <button id="downloadReceipt" class="btn btn-ghost" type="button">Baixar imagem</button>
-                    <button id="shareReceipt" class="btn btn-primary" type="button">Enviar pelo WhatsApp</button>
+                    <button
+                        id="cancelReceipt"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Fechar
+                    </button>
+                    <button
+                        id="printReceiptButton"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Imprimir / PDF
+                    </button>
+                    <button
+                        id="downloadReceipt"
+                        class="btn btn-ghost"
+                        type="button"
+                    >
+                        Baixar imagem
+                    </button>
+                    <button
+                        id="shareReceipt"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Enviar pelo WhatsApp
+                    </button>
                 </div>
             </div>
         </div>
@@ -396,36 +812,85 @@
                 <h2 id="authTitle">Entrar</h2>
                 <p id="authMessage" class="settings-note"></p>
                 <form id="authForm">
-                    <label id="authNewLabel" hidden>Criar PIN
-                        <input type="password" id="authNewPin" inputmode="numeric" pattern="[0-9]*" autocomplete="off" minlength="4" maxlength="32" />
+                    <label id="authNewLabel" hidden
+                        >Criar PIN
+                        <input
+                            type="password"
+                            id="authNewPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="off"
+                            minlength="4"
+                            maxlength="32"
+                        />
                     </label>
-                    <label id="authConfirmLabel" hidden>Confirmar PIN
-                        <input type="password" id="authConfirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="off" minlength="4" maxlength="32" />
+                    <label id="authConfirmLabel" hidden
+                        >Confirmar PIN
+                        <input
+                            type="password"
+                            id="authConfirmPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="off"
+                            minlength="4"
+                            maxlength="32"
+                        />
                     </label>
-                    <label id="authPinLabel" hidden>PIN
-                        <input type="password" id="authPin" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="32" />
+                    <label id="authPinLabel" hidden
+                        >PIN
+                        <input
+                            type="password"
+                            id="authPin"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            autocomplete="off"
+                            maxlength="32"
+                        />
                     </label>
                     <p id="authError" class="auth-error" role="alert"></p>
                     <div class="modal-actions">
                         <span class="spacer"></span>
-                        <button type="button" id="authSkip" class="btn btn-ghost" hidden>Agora não</button>
-                        <button type="submit" id="authSubmit" class="btn btn-primary">Entrar</button>
+                        <button
+                            type="button"
+                            id="authSkip"
+                            class="btn btn-ghost"
+                            hidden
+                        >
+                            Agora não
+                        </button>
+                        <button
+                            type="submit"
+                            id="authSubmit"
+                            class="btn btn-primary"
+                        >
+                            Entrar
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
 
         <!-- Modal de Visualização do Relatório Anual -->
-        <div id="annualReportModal" class="modal-overlay" style="display: none;">
+        <div id="annualReportModal" class="modal-overlay" style="display: none">
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Relatório Anual</h2>
                     <div class="modal-actions">
-                        <button class="btn-export-pdf" onclick="exportReportToPdf()">📄 Salvar / Imprimir PDF</button>
-                        <button class="btn-close-modal" onclick="closeAnnualReportModal()">✕</button>
+                        <button
+                            class="btn-export-pdf"
+                            onclick="exportReportToPdf()"
+                        >
+                            📄 Salvar / Imprimir PDF
+                        </button>
+                        <button
+                            class="btn-close-modal"
+                            onclick="closeAnnualReportModal()"
+                        >
+                            ✕
+                        </button>
                     </div>
                 </div>
-                
+
                 <div id="annualReportContainer" class="annual-report-body">
                     <!-- O HTML gerado dinamicamente entrará aqui -->
                 </div>
