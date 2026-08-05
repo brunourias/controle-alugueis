@@ -1314,6 +1314,12 @@ tfoot td {
     margin: 0 0 12px;
 }
 
+.contract-history-section { margin: 22px 0; padding: 16px 0 4px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.contract-history-section h3 { margin: 0 0 6px; color: var(--teal-dark); font-size: 1rem; }
+.contract-history-section > .field-help { margin-bottom: 10px; }
+.contract-history-section > .btn { width: 100%; margin: 0 0 12px; }
+.contract-history-add { display: grid; gap: 8px; }
+
 .rent-changes-empty {
     margin: 10px 0;
     color: var(--muted);
