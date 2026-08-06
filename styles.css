@@ -127,14 +127,11 @@ button {
     box-shadow: 0 4px 18px #0f766e2b;
 }
 
-.header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    max-width: 1180px;
-    margin: 0 auto;
-}
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; max-width: 1180px; margin: 0 auto; }
+.header-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.header-avatar { display: grid; place-items: center; flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; color: #ecfffb; background: #ffffff24; }
+.header-avatar svg { width: 26px; height: 26px; }
+.header-identity-text { min-width: 0; }
 
 .header-controls {
     display: flex;
@@ -1780,7 +1777,13 @@ tfoot td {
 }
 
 @media (max-width: 520px) {
-    .filter-bar {
+    .header-top { align-items: flex-start; flex-wrap: wrap; }
+	.header-identity { flex: 1 1 100%; }
+	.header-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+	.enterprise-selector { flex: 1 1 145px; min-width: 0; }
+	.enterprise-selector select { flex: 1; min-width: 0; max-width: none; }
+	.header-meta span + span::before { content: none; }
+	.filter-bar {
         align-items: stretch;
         flex-direction: column;
     }
