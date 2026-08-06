@@ -1185,7 +1185,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function initAuth() {
-        render();
+        
         if (lockConfig) {
             openAuthLogin();
             return;
