@@ -154,25 +154,9 @@ button {
     margin-top: 10px;
 }
 
-.enterprise-selector {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .header-controls-bottom {
     display: flex;
     justify-content: flex-end;
-}
-
-.enterprise-selector {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.enterprise-selector select {
-    min-width: 170px;
 }
 
 .enterprise-selector {
@@ -185,8 +169,8 @@ button {
 }
 
 .enterprise-selector select {
+    min-width: 200px; /* Reduzido para encaixar na largura dos botões acima */
     min-height: 36px;
-    max-width: 170px;
     padding: 0 8px;
     border: 1px solid #c5d9d6;
     border-radius: 10px;
