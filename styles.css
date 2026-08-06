@@ -138,7 +138,6 @@ button {
 
 .header-controls {
     display: flex;
-    flex-direction: column;
     gap: 10px;
 }
 
@@ -212,7 +211,7 @@ h1 {
 
 .hint {
     max-width: 1180px;
-    margin: 14px auto 0;
+    margin: 5 auto 0;
     color: #d6f3ed;
     font-size: .83rem;
     line-height: 1.7;
