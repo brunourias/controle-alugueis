@@ -59,12 +59,22 @@
                 <p id="lockError" class="lock-error" role="alert"></p>
             </div>
         </div>
-
+		
         <!-- Cabeçalho -->
         <header class="app-header">
-            <div class="header-top">
+		    <div class="header-top">
                 <h1 id="appTitle">Meus Imóveis</h1>
+			</div>	
+            <div class="header-top">
 
+				<p class="hint">
+					Toque para alternar: <br />
+					<span class="chip chip-pendente">Pendente</span> →
+					<span class="chip chip-pago">Pago</span> →
+					<span class="chip chip-pago-atrasado">Pago (atraso)</span> →
+					<span class="chip chip-atrasado">Atrasado</span>
+				</p>
+			
                 <div class="header-controls">
                     <div class="year-nav">
                         <button
@@ -104,15 +114,8 @@
                         </label>
                     </div>
                 </div>
-            </div>
-
-            <p class="hint">
-                Toque para alternar: <br />
-                <span class="chip chip-pendente">Pendente</span> →
-                <span class="chip chip-pago">Pago</span> →
-                <span class="chip chip-pago-atrasado">Pago (atraso)</span> →
-                <span class="chip chip-atrasado">Atrasado</span>
-            </p>
+            
+			</div>
         </header>
 
         <!-- Conteúdo Principal -->
@@ -283,12 +286,12 @@
                 <label
                     >Valor do aluguel (R$)
                     <input
-                        type="number"
-                        id="unitRent"
-                        placeholder="Ex.: 1200"
-                        inputmode="decimal"
-                        min="0"
-                        step="0.01"
+						type="number" 
+						id="unitRent" 
+						name="rent" 
+						step="0.01" 
+						min="0" 
+						placeholder="0,00"
                     />
                 </label>
 
