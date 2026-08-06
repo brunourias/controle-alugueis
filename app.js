@@ -1820,168 +1820,179 @@ undefined || item.rent === "" ? null : Number(item.rent);
         lastGridScrollLeft = tableWrap.scrollLeft;
     }
 
-    function renderSummary() {
-        var annual = scopedUnits().reduce(function (sum, unit) {
-            return (
-                sum +
-                months.reduce(function (monthSum, _, i) {
-                    return (
-                        monthSum +
-                        (isActive(unit, i) && statusFor(unit, i) === "pago"
-                            ? rentForMonth(unit, selectedYear, i)
-                            : 0)
-                    );
-                }, 0)
-            );
-        }, 0);
-        var now = new Date();
-        var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
-        var received =
-            current < 0
-                ? 0
-                : scopedUnits().reduce(function (sum, unit) {
-                      return (
-                          sum +
-                          (isActive(unit, current) &&
-                          statusFor(unit, current) === "pago"
-                              ? rentForMonth(unit, selectedYear, current)
-                              : 0)
-                      );
-                  }, 0);
-        var pending =
-            current < 0
-                ? 0
-                : scopedUnits().reduce(function (sum, unit) {
-                      return (
-                          sum +
-                          (isActive(unit, current) &&
-                          statusFor(unit, current) === "pendente"
-                              ? rentForMonth(unit, selectedYear, current)
-                              : 0)
-                      );
-                  }, 0);
-        var annualExpenses = scopedExpenses().reduce(function (sum, expense) {
-            return (
-                sum +
-                (expense.ym.slice(0, 4) === String(selectedYear)
-                    ? expense.amount
-                    : 0)
-            );
-        }, 0);
-        var currentExpenses =
-            current < 0
-                ? 0
-                : scopedExpenses().reduce(function (sum, expense) {
-                      return (
-                          sum +
-                          (expense.ym === monthKey(current)
-                              ? expense.amount
-                              : 0)
-                      );
-                  }, 0);
-        var annualNet = annual - annualExpenses;
-        var currentNet = received - currentExpenses;
-        var overdueCount = 0;
-        var overdueTotal = 0;
-        scopedUnits().forEach(function (unit) {
+function renderSummary() {
+    var annual = scopedUnits().reduce(function (sum, unit) {
+        return (
+            sum +
+            months.reduce(function (monthSum, _, i) {
+                return (
+                    monthSum +
+                    (isActive(unit, i) && statusFor(unit, i) === "pago"
+                        ? rentForMonth(unit, selectedYear, i)
+                        : 0)
+                );
+            }, 0)
+        );
+    }, 0);
+
+    var now = new Date();
+    var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
+
+    var received =
+        current < 0
+            ? 0
+            : scopedUnits().reduce(function (sum, unit) {
+                  return (
+                      sum +
+                      (isActive(unit, current) &&
+                      statusFor(unit, current) === "pago"
+                          ? rentForMonth(unit, selectedYear, current)
+                          : 0)
+                  );
+              }, 0);
+
+    var pending =
+        current < 0
+            ? 0
+            : scopedUnits().reduce(function (sum, unit) {
+                  return (
+                      sum +
+                      (isActive(unit, current) &&
+                      statusFor(unit, current) === "pendente"
+                          ? rentForMonth(unit, selectedYear, current)
+                          : 0)
+                  );
+              }, 0);
+
+    var annualExpenses = scopedExpenses().reduce(function (sum, expense) {
+        return (
+            sum +
+            (expense.ym.slice(0, 4) === String(selectedYear)
+                ? expense.amount
+                : 0)
+        );
+    }, 0);
+
+    var currentExpenses =
+        current < 0
+            ? 0
+            : scopedExpenses().reduce(function (sum, expense) {
+                  return (
+                      sum +
+                      (expense.ym === monthKey(current)
+                          ? expense.amount
+                          : 0)
+                  );
+              }, 0);
+
+    var annualNet = annual - annualExpenses;
+    var currentNet = received - currentExpenses;
+
+    var overdueCount = 0;
+    var overdueTotal = 0;
+
+    scopedUnits().forEach(function (unit) {
+        months.forEach(function (_, i) {
+            if (
+                isActive(unit, i) &&
+                effectiveStatus(unit, i) === "atrasado"
+            ) {
+                overdueCount += 1;
+                overdueTotal +=
+                    updatedAmount(unit, i) === null
+                        ? rentForMonth(unit, selectedYear, i)
+                        : updatedAmount(unit, i);
+            }
+        });
+    });
+
+    var overdueAlert = overdueCount
+        ? '<div class="summary-card summary-alert"><div class="summary-label">⚠️ ' +
+          overdueCount +
+          " " +
+          (overdueCount === 1 ? "pagamento" : "pagamentos") +
+          ' em atraso</div><div class="summary-value">' +
+          money(overdueTotal) +
+          '</div><div class="summary-detail">Total em atraso no ano, com multa e juros</div></div>'
+        : "";
+
+    var reportRows = scopedUnits()
+        .map(function (unit) {
+            var openLate = 0;
+            var paidLate = 0;
             months.forEach(function (_, i) {
                 if (
                     isActive(unit, i) &&
                     effectiveStatus(unit, i) === "atrasado"
-                ) {
-                    overdueCount += 1;
-                    overdueTotal +=
-                        updatedAmount(unit, i) === null
-                            ? rentForMonth(unit, selectedYear, i)
-                            : updatedAmount(unit, i);
-                    //--------------------------------------------------------------------------------------------
-                }
+                )
+                    openLate += 1;
+                if (isPaidLate(unit, i)) paidLate += 1;
             });
+            return {
+                name: unit.name,
+                tenantName: unit.tenantName,
+                enterprise: empreendimentoName(unit.empreendimentoId),
+                openLate: openLate,
+                paidLate: paidLate,
+                total: openLate + paidLate,
+            };
+        })
+        .filter(function (row) {
+            return row.total > 0;
+        })
+        .sort(function (a, b) {
+            return (
+                b.total - a.total || a.name.localeCompare(b.name, "pt-BR")
+            );
         });
-        var overdueAlert = overdueCount
-            ? '<div class="summary-card summary-alert"><div class="summary-label">⚠️ ' +
-              overdueCount +
-              " " +
-              (overdueCount === 1 ? "pagamento" : "pagamentos") +
-              ' em atraso</div><div class="summary-value">' +
-              money(overdueTotal) +
-              '</div><div class="summary-detail">Total em atraso no ano, com multa e juros</div></div>'
-            : "";
-        var reportRows = scopedUnits()
-            .map(function (unit) {
-                var openLate = 0;
-                var paidLate = 0;
-                months.forEach(function (_, i) {
-                    if (
-                        isActive(unit, i) &&
-                        effectiveStatus(unit, i) === "atrasado"
-                    )
-                        openLate += 1;
-                    if (isPaidLate(unit, i)) paidLate += 1;
-                });
-                return {
-                    name: unit.name,
-                    tenantName: unit.tenantName,
-                    enterprise: empreendimentoName(unit.empreendimentoId),
-                    openLate: openLate,
-                    paidLate: paidLate,
-                    total: openLate + paidLate,
-                };
-            })
 
-            .filter(function (row) {
-                return row.total > 0;
-            })
+    var report =
+        '<section class="summary-report"><h3>Atrasos no ano</h3><p class="summary-report-intro">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>' +
+        (reportRows.length
+            ? '<div class="late-list">' +
+              reportRows
+                  .map(function (row) {
+                      var detail = row.total
+                          ? row.openLate +
+                            " em atraso " +
+                            row.paidLate +
+                            " pago" +
+                            (row.paidLate === 1 ? "" : "s") +
+                            " com atraso"
+                          : "Sempre em dia";
+                      var rowEnterprise =
+                          selectedEmpreendimentoId === "todos"
+                              ? " <small>(" +
+                                escapeHtml(row.enterprise) +
+                                ")</small>"
+                              : "";
+                      return (
+                          '<div class="late-row"><div><strong>' +
+                          escapeHtml(row.name) +
+                          rowEnterprise +
+                          "</strong>" +
+                          (row.tenantName
+                              ? '<div class="tenant-name">' +
+                                escapeHtml(row.tenantName) +
+                                "</div>"
+                              : "") +
+                          "<span>" +
+                          detail +
+                          '</span></div><b class="' +
+                          (row.total ? "late-count" : "on-time") +
+                          '">' +
+                          row.total +
+                          "</b></div>"
+                      );
+                  })
+                  .join("") +
+              "</div>"
+            : '<p class="summary-report-empty">Nenhum atraso no ano - todas as unidades em dia.</p>') +
+        "</section>";
 
-            .sort(function (a, b) {
-                return (
-                    b.total - a.total || a.name.localeCompare(b.name, "pt-BR")
-                );
-            });
-        var report =
-            '<section class="summary-report"><h3>Atrasos no ano</h3><p class="summary-report-intro">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>' +
-            (reportRows.length
-                ? '<div class="late-list">' +
-                  reportRows
-                      .map(function (row) {
-                          var detail = row.total
-                              ? row.openLate +
-                                " em atraso " +
-                                row.paidLate +
-                                " pago" +
-                                (row.paidLate === 1 ? "" : "s") +
-                                " com atraso"
-                              : "Sempre em dia";
-                          var rowEnterprise =
-                              selectedEmpreendimentoId === "todos"
-                                  ? " <small>(" +
-                                    escapeHtml(row.enterprise) +
-                                    ")</small>"
-                                  : "";
-                          return (
-                              '<div class="late-row"><div><strong>' +
-                              escapeHtml(row.name) +
-                              rowEnterprise +
-                              "</strong>" +
-                              (row.tenantName
-                                  ? '<div class="tenant-name">' +
-                                    escapeHtml(row.tenantName) +
-                                    "</div>"
-                                  : "") +
-                              "<span>" +
-                              detail +
-                              '</span></div><b class="' +
-                              (row.total ? "late-count" : "on-time") +
-                              '">' +
-                              row.total +
-                              "</b></div>"
-                          );
-                      })
-                      .join("") +
-                  "</div>"
-                : '<p class="summary-report-empty">Nenhum atraso no ano - todas as unidades em dia.</p>') +
-            "</section>";
-        summary.innerHTML =
+    var summaryContainer = document.getElementById("summary");
+    if (summaryContainer) {
+        summaryContainer.innerHTML =
             overdueAlert +
             '<div id="summaryCards" class="summary-cards">' +
             '<div class="summary-card"><div class="summary-label">Recebido neste mês</div><div class="summary-value">' +
@@ -2022,19 +2033,22 @@ undefined || item.rent === "" ? null : Number(item.rent);
             money(annualNet) +
             '</div><div class="summary-detail">Recebido menos gastos</div></div></div>' +
             report;
-        var unitSummaryToggleBtn = document.getElementById("toggleUnitSummary");
-        if (unitSummaryToggleBtn) {
-            unitSummaryToggleBtn.addEventListener("click", function () {
-                unitSummaryExpanded = !unitSummaryExpanded;
-                var list = document.getElementById("unitSummaryList");
-                if (list) list.hidden = !unitSummaryExpanded;
-                unitSummaryToggleBtn.textContent = unitSummaryExpanded
-                    ? "Ocultar"
-                    : "Mostrar";
-            });
-        }
-        applySummaryCardsVisibility();
     }
+
+    var unitSummaryToggleBtn = document.getElementById("toggleUnitSummary");
+    if (unitSummaryToggleBtn) {
+        unitSummaryToggleBtn.addEventListener("click", function () {
+            unitSummaryExpanded = !unitSummaryExpanded;
+            var list = document.getElementById("unitSummaryList");
+            if (list) list.hidden = !unitSummaryExpanded;
+            unitSummaryToggleBtn.textContent = unitSummaryExpanded
+                ? "Ocultar"
+                : "Mostrar";
+        });
+    }
+
+    applySummaryCardsVisibility();
+}
 
     function applySummaryCardsVisibility() {
         var cards = document.getElementById("summaryCards");
