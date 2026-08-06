@@ -774,70 +774,62 @@ tfoot td {
 
 @media (max-width: 768px) {
 
-    /* Cabeçalho */
     .app-header{
-        padding: calc(16px + env(safe-area-inset-top)) 18px 18px;
+        padding-top: calc(12px + env(safe-area-inset-top));
+        padding-bottom: 18px;
+    }
+
+    /* Logo */
+    .header-avatar{
+        width:64px;
+        height:64px;
+    }
+
+    .header-avatar svg{
+        width:38px;
+        height:38px;
     }
 
     /* Título */
-    h1{
-        font-size: 2rem;
-        font-weight: 800;
-        text-align: center;
-        margin-bottom: 4px;
+    #appTitle{
+        font-size:2.15rem;
+        line-height:1.1;
+        margin:0 0 6px;
     }
 
+    /* Informações abaixo do título */
     .header-meta{
-        font-size: 1.15rem;
-        text-align: center;
-    }
-
-    /* Linha de controles */
-    .header-controls{
-        display:flex;
-        align-items:center;
-        gap:10px;
-        margin-top:12px;
-    }
-
-    /* Engrenagem menor */
-    .icon-btn{
-        width:58px;
-        height:58px;
-        font-size:1.7rem;
-        border-radius:18px;
-    }
-
-    /* Combo ocupa o espaço */
-    .enterprise-selector{
-        flex:1;
-    }
-
-    .enterprise-selector select{
-        width:100%;
-        height:52px;
         font-size:1rem;
-        border-radius:16px;
     }
 
-    /* Ano mais compacto */
-    .year-nav{
-        gap:8px;
-        font-size:1.15rem;
-        font-weight:700;
+    /* Linha dos controles */
+    .header-controls{
+        margin-top:16px;
+        gap:10px;
+    }
+
+    /* Engrenagem */
+    .icon-btn{
+        width:54px;
+        height:54px;
+        font-size:1.5rem;
+    }
+
+    /* Combo */
+    .enterprise-selector select{
+        height:50px;
+        font-size:1rem;
+    }
+
+    /* Ano */
+    .year-nav #yearLabel{
+        font-size:1.35rem;
     }
 
     .year-nav .icon-btn{
-        width:52px;
-        height:52px;
-        font-size:1.6rem;
-    }
-
-    /* Legenda */
-    .hint{
-        margin-top:18px;
-        font-size:.95rem;
-        line-height:1.6;
+        width:48px;
+        height:48px;
+        font-size:1.4rem;
     }
 
 }
