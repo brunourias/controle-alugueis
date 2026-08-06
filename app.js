@@ -2945,75 +2945,100 @@ function addContractHistoryEntry() {
         return parts[2] + "/" + parts[1] + "/" + parts[0];
     }
 
-    function saveExpense() {
-        var ym = expenseYm.value;
-        var amount = Number(expenseAmount.value);
-        if (!isValidStartYm(ym)) {
-            expenseYm.focus();
-            return;
-        }
-        if (!Number.isFinite(amount) || amount < 0) {
-            expenseAmount.focus();
-            return;
-        }
-        if (!expenseEmpreendimento.value) {
-            expenseEmpreendimento.setCustomValidity(
-                "Selecione um empreendimento."
-            );
-            expenseEmpreendimento.reportValidity();
-            expenseEmpreendimento.focus();
-            return;
-        }
-        expenseEmpreendimento.setCustomValidity("");
-        var repeatCount = expenseRepeat.checked
-            ? Number(expenseRepeatCount.value)
-            : 1;
-        if (
-            !Number.isInteger(repeatCount) ||
-            repeatCount < 1 ||
-            repeatCount > 60
-        ) {
-            expenseRepeatCount.setCustomValidity(
-                "Informe uma quantidade inteira entre 1 e 60."
-            );
-            expenseRepeatCount.reportValidity();
-            expenseRepeatCount.focus();
-            return;
-        }
-        expenseRepeatCount.setCustomValidity("");
-        var expenseData = {
-            ym: ym,
-            empreendimentoId: expenseEmpreendimento.value,
-            category:
-                expenseCategory.value && expenseCategory.value.trim()
-                    ? expenseCategory.value
-                    : "Outros",
-            description: expenseDescription.value.trim(),
-            amount: amount,
-        };
-        if (editingExpenseId) {
-            var existing = state.expenses.find(function (expense) {
-                return expense.id === editingExpenseId;
-            });
-            if (existing) Object.assign(existing, expenseData);
-        } else {
-            var recurrenceId = repeatCount > 1 ? newExpenseId() : null;
-            for (var i = 0; i < repeatCount; i += 1) {
-                state.expenses.push({
-                    id: newExpenseId(),
-                    ym: addMonthsYm(expenseData.ym, i),
-                    empreendimentoId: expenseData.empreendimentoId,
-                    category: expenseData.category,
-                    description: expenseData.description,
-                    amount: expenseData.amount,
-                    recurrenceId: recurrenceId,
-                });
-            }
-        }
-        saveState();
-        closeExpenseModal();
-        render();
+function saveExpense() {
+    var ym = expenseYm.value;
+    var amount = Number(expenseAmount.value);
+
+    if (!isValidStartYm(ym)) {
+        expenseYm.focus();
+        return;
     }
+
+    if (!Number.isFinite(amount) || amount < 0) {
+        expenseAmount.focus();
+        return;
+    }
+
+    if (!expenseEmpreendimento.value) {
+        expenseEmpreendimento.setCustomValidity(
+            "Selecione um empreendimento."
+        );
+        expenseEmpreendimento.reportValidity();
+        expenseEmpreendimento.focus();
+        return;
+    }
+    expenseEmpreendimento.setCustomValidity("");
+
+    var repeatCount = expenseRepeat.checked
+        ? Number(expenseRepeatCount.value)
+        : 1;
+
+    if (
+        !Number.isInteger(repeatCount) ||
+        repeatCount < 1 ||
+        repeatCount > 60
+    ) {
+        expenseRepeatCount.setCustomValidity(
+            "Informe uma quantidade inteira entre 1 e 60."
+        );
+        expenseRepeatCount.reportValidity();
+        expenseRepeatCount.focus();
+        return;
+    }
+    expenseRepeatCount.setCustomValidity("");
+
+    var categoryValue = expenseCategory.value ? expenseCategory.value.trim() : "";
+    var expenseData = {
+        ym: ym,
+        empreendimentoId: expenseEmpreendimento.value,
+        category: categoryValue !== "" ? categoryValue : "Outros",
+        description: expenseDescription.value.trim(),
+        amount: amount,
+    };
+
+    // Obtém o dia atual no momento do lançamento (ex: dia 15)
+    var today = new Date();
+    var currentDay = String(today.getDate()).padStart(2, "0");
+
+    if (editingExpenseId) {
+        var existingIndex = state.expenses.findIndex(function (expense) {
+            return expense.id === editingExpenseId;
+        });
+
+        if (existingIndex !== -1) {
+            state.expenses[existingIndex] = Object.assign(
+                {},
+                state.expenses[existingIndex],
+                expenseData
+            );
+        }
+    } else {
+        var recurrenceId = repeatCount > 1 ? newExpenseId() : null;
+
+        for (var i = 0; i < repeatCount; i += 1) {
+            var currentYm = addMonthsYm(expenseData.ym, i);
+            
+            // Monta a data completa YYYY-MM-DD preservando o dia atual do lançamento
+            var fullDate = currentYm + "-" + currentDay;
+
+            state.expenses.push({
+                id: newExpenseId(),
+                ym: currentYm,
+                date: fullDate, // Salva o dia exato do lançamento
+                createdAt: new Date().toISOString(), // Registro do timestamp da criacao
+                empreendimentoId: expenseData.empreendimentoId,
+                category: expenseData.category,
+                description: expenseData.description,
+                amount: expenseData.amount,
+                recurrenceId: recurrenceId,
+            });
+        }
+    }
+
+    saveState();
+    closeExpenseModal();
+    render();
+}
 
     function deleteExpense() {
         if (!editingExpenseId) return;
