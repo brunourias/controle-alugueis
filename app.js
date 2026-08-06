@@ -359,7 +359,27 @@ var addContractHistory = document.getElementById("addContractHistory");
                 : empreendimentoName(selectedEmpreendimentoId);
         appTitle.textContent = title;
         document.title = title;
+		updateHeaderMeta();
     }
+	
+	function updateHeaderMeta() {
+		var now = new Date();
+		var refMonth = selectedYear === now.getFullYear() ? now.getMonth() : 11;
+		var units = scopedUnits();
+		var total = units.reduce(function (sum, unit) {
+		  return sum + (isActive(unit, refMonth) ? rentForMonth(unit, selectedYear, refMonth) : 0);
+		}, 0);
+		var enterpriseCount = state.empreendimentos.length;
+		var unitLabel = units.length === 1 ? "unidade" : "unidades";
+		var enterpriseLabel = enterpriseCount === 1 ? "empreendimento" : "empreendimentos";
+		var parts = [];
+		if (selectedEmpreendimentoId === "todos") {
+		  parts.push("<span>🏙 " + enterpriseCount + " " + enterpriseLabel + "</span>");
+		}
+		parts.push("<span>🏢 " + units.length + " " + unitLabel + "</span>");
+		parts.push("<span> -💲 " + money(total) + "/mês</span>");
+		headerMeta.innerHTML = parts.join("");
+	}
 
     function normalizeSettings(settings) {
         return {
