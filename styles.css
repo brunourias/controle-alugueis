@@ -775,61 +775,61 @@ tfoot td {
 @media (max-width: 768px) {
 
     .app-header{
-        padding-top: calc(12px + env(safe-area-inset-top));
-        padding-bottom: 18px;
+        padding: calc(8px + env(safe-area-inset-top)) 16px 16px;
     }
 
-    /* Logo */
-    .header-avatar{
-        width:64px;
-        height:64px;
-    }
-
-    .header-avatar svg{
-        width:38px;
-        height:38px;
-    }
-
-    /* Título */
-    #appTitle{
-        font-size:2.15rem;
-        line-height:1.1;
-        margin:0 0 6px;
-    }
-
-    /* Informações abaixo do título */
-    .header-meta{
-        font-size:1rem;
-    }
-
-    /* Linha dos controles */
-    .header-controls{
-        margin-top:16px;
+    .header-top{
         gap:10px;
     }
 
-    /* Engrenagem */
+    .header-avatar{
+        width:52px;
+        height:52px;
+    }
+
+    .header-avatar svg{
+        width:30px;
+        height:30px;
+    }
+
+    #appTitle{
+        font-size:1.55rem;
+        line-height:1.15;
+        margin:0;
+    }
+
+    .header-meta{
+        font-size:.88rem;
+        margin-top:2px;
+    }
+
+    .header-controls{
+        gap:8px;
+    }
+
     .icon-btn{
-        width:54px;
-        height:54px;
-        font-size:1.5rem;
+        width:44px;
+        height:44px;
+        font-size:1.2rem;
     }
 
-    /* Combo */
     .enterprise-selector select{
-        height:50px;
-        font-size:1rem;
+        height:44px;
+        font-size:.92rem;
     }
 
-    /* Ano */
+    .year-nav{
+        gap:4px;
+    }
+
     .year-nav #yearLabel{
-        font-size:1.35rem;
+        font-size:1.05rem;
     }
 
     .year-nav .icon-btn{
-        width:48px;
-        height:48px;
-        font-size:1.4rem;
+        width:40px;
+        height:40px;
+        font-size:1.05rem;
     }
 
 }
@@ -1827,58 +1827,76 @@ tfoot td {
 }
 
 @media (max-width: 520px) {
-    .header-top { align-items: flex-start; flex-wrap: wrap; }
-	.header-identity { flex: 1 1 100%; }
-	.header-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; }
-	.enterprise-selector { flex: 1 1 145px; min-width: 0; }
-	.enterprise-selector select { flex: 1; min-width: 0; max-width: none; }
-	.header-meta span + span::before { content: none; }
-	.filter-bar {
-        align-items: stretch;
-        flex-direction: column;
+
+    /* Cabeçalho */
+    .app-header{
+        padding: calc(8px + env(safe-area-inset-top)) 12px 14px;
     }
 
-    .backup-toolbar {
-        align-items: stretch;
-        flex-direction: column;
+    .header-top{
+        gap: 8px;
     }
 
-    .backup-actions {
-        justify-content: stretch;
+    /* Logo */
+    .header-avatar{
+        width: 48px;
+        height: 48px;
     }
 
-    .backup-actions .btn {
-        flex: 1;
+    .header-avatar svg{
+        width: 26px;
+        height: 26px;
     }
 
-    .receipt-modal .modal-actions {
-        flex-wrap: wrap;
+    /* Título */
+    #appTitle{
+        font-size: 1.35rem;
+        line-height: 1.15;
     }
 
-    .receipt-modal .modal-actions .spacer {
-        display: none;
+    .header-meta{
+        font-size: .82rem;
+        line-height: 1.35;
     }
 
-    .receipt-modal .modal-actions .btn {
-        flex: 1;
+    /* Controles */
+    .header-controls{
+        gap: 6px;
+        margin-top: 10px;
     }
 
-    .expenses-header {
-        align-items: stretch;
-        flex-wrap: wrap;
+    .icon-btn{
+        width: 40px;
+        height: 40px;
+        font-size: 1.05rem;
     }
 
-    .expenses-header>div {
-        flex-basis: calc(100% - 90px);
+    .enterprise-selector select{
+        height: 40px;
+        font-size: .88rem;
+        padding: 0 12px;
     }
 
-    .expenses-header>strong {
-        align-self: center;
+    .year-nav{
+        gap: 2px;
     }
 
-    .expenses-header .btn {
-        flex: 1;
+    .year-nav #yearLabel{
+        font-size: 1rem;
     }
+
+    .year-nav .icon-btn{
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    /* Legenda */
+    .hint{
+        font-size: .78rem;
+        margin-top: 10px;
+    }
+
 }
 
 @media print {
