@@ -1827,76 +1827,58 @@ tfoot td {
 }
 
 @media (max-width: 520px) {
-
-    /* Cabeçalho */
-    .app-header{
-        padding: calc(8px + env(safe-area-inset-top)) 12px 14px;
+    .header-top { align-items: flex-start; flex-wrap: wrap; }
+	.header-identity { flex: 1 1 100%; }
+	.header-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+	.enterprise-selector { flex: 1 1 145px; min-width: 0; }
+	.enterprise-selector select { flex: 1; min-width: 0; max-width: none; }
+	.header-meta span + span::before { content: none; }
+	.filter-bar {
+        align-items: stretch;
+        flex-direction: column;
     }
 
-    .header-top{
-        gap: 8px;
+    .backup-toolbar {
+        align-items: stretch;
+        flex-direction: column;
     }
 
-    /* Logo */
-    .header-avatar{
-        width: 48px;
-        height: 48px;
+    .backup-actions {
+        justify-content: stretch;
     }
 
-    .header-avatar svg{
-        width: 26px;
-        height: 26px;
+    .backup-actions .btn {
+        flex: 1;
     }
 
-    /* Título */
-    #appTitle{
-        font-size: 1.35rem;
-        line-height: 1.15;
+    .receipt-modal .modal-actions {
+        flex-wrap: wrap;
     }
 
-    .header-meta{
-        font-size: .82rem;
-        line-height: 1.35;
+    .receipt-modal .modal-actions .spacer {
+        display: none;
     }
 
-    /* Controles */
-    .header-controls{
-        gap: 6px;
-        margin-top: 10px;
+    .receipt-modal .modal-actions .btn {
+        flex: 1;
     }
 
-    .icon-btn{
-        width: 40px;
-        height: 40px;
-        font-size: 1.05rem;
+    .expenses-header {
+        align-items: stretch;
+        flex-wrap: wrap;
     }
 
-    .enterprise-selector select{
-        height: 40px;
-        font-size: .88rem;
-        padding: 0 12px;
+    .expenses-header>div {
+        flex-basis: calc(100% - 90px);
     }
 
-    .year-nav{
-        gap: 2px;
+    .expenses-header>strong {
+        align-self: center;
     }
 
-    .year-nav #yearLabel{
-        font-size: 1rem;
+    .expenses-header .btn {
+        flex: 1;
     }
-
-    .year-nav .icon-btn{
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
-    }
-
-    /* Legenda */
-    .hint{
-        font-size: .78rem;
-        margin-top: 10px;
-    }
-
 }
 
 @media print {
