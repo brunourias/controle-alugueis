@@ -2482,9 +2482,7 @@ function renderSummary() {
 		// Abre o modal usando o ModalManager
 		ModalManager.open(modal);
 
-		setTimeout(function () {
-			unitName.focus();
-		}, 0);
+		
 	}
 
     function closeModal() {
