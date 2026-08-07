@@ -1808,15 +1808,16 @@ tfoot td {
     }
 
     .header-top {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        align-items: start;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         gap: 16px;
     }
 
     .header-identity,
     .header-identity-text {
         width: 100%;
+        text-align: center;
     }
 
     h1 {
@@ -1829,49 +1830,92 @@ tfoot td {
         font-size: 1rem;
         line-height: 1.45;
         overflow-wrap: anywhere;
+        text-align: center;
     }
 
+    /* Linha com empreendimento + ano */
     .header-controls {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: 8px;
-		width: auto;
-		flex-wrap: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        flex-wrap: nowrap;
     }
 
     .header-controls > * {
         min-width: 0;
     }
 
-    .header-controls > .icon-btn {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
+    .enterprise-selector {
+        position: relative;
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        color: #ecfffb;
+        background: #ffffff1d;
+        border-radius: 14px;
     }
 
-	.enterprise-selector { position: relative; flex: 0 0 auto; width: 44px;	height: 44px; color: #ecfffb; background: #ffffff1d; border-radius: 14px; }
-	.enterprise-selector-text { display: none; }
-	.enterprise-selector-icon { display: grid; place-items: center;	width: 100%; height: 100%; }
-	.enterprise-selector-icon svg { width: 24px; height: 24px; }
-	.enterprise-selector select { position: absolute; inset: 0;	width: 100%; height: 100%; margin: 0; padding: 0; border: 0;	opacity: 0; max-width: none; -webkit-appearance: none; appearance: none; }
-	.enterprise-selector:active { background: #ffffff36; transform: scale(.96); }
+    .enterprise-selector-text {
+        display: none;
+    }
 
-	.year-nav {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		margin: 0;
-	}
+    .enterprise-selector-icon {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .enterprise-selector-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .enterprise-selector select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        max-width: none;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .enterprise-selector:active {
+        background: #ffffff36;
+        transform: scale(.96);
+    }
+
+    .year-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        white-space: nowrap;
+    }
 
     .year-nav .icon-btn {
         width: 44px;
         height: 44px;
     }
 
+    /* Configurações centralizado abaixo (enquanto estiver fora do header-controls) */
+    #settingsButton {
+        display: block;
+        margin: -6px auto 0;
+        width: 44px;
+        height: 44px;
+    }
+
     .hint {
         width: 100%;
-        margin-top: 18px;
+        margin-top: 12px;
         font-size: .9rem;
         line-height: 1.7;
         overflow-wrap: anywhere;
