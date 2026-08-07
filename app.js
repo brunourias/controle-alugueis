@@ -2400,65 +2400,95 @@ function renderSummary() {
     }
 
     function openModal(id) {
-        editingId = id || null;
-        var unit = state.units.find(function (item) {
-            return item.id === editingId;
-        });
-        document.getElementById("modalTitle").textContent = unit
-            ? "Editar unidade"
-            : "Nova unidade";
-        unitName.value = unit ? unit.name : "";
-        populateEmpreendimentoSelect(
-            unitEmpreendimento,
-            unit
-                ? unit.empreendimentoId
-                : selectedEmpreendimentoId === "todos"
-                ? null
-                : selectedEmpreendimentoId,
-            false
-        );
-        unitRent.value = unit ? unit.rent : "";
-        pendingRentChanges = unit
-            ? (unit.rentChanges || []).map(function (change) {
-                  return { fromYm: change.fromYm, rent: change.rent };
-              })
-            : [];
-		pendingContractHistory = unit ? (unit.contractHistory || []).map(function (contract) {
-  return { tenantName: contract.tenantName, startYm: contract.startYm,
-endYm: contract.endYm, rent: contract.rent };
-}) : [];	
-        unitDueDay.value =
-            unit && Number.isInteger(unit.dueDay) ? unit.dueDay : "";
-        unitStartYm.value =
-            unit && isValidStartYm(unit.startYm) ? unit.startYm : "";
-        unitEndYm.value = unit && isValidStartYm(unit.endYm) ? unit.endYm : "";
-        tenantName.value = unit ? unit.tenantName : "";
-        tenantPhone.value = unit ? unit.tenantPhone : "";
-        tenantEmail.value = unit ? unit.tenantEmail : "";
-        tenantNotes.value = unit ? unit.tenantNotes : "";
+		editingId = id || null;
+
+		var unit = state.units.find(function (item) {
+			return item.id === editingId;
+		});
+
+		document.getElementById("modalTitle").textContent = unit
+			? "Editar unidade"
+			: "Nova unidade";
+
+		unitName.value = unit ? unit.name : "";
+
+		populateEmpreendimentoSelect(
+			unitEmpreendimento,
+			unit
+				? unit.empreendimentoId
+				: selectedEmpreendimentoId === "todos"
+					? null
+					: selectedEmpreendimentoId,
+			false
+		);
+
+		unitRent.value = unit ? unit.rent : "";
+
+		pendingRentChanges = unit
+			? (unit.rentChanges || []).map(function (change) {
+				  return {
+					  fromYm: change.fromYm,
+					  rent: change.rent
+				  };
+			  })
+			: [];
+
+		pendingContractHistory = unit
+			? (unit.contractHistory || []).map(function (contract) {
+				  return {
+					  tenantName: contract.tenantName,
+					  startYm: contract.startYm,
+					  endYm: contract.endYm,
+					  rent: contract.rent
+				  };
+			  })
+			: [];
+
+		unitDueDay.value =
+			unit && Number.isInteger(unit.dueDay) ? unit.dueDay : "";
+
+		unitStartYm.value =
+			unit && isValidStartYm(unit.startYm) ? unit.startYm : "";
+
+		unitEndYm.value =
+			unit && isValidStartYm(unit.endYm) ? unit.endYm : "";
+
+		tenantName.value = unit ? unit.tenantName : "";
+		tenantPhone.value = unit ? unit.tenantPhone : "";
+		tenantEmail.value = unit ? unit.tenantEmail : "";
+		tenantNotes.value = unit ? unit.tenantNotes : "";
+
 		historyTenant.value = "";
-historyStart.value = "";
-historyEnd.value = "";
-historyRent.value = "";
-        unitDueDay.setCustomValidity("");
-        unitStartYm.setCustomValidity("");
-        unitEndYm.setCustomValidity("");
-        rentChangeYm.value = "";
-        rentChangePercent.value = "";
-        rentChangeAbsolute.value = "";
-        rentChangeYm.setCustomValidity("");
-        rentChangeAbsolute.setCustomValidity("");
-        renderRentChanges();
+		historyStart.value = "";
+		historyEnd.value = "";
+		historyRent.value = "";
+
+		unitDueDay.setCustomValidity("");
+		unitStartYm.setCustomValidity("");
+		unitEndYm.setCustomValidity("");
+
+		rentChangeYm.value = "";
+		rentChangePercent.value = "";
+		rentChangeAbsolute.value = "";
+
+		rentChangeYm.setCustomValidity("");
+		rentChangeAbsolute.setCustomValidity("");
+
+		renderRentChanges();
 		renderContractHistory();
-        document.getElementById("deleteUnit").hidden = !unit;
-        modal.hidden = false;
-        setTimeout(function () {
-            unitName.focus();
-        }, 0);
-    }
+
+		document.getElementById("deleteUnit").hidden = !unit;
+
+		// Abre o modal usando o ModalManager
+		ModalManager.open(modal);
+
+		setTimeout(function () {
+			unitName.focus();
+		}, 0);
+	}
 
     function closeModal() {
-        modal.hidden = true;
+        ModalManager.close(modal);
         editingId = null;
     }
     //--------------------------------------------------------------------------------------------
