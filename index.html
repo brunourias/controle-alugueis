@@ -49,15 +49,6 @@
                     </button>
                 </form>
 
-                <button
-                    id="unlockBiometric"
-                    class="btn btn-ghost biometric-unlock"
-                    type="button"
-                    hidden
-                >
-                    Desbloquear com biometria
-                </button>
-
                 <p id="lockError" class="lock-error" role="alert"></p>
             </div>
         </div>
@@ -84,16 +75,21 @@
       <div class="header-controls">
 
         <button id="settingsButton" class="icon-btn" type="button" aria-label="Configurações" title="Configurações">⚙</button>
-
-        <label class="enterprise-selector">
-
-          <select id="empreendimentoFilter">
-
-            <option value="todos">Todos</option>
-
-          </select>
-
-        </label>
+		
+		<label class="enterprise-selector">
+		  <span class="enterprise-selector-text"></span>
+		  <span class="enterprise-selector-icon" aria-hidden="true">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+			  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+			  <path d="M4 20V8l8-4 8 4v12"></path>
+			  <path d="M8 20v-6h8v6"></path>
+			  <path d="M8 9h.01M12 9h.01M16 9h.01"></path>
+			</svg>
+		  </span>
+		  <select id="empreendimentoFilter" aria-label="Empreendimento">
+			<option value="todos">Todos</option>
+		  </select>
+		</label>
 
         <div class="year-nav">
 
@@ -106,8 +102,6 @@
         </div>
 
       </div>
-
-    
 
     <p class="hint">Toque para alternar: <br><span class="chip chip-pendente">Pendente</span> → <span class="chip chip-pago">Pago</span> → <span class="chip chip-pago-atrasado">Pago (atraso)</span> → <span class="chip chip-atrasado">Atrasado</span></p>
 </div>
