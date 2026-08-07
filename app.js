@@ -1177,7 +1177,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
         authModal.hidden = true;
     }
 
+    function scrollPageToTop() {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }
+
     function revealApp() {
+        scrollPageToTop();
         document.body.classList.remove("app-loading");
     }
 
@@ -4475,6 +4482,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             appUnlocked = false;
             openAuthLogin();
         }
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(scrollPageToTop);
+        });
     });
 
     updateCloudUi();
