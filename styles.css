@@ -131,9 +131,40 @@ button {
     box-shadow: 0 4px 18px #0f766e2b;
 }
 
-.header-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; max-width: 1180px; margin: 0 auto; }
-.header-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.header-identity-text { min-width: 0; }
+.header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.header-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;              /* ocupa o espaço restante */
+}
+
+.header-identity-text {
+    min-width: 0;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;    /* empurra o grupo para a direita */
+    flex-shrink: 0;
+}
+
+.year-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
 
 .header-controls {
     display: flex;
@@ -1803,6 +1834,7 @@ tfoot td {
 }
 
 @media (max-width: 520px) {
+
     .app-header {
         padding: calc(16px + env(safe-area-inset-top)) 16px 18px;
     }
@@ -1833,25 +1865,26 @@ tfoot td {
         text-align: center;
     }
 
-    /* Linha com empreendimento + ano */
+    /* Barra de controles */
     .header-controls {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 8px;
         width: 100%;
         flex-wrap: nowrap;
     }
 
     .header-controls > * {
         min-width: 0;
+        flex-shrink: 0;
     }
 
     .enterprise-selector {
         position: relative;
-        flex: 0 0 44px;
         width: 44px;
         height: 44px;
+        flex: 0 0 44px;
         color: #ecfffb;
         background: #ffffff1d;
         border-radius: 14px;
@@ -1883,8 +1916,8 @@ tfoot td {
         border: 0;
         opacity: 0;
         max-width: none;
-        -webkit-appearance: none;
         appearance: none;
+        -webkit-appearance: none;
     }
 
     .enterprise-selector:active {
@@ -1900,17 +1933,12 @@ tfoot td {
         white-space: nowrap;
     }
 
-    .year-nav .icon-btn {
-        width: 44px;
-        height: 44px;
-    }
-
-    /* Configurações centralizado abaixo (enquanto estiver fora do header-controls) */
+    .year-nav .icon-btn,
     #settingsButton {
-        display: block;
-        margin: -6px auto 0;
         width: 44px;
         height: 44px;
+        margin: 0;
+        flex: 0 0 44px;
     }
 
     .hint {
