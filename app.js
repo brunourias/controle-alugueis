@@ -1,6 +1,68 @@
 (function () {
     "use strict";
 
+// ===============================
+// Gerenciador de Modais
+// ===============================
+
+const ModalManager = (() => {
+
+    const stack = [];
+
+    function getOpenModal() {
+        return document.querySelector(".modal-backdrop:not([hidden])");
+    }
+
+    function open(modal) {
+        if (!modal) return;
+
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+
+        stack.push(modal);
+
+        history.pushState({
+            modal: true,
+            id: modal.id || null
+        }, "");
+    }
+
+    function close(modal = null) {
+
+        const target = modal || stack.pop() || getOpenModal();
+
+        if (!target) return false;
+
+        target.hidden = true;
+
+        const hasModalOpen =
+            document.querySelector(".modal-backdrop:not([hidden])");
+
+        if (!hasModalOpen) {
+            document.body.classList.remove("modal-open");
+        }
+
+        return true;
+    }
+
+    window.addEventListener("popstate", () => {
+
+        const opened = getOpenModal();
+
+        if (!opened) return;
+
+        close(opened);
+
+    });
+
+    return {
+        open,
+        close,
+        getOpenModal
+    };
+
+})();
+
     var STORAGE_KEY = "controle-alugueis-v1";
     var LOCK_STORAGE_KEY = "controle-alugueis-lock";
     var SETUP_FLAG_KEY = "controle-alugueis-lock-setup";
@@ -3169,14 +3231,14 @@ function saveExpense() {
         setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
-        settingsModal.hidden = false;
+        ModalManager.open(settingsModal);
         setTimeout(function () {
             finePercent.focus();
         }, 0);
     }
 
     function closeSettings() {
-        settingsModal.hidden = true;
+        ModalManager.close(settingsModal);
     }
 
     function saveSettings() {
