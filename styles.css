@@ -774,62 +774,70 @@ tfoot td {
 
 @media (max-width: 768px) {
 
+    /* Cabeçalho */
     .app-header{
-        padding-top: calc(12px + env(safe-area-inset-top));
-        padding-bottom: 18px;
-    }
-
-    /* Logo */
-    .header-avatar{
-        width:64px;
-        height:64px;
-    }
-
-    .header-avatar svg{
-        width:38px;
-        height:38px;
+        padding: calc(16px + env(safe-area-inset-top)) 18px 18px;
     }
 
     /* Título */
-    #appTitle{
-        font-size:2.15rem;
-        line-height:1.1;
-        margin:0 0 6px;
+    h1{
+        font-size: 2rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 4px;
     }
 
-    /* Informações abaixo do título */
     .header-meta{
-        font-size:1rem;
+        font-size: 1.15rem;
+        text-align: center;
     }
 
-    /* Linha dos controles */
+    /* Linha de controles */
     .header-controls{
-        margin-top:16px;
+        display:flex;
+        align-items:center;
         gap:10px;
+        margin-top:12px;
     }
 
-    /* Engrenagem */
+    /* Engrenagem menor */
     .icon-btn{
-        width:54px;
-        height:54px;
-        font-size:1.5rem;
+        width:58px;
+        height:58px;
+        font-size:1.7rem;
+        border-radius:18px;
     }
 
-    /* Combo */
+    /* Combo ocupa o espaço */
+    .enterprise-selector{
+        flex:1;
+    }
+
     .enterprise-selector select{
-        height:50px;
+        width:100%;
+        height:52px;
         font-size:1rem;
+        border-radius:16px;
     }
 
-    /* Ano */
-    .year-nav #yearLabel{
-        font-size:1.35rem;
+    /* Ano mais compacto */
+    .year-nav{
+        gap:8px;
+        font-size:1.15rem;
+        font-weight:700;
     }
 
     .year-nav .icon-btn{
-        width:48px;
-        height:48px;
-        font-size:1.4rem;
+        width:52px;
+        height:52px;
+        font-size:1.6rem;
+    }
+
+    /* Legenda */
+    .hint{
+        margin-top:18px;
+        font-size:.95rem;
+        line-height:1.6;
     }
 
 }
