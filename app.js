@@ -3607,17 +3607,31 @@ function saveExpense() {
         );
     }
 
-    function openReceipt(id, month) {
-        var unit = state.units.find(function (item) {
-            return item.id === id;
-        });
-        if (!unit || !isActive(unit, month)) return;
-        var status = displayStatus(unit, month);
-        if (status !== "pago" && status !== "pago-atrasado") return;
-        receiptContext = receiptData(unit, month);
-        receiptPreview.innerHTML = receiptMarkup(receiptContext);
-        ModalManager.open(receiptModal);
-    }
+	function openReceipt(id, month) {
+		var unit = state.units.find(function (item) {
+			return item.id === id;
+		});
+
+		if (!unit || !isActive(unit, month)) return;
+
+		var status = displayStatus(unit, month);
+
+		if (status !== "pago" && status !== "pago-atrasado") return;
+
+		receiptContext = receiptData(unit, month);
+
+		// Define dinamicamente o nome do empreendimento
+		var empreendimento = state.empreendimentos.find(function (e) {
+			return e.id === unit.empreendimentoId;
+		});
+
+		document.getElementById("receiptTitle").textContent =
+			empreendimento ? empreendimento.name : "Controle de Aluguéis";
+
+		receiptPreview.innerHTML = receiptMarkup(receiptContext);
+
+		ModalManager.open(receiptModal);
+	}
 
     function closeReceipt() {
         ModalManager.close(receiptModal);
