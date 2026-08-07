@@ -170,14 +170,14 @@ h1 {
     align-items: center;
     gap: 5px;
     font-weight: 750;
-    font-size: 1.1rem;
+    font-size: 1.0rem;
 }
 
 .icon-btn {
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
     border: 0;
     color: #ecfffb;
     background: #ffffff1d;
