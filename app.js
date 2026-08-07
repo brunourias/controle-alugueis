@@ -3260,9 +3260,6 @@ function saveExpense() {
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
         ModalManager.open(settingsModal);
-        setTimeout(function () {
-            finePercent.focus();
-        }, 0);
     }
 
     function closeSettings() {
