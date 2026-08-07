@@ -149,6 +149,8 @@ button {
     font-weight: 700;
 }
 
+.enterprise-selector-icon { display: none; }
+
 .enterprise-selector select {
     min-width: 200px; /* Reduzido para encaixar na largura dos botões acima */
     min-height: 36px;
@@ -1848,18 +1850,12 @@ tfoot td {
         border-radius: 16px;
     }
 
-    .enterprise-selector {
-        width: 100%;
-        min-width: 0;
-    }
-
-    .enterprise-selector select {
-        width: 100%;
-        min-width: 0;
-        height: 52px;
-        font-size: .95rem;
-        border-radius: 14px;
-    }
+	.enterprise-selector { position: relative; flex: 0 0 auto; width: 44px;	height: 44px; color: #ecfffb; background: #ffffff1d; border-radius: 14px; }
+	.enterprise-selector-text { display: none; }
+	.enterprise-selector-icon { display: grid; place-items: center;	width: 100%; height: 100%; }
+	.enterprise-selector-icon svg { width: 24px; height: 24px; }
+	.enterprise-selector select { position: absolute; inset: 0;	width: 100%; height: 100%; margin: 0; padding: 0; border: 0;	opacity: 0; max-width: none; -webkit-appearance: none; appearance: none; }
+	.enterprise-selector:active { background: #ffffff36; transform: scale(.96); }
 
     .year-nav {
         grid-column: 1 / -1;
