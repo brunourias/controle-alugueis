@@ -3084,7 +3084,7 @@ function addContractHistoryEntry() {
         expenseRepeatCount.value = 1;
         recurrenceArea.hidden = !!expense;
         deleteExpenseButton.hidden = !expense;
-        expenseModal.hidden = false;
+        ModalManager.open(expenseModal);
         setTimeout(function () {
             expenseYm.focus();
         }, 0);
