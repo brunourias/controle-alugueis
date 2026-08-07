@@ -29,6 +29,10 @@ body {
     padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
+body.app-loading > *:not(#authModal) {
+    visibility: hidden;
+}
+
 button,
 input,
 textarea,

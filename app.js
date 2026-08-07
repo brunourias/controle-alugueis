@@ -1123,6 +1123,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function openAuthCreate() {
+        document.body.classList.add("app-loading");
         authMode = "create";
 
         authTitle.textContent = "Criar PIN de acesso";
@@ -1149,6 +1150,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function openAuthLogin() {
+        document.body.classList.add("app-loading");
         authMode = "login";
 
         authTitle.textContent = "Entrar";
@@ -1173,6 +1175,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function closeAuth() {
         authModal.hidden = true;
+    }
+
+    function revealApp() {
+        document.body.classList.remove("app-loading");
     }
 
     async function submitAuth(event) {
@@ -1206,6 +1212,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             localStorage.setItem(SETUP_FLAG_KEY, "1");
             appUnlocked = true;
             closeAuth();
+            revealApp();
             render();
             return;
         }
@@ -1213,6 +1220,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (await verifyPin(authPin.value, lockConfig)) {
             appUnlocked = true;
             closeAuth();
+            revealApp();
             render();
             return;
         }
@@ -1232,6 +1240,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             return;
         }
         appUnlocked = true;
+        revealApp();
     }
 
     function exportBackup() {
