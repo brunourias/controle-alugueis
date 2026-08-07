@@ -1836,17 +1836,21 @@ tfoot td {
 @media (max-width: 520px) {
 
     .app-header {
-        padding: calc(16px + env(safe-area-inset-top)) 16px 18px;
-    }
+		padding: calc(20px + env(safe-area-inset-top)) 16px 12px;
+	}
 
-    .header-top {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-    }
+	.header-top {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+	}
 
-    .header-identity,
+    .header-identity {
+		width: 100%;
+		padding-top: 8px;
+	}
+
     .header-identity-text {
         width: 100%;
         text-align: center;
@@ -1949,7 +1953,7 @@ tfoot td {
 
     .hint {
         width: 100%;
-        margin-top: 12px;
+        margin-top: 6px;
         font-size: .9rem;
         line-height: 1.7;
         overflow-wrap: anywhere;
