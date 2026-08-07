@@ -1122,6 +1122,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
         authError.textContent = message;
     }
 
+    function focusAuthInput(input) {
+        try {
+            input.focus({ preventScroll: true });
+        } catch (error) {
+            input.focus();
+        }
+    }
+
     function openAuthCreate() {
         document.body.classList.add("app-loading");
         authMode = "create";
@@ -1145,7 +1153,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         authModal.hidden = false;
         setTimeout(function () {
-            authNewPin.focus();
+            focusAuthInput(authNewPin);
         }, 0);
     }
 
@@ -1169,7 +1177,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         authModal.hidden = false;
         setTimeout(function () {
-            authPin.focus();
+            focusAuthInput(authPin);
         }, 0);
     }
 
@@ -1186,6 +1194,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function revealApp() {
         scrollPageToTop();
         document.body.classList.remove("app-loading");
+
+        // O teclado virtual pode reajustar a viewport após o login no Android.
+        window.setTimeout(scrollPageToTop, 100);
+        window.setTimeout(scrollPageToTop, 350);
     }
 
     async function submitAuth(event) {
