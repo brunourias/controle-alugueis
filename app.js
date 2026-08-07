@@ -3616,11 +3616,11 @@ function saveExpense() {
         if (status !== "pago" && status !== "pago-atrasado") return;
         receiptContext = receiptData(unit, month);
         receiptPreview.innerHTML = receiptMarkup(receiptContext);
-        receiptModal.hidden = false;
+        ModalManager.open(receiptModal);
     }
 
     function closeReceipt() {
-        receiptModal.hidden = true;
+        ModalManager.close(receiptModal);
         receiptContext = null;
         receiptPreview.innerHTML = "";
     }
