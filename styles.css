@@ -1835,13 +1835,91 @@ tfoot td {
 }
 
 @media (max-width: 520px) {
-    .header-top { align-items: flex-start; flex-wrap: wrap; }
-	.header-identity { flex: 1 1 100%; }
-	.header-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; }
-	.enterprise-selector { flex: 1 1 145px; min-width: 0; }
-	.enterprise-selector select { flex: 1; min-width: 0; max-width: none; }
-	.header-meta span + span::before { content: none; }
-	.filter-bar {
+    .app-header {
+        padding: calc(16px + env(safe-area-inset-top)) 16px 18px;
+    }
+
+    .header-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 16px;
+    }
+
+    .header-identity,
+    .header-identity-text {
+        width: 100%;
+    }
+
+    h1 {
+        font-size: clamp(1.7rem, 7vw, 2rem);
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+    }
+
+    .header-meta {
+        font-size: 1rem;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .header-controls {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        width: 100%;
+        align-items: center;
+        gap: 10px;
+        margin-top: 0;
+    }
+
+    .header-controls > * {
+        min-width: 0;
+    }
+
+    .header-controls > .icon-btn {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+    }
+
+    .enterprise-selector {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .enterprise-selector select {
+        width: 100%;
+        min-width: 0;
+        height: 52px;
+        font-size: .95rem;
+        border-radius: 14px;
+    }
+
+    .year-nav {
+        grid-column: 1 / -1;
+        justify-self: center;
+        gap: 10px;
+        margin-top: 2px;
+    }
+
+    .year-nav .icon-btn {
+        width: 46px;
+        height: 46px;
+    }
+
+    .hint {
+        width: 100%;
+        margin-top: 18px;
+        font-size: .9rem;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+    }
+
+    .hint .chip {
+        margin: 2px 0;
+    }
+
+    .filter-bar {
         align-items: stretch;
         flex-direction: column;
     }
@@ -1876,11 +1954,11 @@ tfoot td {
         flex-wrap: wrap;
     }
 
-    .expenses-header>div {
+    .expenses-header > div {
         flex-basis: calc(100% - 90px);
     }
 
-    .expenses-header>strong {
+    .expenses-header > strong {
         align-self: center;
     }
 
