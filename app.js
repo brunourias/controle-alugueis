@@ -446,6 +446,23 @@ var addContractHistory = document.getElementById("addContractHistory");
         );
     }
 
+    function localDateValue(date) {
+        return (
+            date.getFullYear() +
+            "-" +
+            String(date.getMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(date.getDate()).padStart(2, "0")
+        );
+    }
+
+    function expenseDateForMonth(ym, day) {
+        var parts = ym.split("-").map(Number);
+        var lastDay = new Date(parts[0], parts[1], 0).getDate();
+
+        return ym + "-" + String(Math.min(day, lastDay)).padStart(2, "0");
+    }
+
     function normalizeExpense(expense) {
         if (!expense || typeof expense !== "object" || Array.isArray(expense))
             return null;
@@ -3032,7 +3049,7 @@ function saveExpense() {
 
     // Obtém o dia atual no momento do lançamento (ex: dia 15)
     var today = new Date();
-    var currentDay = String(today.getDate()).padStart(2, "0");
+    var currentDay = today.getDate();
 
     if (editingExpenseId) {
         var existingIndex = state.expenses.findIndex(function (expense) {
@@ -3052,8 +3069,8 @@ function saveExpense() {
         for (var i = 0; i < repeatCount; i += 1) {
             var currentYm = addMonthsYm(expenseData.ym, i);
             
-            // Monta a data completa YYYY-MM-DD preservando o dia atual do lançamento
-            var fullDate = currentYm + "-" + currentDay;
+            // Preserva o dia do lançamento sem criar datas inválidas, como 31/04.
+            var fullDate = expenseDateForMonth(currentYm, currentDay);
 
             state.expenses.push({
                 id: newExpenseId(),

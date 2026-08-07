@@ -129,37 +129,11 @@ button {
 
 .header-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; max-width: 1180px; margin: 0 auto; }
 .header-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.header-avatar{
-    width:74px;
-    height:74px;
-}
-
-.header-avatar svg{
-    width:42px;
-    height:42px;
-}
 .header-identity-text { min-width: 0; }
 
 .header-controls {
     display: flex;
     gap: 10px;
-}
-
-.header-controls-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header-enterprise {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-}
-
-.header-controls-bottom {
-    display: flex;
-    justify-content: flex-end;
 }
 
 .enterprise-selector {
@@ -1462,18 +1436,6 @@ tfoot td {
 .btn-danger {
     color: #a52d3b;
     background: #ffe8e9;
-}
-
-.security-section {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-}
-
-.security-section h3 {
-    margin: 0 0 7px;
-    color: var(--teal-dark);
-    font-size: 1rem;
 }
 
 .security-section {
