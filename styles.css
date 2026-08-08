@@ -1,3 +1,11 @@
+/* =========================================================
+   RESIDENCIAL BOA VISTA — CSS v4
+   Ajuste principal:
+   - Botões de recibo e ajuste ficam ABAIXO do status.
+   - Nenhum dos dois usa position:absolute.
+   - A célula de status usa CSS Grid para manter o alinhamento.
+   ========================================================= */
+
 :root {
     color-scheme: light;
     --teal: #0f766e;
@@ -10,7 +18,8 @@
     --paid: #0f766e;
     --late: #c2414d;
     --pending: #71818a;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -43,6 +52,10 @@ select {
 button {
     cursor: pointer;
 }
+
+/* =========================================================
+   TELA DE BLOQUEIO
+   ========================================================= */
 
 .lock-screen {
     position: fixed;
@@ -124,6 +137,10 @@ button {
     font-weight: 700;
 }
 
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
 .app-header {
     padding: calc(20px + env(safe-area-inset-top)) 18px 18px;
     color: #ecfffb;
@@ -144,7 +161,7 @@ button {
     align-items: center;
     gap: 12px;
     min-width: 0;
-    flex: 1;              /* ocupa o espaço restante */
+    flex: 1;
 }
 
 .header-identity-text {
@@ -155,20 +172,17 @@ button {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-left: auto;    /* empurra o grupo para a direita */
+    margin-left: auto;
     flex-shrink: 0;
 }
 
 .year-nav {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
     margin: 0;
-}
-
-.header-controls {
-    display: flex;
-    gap: 10px;
+    font-weight: 750;
+    font-size: 1rem;
 }
 
 .enterprise-selector {
@@ -180,10 +194,12 @@ button {
     font-weight: 700;
 }
 
-.enterprise-selector-icon { display: none; }
+.enterprise-selector-icon {
+    display: none;
+}
 
 .enterprise-selector select {
-    min-width: 200px; /* Reduzido para encaixar na largura dos botões acima */
+    min-width: 200px;
     min-height: 36px;
     padding: 0 8px;
     border: 1px solid #c5d9d6;
@@ -193,17 +209,9 @@ button {
 }
 
 h1 {
-    font-size: clamp(1.2rem, 5vw, 1.65rem);
     margin: 0;
-    letter-spacing: -0.025em;
-}
-
-.year-nav {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: 750;
-    font-size: 1.0rem;
+    font-size: clamp(1.2rem, 5vw, 1.65rem);
+    letter-spacing: -.025em;
 }
 
 .icon-btn {
@@ -226,7 +234,7 @@ h1 {
 
 .hint {
     max-width: 1180px;
-    margin: 5 auto 0;
+    margin: 5px auto 0;
     color: #d6f3ed;
     font-size: .83rem;
     line-height: 1.7;
@@ -248,8 +256,8 @@ h1 {
 }
 
 .chip-pago-atrasado {
-    color: #A45B48;
-    background: #FFEDC2;
+    color: #a45b48;
+    background: #ffedc2;
 }
 
 .chip-atrasado {
@@ -261,6 +269,10 @@ h1 {
     color: #53636b;
     background: #e4eaed;
 }
+
+/* =========================================================
+   CONTEÚDO / FILTROS
+   ========================================================= */
 
 main {
     max-width: 1180px;
@@ -345,6 +357,10 @@ main {
     flex: 1.5 !important;
 }
 
+/* =========================================================
+   TABELA
+   ========================================================= */
+
 .table-wrap {
     overflow: auto;
     border: 1px solid var(--line);
@@ -382,7 +398,6 @@ thead th {
     font-weight: 800;
 }
 
-/* Definição de fixação (sticky) e plano de fundo para todas as células do cabeçalho de linha */
 tbody th,
 tfoot th {
     position: sticky;
@@ -390,7 +405,6 @@ tfoot th {
     background: var(--surface);
 }
 
-/* Configurações de alinhamento e índice de camada (z-index) */
 thead th:first-child {
     left: 0;
     z-index: 5;
@@ -401,7 +415,10 @@ thead th:first-child {
 tbody th {
     z-index: 2;
     min-width: 140px;
+    padding: 11px 12px;
     text-align: left;
+    font-size: .84rem;
+    font-weight: 700;
 }
 
 tfoot th {
@@ -413,12 +430,6 @@ tfoot th {
 tbody tr:last-child th,
 tbody tr:last-child td {
     border-bottom: 0;
-}
-
-tbody th {
-    padding: 11px 12px;
-    font-size: .84rem;
-    font-weight: 700;
 }
 
 .unit-cell {
@@ -461,106 +472,6 @@ tbody th {
     white-space: nowrap;
     font-size: .72rem;
     font-weight: 700;
-}
-
-/* Overlay escuro de fundo */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    padding: 15px;
-    box-sizing: border-box;
-}
-
-/* Caixa centralizada do Modal */
-.modal-content {
-    background: #ffffff;
-    width: 100%;
-    max-width: 800px;
-    /* Largura ideal para leitura */
-    max-height: 90vh;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-/* Cabeçalho fixo do modal */
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #eee;
-}
-
-.modal-header h2 {
-    margin: 0;
-    font-size: 18px;
-    color: #173333;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.btn-export-pdf {
-    background-color: #173333;
-    color: #fff;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-.btn-close-modal {
-    background: transparent;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: #666;
-}
-
-/* Área de conteúdo do relatório com rolar interno */
-.annual-report-body {
-    padding: 20px;
-    overflow-y: auto;
-    color: #173333;
-}
-
-/* Regra CSS para quando acionar a impressão */
-@media print {
-
-    /* Esconde o fundo e cabeçalhos do modal na hora de gerar o PDF */
-    .modal-overlay {
-        position: static;
-        background: transparent;
-        padding: 0;
-    }
-
-    .modal-content {
-        max-width: 100%;
-        box-shadow: none;
-        max-height: none;
-    }
-
-    .modal-header {
-        display: none !important;
-        /* Não sai no PDF */
-    }
 }
 
 .rent {
@@ -610,8 +521,8 @@ tbody th {
 
 .charge-btn {
     width: auto;
-    padding: 0 10px;
     height: 25px;
+    padding: 0 10px;
     color: #1b7a4b;
     background: #dcf8e6;
     font-size: .68rem;
@@ -619,7 +530,8 @@ tbody th {
     border-radius: 999px;
 }
 
-.tenant-action:active {
+.tenant-action:active,
+.charge-btn:active {
     transform: scale(.92);
 }
 
@@ -627,6 +539,67 @@ tbody th {
     background: #e7f7f3 !important;
 }
 
+/* =========================================================
+   STATUS — CORREÇÃO V4
+   =========================================================
+   Estrutura esperada dentro da célula:
+       .status-cell
+           .status-btn
+           .receipt-btn
+           .payment-adjust-btn
+
+   O status ocupa a primeira linha.
+   Recibo e ajuste ficam na segunda linha.
+   Nenhum botão usa position:absolute.
+   ========================================================= */
+
+.status-cell {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: 24px 24px;
+    grid-template-rows: auto 24px;
+    justify-content: center;
+    align-items: center;
+    justify-items: center;
+    column-gap: 4px;
+    row-gap: 4px;
+    width: 100%;
+    min-width: 64px;
+    margin: 0 auto;
+    overflow: visible;
+}
+
+/* O quadrado de status fica sempre sozinho na primeira linha */
+.status-cell .status-btn,
+.status-cell .status-inactive {
+    grid-column: 1 / -1;
+    grid-row: 1;
+}
+
+/* Os dois botões ficam sempre abaixo */
+.status-cell .receipt-btn {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.status-cell .payment-adjust-btn {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+/* Remove qualquer posicionamento antigo que causava sobreposição */
+.status-cell .receipt-btn,
+.status-cell .payment-adjust-btn {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    z-index: 1 !important;
+    transform: none;
+}
+
+/* Botão de status */
 .status-btn {
     min-width: 52px;
     min-height: 42px;
@@ -640,33 +613,6 @@ tbody th {
 .status-btn:active {
     transform: scale(.9);
     filter: brightness(.96);
-}
-
-.status-cell {
-    position: relative;
-    display: inline-flex;
-}
-
-.receipt-btn {
-    position: absolute;
-    top: -7px;
-    right: -7px;
-    z-index: 1;
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: 2px solid var(--surface);
-    border-radius: 999px;
-    font-size: .78rem;
-    line-height: 1;
-    background: #fff7df;
-    box-shadow: 0 2px 6px #2046422b;
-}
-
-.receipt-btn:active {
-    transform: scale(.9);
 }
 
 .status-btn .status-label {
@@ -733,6 +679,52 @@ tbody th {
     background: #e8edef;
 }
 
+/* Recibo */
+.receipt-btn {
+    display: grid !important;
+    place-items: center;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #dbe9e7 !important;
+    border-radius: 7px !important;
+    color: var(--teal-dark);
+    background: #fff7df;
+    font-size: .68rem !important;
+    line-height: 1;
+    box-shadow: 0 2px 5px #2046421c;
+}
+
+.receipt-btn:active {
+    transform: scale(.9) !important;
+}
+
+/* Ajuste */
+.payment-adjust-btn {
+    display: grid !important;
+    place-items: center;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #dbe9e7 !important;
+    border-radius: 7px !important;
+    color: var(--teal-dark);
+    background: #edf3f2;
+    font-size: 11px !important;
+    line-height: 1;
+    box-shadow: 0 2px 5px #2046421c;
+}
+
+.payment-adjust-btn:active {
+    transform: scale(.9) !important;
+}
+
 tfoot th,
 tfoot td {
     padding: 11px 8px;
@@ -746,6 +738,10 @@ tfoot td {
 tfoot td {
     min-width: 82px;
 }
+
+/* =========================================================
+   RESUMOS
+   ========================================================= */
 
 .empty {
     margin: 12px 0;
@@ -772,7 +768,7 @@ tfoot td {
     background: #ffffffa8;
 }
 
-.financial-summary+.summary {
+.financial-summary + .summary {
     margin-top: 16px;
 }
 
@@ -783,81 +779,10 @@ tfoot td {
     margin-top: 0;
 }
 
-@media (max-width: 768px) {
-
-    /* Cabeçalho */
-    .app-header{
-        padding: calc(16px + env(safe-area-inset-top)) 18px 18px;
-    }
-
-    /* Título */
-    h1{
-        font-size: 2rem;
-        font-weight: 800;
-        text-align: center;
-        margin-bottom: 4px;
-    }
-
-    .header-meta{
-        font-size: 1.15rem;
-        text-align: center;
-    }
-
-    /* Linha de controles */
-    .header-controls{
-        display:flex;
-        align-items:center;
-        gap:10px;
-        margin-top:12px;
-    }
-
-    /* Engrenagem menor */
-    .icon-btn{
-        width:34px;
-        height:34px;
-        font-size:1.7rem;
-        border-radius:18px;
-    }
-
-    /* Combo ocupa o espaço */
-    .enterprise-selector{
-        flex:1;
-    }
-
-    .enterprise-selector select{
-        width:100%;
-        height:48px;
-        font-size:1rem;
-        border-radius:16px;
-    }
-
-    /* Ano mais compacto */
-    .year-nav{
-        gap:8px;
-        font-size:1.15rem;
-        font-weight:700;
-    }
-
-    .year-nav .icon-btn{
-        width:46px;
-        height:46px;
-        font-size:1.6rem;
-    }
-
-    /* Legenda */
-    .hint{
-        margin-top:18px;
-        font-size:.95rem;
-        line-height:1.6;
-    }
-
-}
-
 .summary-bar {
     display: block;
     margin-top: 18px;
     padding: 13px 15px 20px;
-    /* antes era 13px 15px */
     border: 1px solid var(--line);
     border-radius: 16px;
     background: #ffffffa8;
@@ -875,15 +800,21 @@ tfoot td {
     display: none;
 }
 
+.summary-bar h2 {
+    margin: 0;
+    color: var(--teal-dark);
+    font-size: 1.05rem;
+}
+
 .summary-bar-actions .btn-ghost {
-    font-size: 12px;
-    font-weight: 600;
     color: #0d5c58;
     background: #eef6f5;
     border: 1px solid transparent;
     border-radius: 12px;
     padding: 8px 16px;
     min-height: 36px;
+    font-size: 12px;
+    font-weight: 600;
     transition: .2s;
     -webkit-tap-highlight-color: transparent;
     outline: none;
@@ -898,12 +829,6 @@ tfoot td {
 
 .summary-bar-actions .btn-ghost:hover {
     background: #e3f0ee;
-}
-
-.summary-bar h2 {
-    margin: 0;
-    color: var(--teal-dark);
-    font-size: 1.05rem;
 }
 
 .summary-card {
@@ -944,7 +869,7 @@ tfoot td {
 }
 
 .summary-year {
-    border-color: #aaaaaa;
+    border-color: #aaa;
     background: #edf7f4;
 }
 
@@ -993,7 +918,7 @@ tfoot td {
     border-top: 1px solid #edf3f2;
 }
 
-.late-row>div {
+.late-row > div {
     min-width: 0;
 }
 
@@ -1041,6 +966,10 @@ tfoot td {
     font-size: .76rem;
 }
 
+/* =========================================================
+   GASTOS
+   ========================================================= */
+
 .expenses-section {
     margin-top: 16px;
     padding: 16px;
@@ -1056,7 +985,7 @@ tfoot td {
     gap: 12px;
 }
 
-.expenses-header>div {
+.expenses-header > div {
     min-width: 0;
     flex: 1;
 }
@@ -1073,7 +1002,7 @@ tfoot td {
     font-size: .72rem;
 }
 
-.expenses-header>strong {
+.expenses-header > strong {
     color: var(--teal-dark);
     font-size: .9rem;
     white-space: nowrap;
@@ -1121,7 +1050,7 @@ tfoot td {
     transition: transform .15s ease;
 }
 
-.expense-month[open]>.expense-month-header::before {
+.expense-month[open] > .expense-month-header::before {
     transform: rotate(90deg);
 }
 
@@ -1163,7 +1092,7 @@ tfoot td {
     border-top: 1px solid #edf3f2;
 }
 
-.expense-row>div {
+.expense-row > div {
     min-width: 0;
 }
 
@@ -1191,6 +1120,10 @@ tfoot td {
     color: var(--teal-dark);
     background: #edf3f2;
 }
+
+/* =========================================================
+   BACKUP / FAB
+   ========================================================= */
 
 .backup-toolbar {
     display: flex;
@@ -1243,6 +1176,10 @@ tfoot td {
     background: var(--teal-dark);
     transform: translateY(1px);
 }
+
+/* =========================================================
+   MODAIS
+   ========================================================= */
 
 .modal-backdrop {
     position: fixed;
@@ -1341,33 +1278,47 @@ tfoot td {
     font-weight: 500;
 }
 
-.rent-changes-section {
-    margin: 22px 0;
-    padding: 16px 0 4px;
+.rent-changes-section,
+.contract-history-section,
+.category-section,
+.enterprise-section,
+.cloud-section {
+    margin-top: 22px;
+    padding-top: 18px;
     border-top: 1px solid var(--line);
+}
+
+.rent-changes-section {
+    margin-bottom: 22px;
+    padding-bottom: 4px;
     border-bottom: 1px solid var(--line);
 }
 
-.rent-changes-section h3 {
+.rent-changes-section h3,
+.contract-history-section h3,
+.category-section h3,
+.enterprise-section h3,
+.cloud-section h3 {
     margin: 0 0 6px;
     color: var(--teal-dark);
     font-size: 1rem;
 }
 
-.rent-changes-section>.field-help {
+.rent-changes-section > .field-help,
+.contract-history-section > .field-help {
     margin-bottom: 10px;
 }
 
-.rent-changes-section>.btn {
+.rent-changes-section > .btn,
+.contract-history-section > .btn {
     width: 100%;
     margin: 0 0 12px;
 }
 
-.contract-history-section { margin: 22px 0; padding: 16px 0 4px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.contract-history-section h3 { margin: 0 0 6px; color: var(--teal-dark); font-size: 1rem; }
-.contract-history-section > .field-help { margin-bottom: 10px; }
-.contract-history-section > .btn { width: 100%; margin: 0 0 12px; }
-.contract-history-add { display: grid; gap: 8px; }
+.contract-history-add {
+    display: grid;
+    gap: 8px;
+}
 
 .rent-changes-empty {
     margin: 10px 0;
@@ -1407,14 +1358,14 @@ tfoot td {
     font-size: .7rem !important;
 }
 
-.recurrence-field>span {
+.recurrence-field > span {
     display: flex;
     align-items: center;
     gap: 8px;
     color: var(--ink);
 }
 
-.recurrence-field>span input {
+.recurrence-field > span input {
     display: inline-block;
     width: 18px;
     min-height: 18px;
@@ -1422,9 +1373,122 @@ tfoot td {
     accent-color: var(--teal);
 }
 
-.recurrence-field>input {
+.recurrence-field > input {
     width: 100px;
 }
+
+.category-section .settings-note,
+.enterprise-section .settings-note,
+.cloud-section .settings-note {
+    margin: 0 0 10px;
+}
+
+.category-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+}
+
+.category-row input {
+    min-height: 40px;
+    margin-top: 0;
+}
+
+.category-row .btn,
+.category-add .btn {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: .72rem;
+}
+
+.category-add {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.category-add input {
+    min-width: 0;
+    margin-top: 0;
+}
+
+.category-add .btn {
+    white-space: nowrap;
+}
+
+.cloud-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cloud-actions .btn {
+    flex: 1;
+}
+
+.cloud-user {
+    margin: 8px 0;
+    color: var(--ink);
+    font-size: .78rem;
+}
+
+.cloud-error {
+    min-height: 18px;
+    margin: 9px 0 0;
+    color: #a52d3b;
+    font-size: .74rem;
+}
+
+.cloud-reconcile {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e8c88d;
+    border-radius: 12px;
+    background: #fff9eb;
+}
+
+.cloud-reconcile p {
+    margin: 0 0 11px;
+    color: var(--ink);
+    font-size: .76rem;
+    line-height: 1.45;
+}
+
+.security-section {
+    display: none !important;
+}
+
+.security-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.checkbox-label {
+    margin-top: 18px !important;
+}
+
+.checkbox-label > span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink);
+}
+
+.checkbox-label input {
+    display: inline-block;
+    width: 18px;
+    min-height: 18px;
+    margin: 0;
+    accent-color: var(--teal);
+}
+
+/* =========================================================
+   BOTÕES
+   ========================================================= */
 
 .modal-actions {
     display: flex;
@@ -1475,169 +1539,9 @@ tfoot td {
     background: #ffe8e9;
 }
 
-.security-section {
-    display: none !important;
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-}
-
-.security-section h3 {
-    margin: 0 0 7px;
-    color: var(--teal-dark);
-    font-size: 1rem;
-}
-
-.security-section .settings-note {
-    margin: 0 0 10px;
-}
-
-.category-section {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-}
-
-.category-section h3 {
-    margin: 0 0 7px;
-    color: var(--teal-dark);
-    font-size: 1rem;
-}
-
-.category-section .settings-note {
-    margin: 0 0 10px;
-}
-
-.category-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 0;
-}
-
-.category-row input {
-    min-height: 40px;
-    margin-top: 0;
-}
-
-.category-row .btn,
-.category-add .btn {
-    min-height: 40px;
-    padding: 0 10px;
-    font-size: .72rem;
-}
-
-.category-add {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-top: 10px;
-}
-
-.category-add input {
-    min-width: 0;
-    margin-top: 0;
-}
-
-.category-add .btn {
-    white-space: nowrap;
-}
-
-.enterprise-section {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-}
-
-.enterprise-section h3 {
-    margin: 0 0 7px;
-    color: var(--teal-dark);
-    font-size: 1rem;
-}
-
-.enterprise-section .settings-note {
-    margin: 0 0 10px;
-}
-
-.cloud-section {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid var(--line);
-}
-
-.cloud-section h3 {
-    margin: 0 0 7px;
-    color: var(--teal-dark);
-    font-size: 1rem;
-}
-
-.cloud-section .settings-note {
-    margin: 0 0 10px;
-}
-
-.cloud-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.cloud-actions .btn {
-    flex: 1;
-}
-
-.cloud-user {
-    margin: 8px 0;
-    color: var(--ink);
-    font-size: .78rem;
-}
-
-.cloud-error {
-    min-height: 18px;
-    margin: 9px 0 0;
-    color: #a52d3b;
-    font-size: .74rem;
-}
-
-.cloud-reconcile {
-    margin-top: 12px;
-    padding: 12px;
-    border: 1px solid #e8c88d;
-    border-radius: 12px;
-    background: #fff9eb;
-}
-
-.cloud-reconcile p {
-    margin: 0 0 11px;
-    color: var(--ink);
-    font-size: .76rem;
-    line-height: 1.45;
-}
-
-.security-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.checkbox-label {
-    margin-top: 18px !important;
-}
-
-.checkbox-label>span {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--ink);
-}
-
-.checkbox-label input {
-    display: inline-block;
-    width: 18px;
-    min-height: 18px;
-    margin: 0;
-    accent-color: var(--teal);
-}
+/* =========================================================
+   RECIBO
+   ========================================================= */
 
 .receipt-modal {
     max-height: calc(100vh - 32px);
@@ -1701,7 +1605,6 @@ tfoot td {
 
 .signature-line {
     width: 260px;
-    /* ajuste a largura desejada */
     margin: 0 auto;
     text-align: center;
 }
@@ -1709,11 +1612,11 @@ tfoot td {
 .signature-name {
     display: block;
     width: 100%;
-    /* ocupa a mesma largura da linha */
-    text-align: center;
-    font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive;
-    font-size: 30px;
     margin-bottom: 8px;
+    text-align: center;
+    font-family: "Brush Script MT", "Segoe Script",
+        "Lucida Handwriting", cursive;
+    font-size: 30px;
 }
 
 .signature-line::after {
@@ -1727,17 +1630,18 @@ tfoot td {
 .signature-label {
     display: block;
     margin-top: 10px;
-    font-size: 14px;
     color: #647979;
+    font-size: 14px;
 }
 
-.-print-receipt {
-    display: none;
-}
-
+.-print-receipt,
 .print-report {
     display: none;
 }
+
+/* =========================================================
+   RELATÓRIO
+   ========================================================= */
 
 .annual-report {
     max-width: 760px;
@@ -1766,9 +1670,9 @@ tfoot td {
 }
 
 .annual-report .ar-total {
+    padding: 10px;
     border: 1px solid #cfe0dd;
     border-radius: 8px;
-    padding: 10px;
 }
 
 .annual-report .ar-total span {
@@ -1783,14 +1687,14 @@ tfoot td {
 
 .annual-report .ar-table {
     width: 100%;
-    border-collapse: collapse;
     margin-bottom: 22px;
+    border-collapse: collapse;
 }
 
 .annual-report .ar-table th,
 .annual-report .ar-table td {
-    border: 1px solid #cfe0dd;
     padding: 6px 8px;
+    border: 1px solid #cfe0dd;
     text-align: left;
 }
 
@@ -1801,8 +1705,8 @@ tfoot td {
 
 .annual-report .ar-table tfoot td,
 .annual-report .ar-table .ar-total-row td {
-    font-weight: 700;
     background: #f2f8f7;
+    font-weight: 700;
 }
 
 .annual-report .ar-neg {
@@ -1817,6 +1721,77 @@ tfoot td {
 [hidden] {
     display: none !important;
 }
+
+/* =========================================================
+   MODAL DE RELATÓRIO ANTIGO / COMPATIBILIDADE
+   ========================================================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    background: rgba(0, 0, 0, .6);
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .2);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #173333;
+    font-size: 18px;
+}
+
+.btn-export-pdf {
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 6px;
+    color: #fff;
+    background-color: #173333;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-close-modal {
+    border: 0;
+    color: #666;
+    background: transparent;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.annual-report-body {
+    padding: 20px;
+    overflow-y: auto;
+    color: #173333;
+}
+
+/* =========================================================
+   TABLET / DESKTOP
+   ========================================================= */
 
 @media (min-width: 700px) {
     .app-header {
@@ -1833,23 +1808,87 @@ tfoot td {
     }
 }
 
-@media (max-width: 520px) {
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
+@media (max-width: 768px) {
     .app-header {
-		padding: calc(20px + env(safe-area-inset-top)) 16px 12px;
-	}
+        padding: calc(16px + env(safe-area-inset-top)) 18px 18px;
+    }
 
-	.header-top {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 10px;
-	}
+    h1 {
+        margin-bottom: 4px;
+        font-size: 2rem;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .header-meta {
+        font-size: 1.15rem;
+        text-align: center;
+    }
+
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 18px;
+        font-size: 1.7rem;
+    }
+
+    .enterprise-selector {
+        flex: 1;
+    }
+
+    .enterprise-selector select {
+        width: 100%;
+        height: 48px;
+        border-radius: 16px;
+        font-size: 1rem;
+    }
+
+    .year-nav {
+        gap: 8px;
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+
+    .year-nav .icon-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 1.6rem;
+    }
+
+    .hint {
+        margin-top: 18px;
+        font-size: .95rem;
+        line-height: 1.6;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-header {
+        padding: calc(20px + env(safe-area-inset-top)) 16px 12px;
+    }
+
+    .header-top {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
 
     .header-identity {
-		width: 100%;
-		padding-top: 8px;
-	}
+        width: 100%;
+        padding-top: 8px;
+    }
 
     .header-identity-text {
         width: 100%;
@@ -1869,7 +1908,6 @@ tfoot td {
         text-align: center;
     }
 
-    /* Barra de controles */
     .header-controls {
         display: flex;
         align-items: center;
@@ -1884,17 +1922,17 @@ tfoot td {
         flex-shrink: 0;
     }
 
-	.enterprise-selector {
-		position: relative;
-		width: 44px;
-		height: 44px;
-		flex: 0 0 44px;
-		color: #ecfffb;
-		background: #ffffff1d;
-		border-radius: 14px;
-		overflow: hidden;
-		z-index: 1;
-	}
+    .enterprise-selector {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        overflow: hidden;
+        z-index: 1;
+        color: #ecfffb;
+        background: #ffffff1d;
+        border-radius: 14px;
+    }
 
     .enterprise-selector-text {
         display: none;
@@ -1912,36 +1950,33 @@ tfoot td {
         height: 24px;
     }
 
-	.enterprise-selector select {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		width: 100%;
-		height: 100%;
-		margin: 0;
-		padding: 0;
-		border: 0;
-		opacity: 0;
-		appearance: none;
-		-webkit-appearance: none;
-	}
+    .enterprise-selector select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        appearance: none;
+        -webkit-appearance: none;
+    }
 
     .enterprise-selector:active {
         background: #ffffff36;
         transform: scale(.96);
     }
 
-	.year-nav {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		margin: 0;
-		white-space: nowrap;
-		position: relative;
-		z-index: 2;
-	}
+    .year-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        white-space: nowrap;
+        position: relative;
+        z-index: 2;
+    }
 
     .year-nav .icon-btn,
     #settingsButton {
@@ -1963,11 +1998,7 @@ tfoot td {
         margin: 2px 0;
     }
 
-    .filter-bar {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
+    .filter-bar,
     .backup-toolbar {
         align-items: stretch;
         flex-direction: column;
@@ -2009,11 +2040,61 @@ tfoot td {
     .expenses-header .btn {
         flex: 1;
     }
+
+    /*
+     * Mantém a mesma regra no celular:
+     * status em cima, ações embaixo.
+     */
+    .status-cell {
+        grid-template-columns: 22px 22px;
+        grid-template-rows: auto 22px;
+        column-gap: 4px;
+        row-gap: 4px;
+        min-width: 60px;
+    }
+
+    .status-cell .receipt-btn {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .status-cell .payment-adjust-btn {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .status-cell .receipt-btn,
+    .status-cell .payment-adjust-btn {
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+    }
+
+    .receipt-btn,
+    .payment-adjust-btn {
+        width: 21px !important;
+        height: 21px !important;
+        min-width: 21px !important;
+        min-height: 21px !important;
+        border-radius: 6px !important;
+    }
+
+    .receipt-btn {
+        font-size: .63rem !important;
+    }
+
+    .payment-adjust-btn {
+        font-size: 10px !important;
+    }
 }
 
-@media print {
+/* =========================================================
+   IMPRESSÃO
+   ========================================================= */
 
-    /* Força o navegador a imprimir cores e fundos */
+@media print {
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -2026,7 +2107,7 @@ tfoot td {
         background: #fff !important;
     }
 
-    body>* {
+    body > * {
         display: none !important;
     }
 
@@ -2067,5 +2148,29 @@ tfoot td {
     #printReport h2,
     #printReport h3 {
         page-break-after: avoid;
+    }
+
+    .modal-overlay {
+        position: static;
+        padding: 0;
+        background: transparent;
+    }
+
+    .modal-content {
+        max-width: 100%;
+        max-height: none;
+        box-shadow: none;
+    }
+
+    .modal-header {
+        display: none !important;
+    }
+
+    /*
+     * Os botões de recibo/ajuste não devem aparecer no relatório impresso.
+     */
+    .status-cell .receipt-btn,
+    .status-cell .payment-adjust-btn {
+        display: none !important;
     }
 }
