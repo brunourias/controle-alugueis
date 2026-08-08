@@ -826,6 +826,74 @@ type="button">Adicionar ao histórico</button>
             </div>
         </div>
 
+		<!-- Modal de Ajuste de Pagamento -->
+		<div class="modal-backdrop" id="paymentAdjustModal" hidden>
+			<div class="modal">
+				<h2 id="paymentAdjustTitle">Ajustar pagamento</h2>
+
+				<p id="paymentAdjustInfo" class="settings-note"></p>
+
+				<label>
+					Data real do pagamento
+					<input
+						type="date"
+						id="paymentAdjustDate"
+					/>
+				</label>
+
+				<label>
+					Valor do aluguel
+					<input
+						type="number"
+						id="paymentAdjustRent"
+						inputmode="decimal"
+						min="0"
+						step="0.01"
+					/>
+				</label>
+
+				<label>
+					Juros / encargos
+					<input
+						type="number"
+						id="paymentAdjustInterest"
+						inputmode="decimal"
+						min="0"
+						step="0.01"
+					/>
+				</label>
+
+				<label>
+					Total recebido
+					<input
+						type="number"
+						id="paymentAdjustTotal"
+						readonly
+					/>
+				</label>
+
+				<div class="modal-actions">
+					<span class="spacer"></span>
+
+					<button
+						id="cancelPaymentAdjust"
+						class="btn btn-ghost"
+						type="button"
+					>
+						Cancelar
+					</button>
+
+					<button
+						id="savePaymentAdjust"
+						class="btn btn-primary"
+						type="button"
+					>
+						Salvar ajuste
+					</button>
+				</div>
+			</div>
+		</div>
+
         <!-- Modal de Autenticação / PIN Inicial -->
         <div class="modal-backdrop auth-backdrop" id="authModal" hidden>
             <div class="modal auth-modal">
