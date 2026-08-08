@@ -1711,248 +1711,389 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function renderGrid(visibleUnits) {
-        var currentMonth =
-            new Date().getFullYear() === selectedYear
-                ? new Date().getMonth()
-                : -1;
-        var head =
-            '<tr><th scope="col">Unidade</th>' +
-            months
-                .map(function (month, i) {
-                    return (
-                        '<th scope="col" class="' +
-                        (i === currentMonth ? "month-current" : "") +
-                        '">' +
-                        month +
-                        "</th>"
-                    );
-                })
-                .join("") +
-            "</tr>";
-        grid.querySelector("thead").innerHTML = head;
-        grid.querySelector("tbody").innerHTML = visibleUnits
-            .map(function (unit) {
-                var cells = months
-                    .map(function (_, i) {
-                        if (!isActive(unit, i)) {
-                            return (
-                                '<td class="' +
-                                (i === currentMonth ? "month-current" : "") +
-                                '"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></td>'
-                            );
-                        }
-                        var status = displayStatus(unit, i);
-                        var icon =
-                            status === "pago" || status === "pago-atrasado"
-                                ? "✓"
-                                : status === "atrasado"
-                                ? "!"
-                                : "-";
-                        var label =
-                            status === "pago-atrasado"
-                                ? "Pago (atraso)"
-                                : status === "pago"
-                                ? "Pago"
-                                : status === "atrasado"
-                                ? "Atrasado"
-                                : "Pendente";
-                        var lateDays =
-                            status === "atrasado" ? daysOverdue(unit, i) : null;
-                        var dayLabel =
-                            lateDays === null
-                                ? ""
-                                : lateDays +
-                                  (lateDays === 1 ? " dia" : " dias");
-                        var statusDays = dayLabel
-                            ? '<span class="status-days">' +
-                              dayLabel +
-                              "</span>"
-                            : "";
-                        var amount =
-                            status === "atrasado"
-                                ? updatedAmount(unit, i)
-                                : null;
-                        var statusAmount =
-                            amount === null
-                                ? ""
-                                : '<span class="status-amount">' +
-                                  money(amount) +
-                                  "</span>";
-                        var ariaLabel = dayLabel
-                            ? label + ", " + dayLabel
-                            : label;
-                        var receipt =
-                            status === "pago" || status === "pago-atrasado"
-                                ? '<button class="receipt-btn" type="button" data-receipt-unit="' +
-                                  escapeHtml(unit.id) +
-                                  '" data-receipt-month="' +
-                                  i +
-                                  '" aria-label="Gerar recibo">🧾</button>'
-                                : "";
+    var currentMonth =
+        new Date().getFullYear() === selectedYear
+            ? new Date().getMonth()
+            : -1;
+
+    var head =
+        '<tr><th scope="col">Unidade</th>' +
+        months
+            .map(function (month, i) {
+                return (
+                    '<th scope="col" class="' +
+                    (i === currentMonth ? "month-current" : "") +
+                    '">' +
+                    month +
+                    "</th>"
+                );
+            })
+            .join("") +
+        "</tr>";
+
+    grid.querySelector("thead").innerHTML = head;
+
+    grid.querySelector("tbody").innerHTML = visibleUnits
+        .map(function (unit) {
+            var cells = months
+                .map(function (_, i) {
+                    if (!isActive(unit, i)) {
                         return (
                             '<td class="' +
                             (i === currentMonth ? "month-current" : "") +
-                            '"><div class="status-cell"><button class="status-btn chip-' +
-                            status +
-                            '" data-unit="' +
-                            escapeHtml(unit.id) +
-                            '" data-month="' +
-                            i +
-                            '" aria-label="' +
-                            ariaLabel +
-                            '">' +
-                            icon +
-                            '<span class="status-label">' +
-                            label +
-                            "</span>" +
-                            statusDays +
-                            statusAmount +
-                            "</button>" +
-                            receipt +
-                            "</div></td>"
+                            '"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></td>'
                         );
-                    })
-                    .join("");
-                var dueDay =
-                    Number.isInteger(unit.dueDay) &&
-                    unit.dueDay >= 1 &&
-                    unit.dueDay <= 31
-                        ? '<span class="due-day">Vence dia ' +
-                          unit.dueDay +
+                    }
+
+                    var status = displayStatus(unit, i);
+
+                    var icon =
+                        status === "pago" || status === "pago-atrasado"
+                            ? "✓"
+                            : status === "atrasado"
+                            ? "!"
+                            : "-";
+
+                    var label =
+                        status === "pago-atrasado"
+                            ? "Pago (atraso)"
+                            : status === "pago"
+                            ? "Pago"
+                            : status === "atrasado"
+                            ? "Atrasado"
+                            : "Pendente";
+
+                    var lateDays =
+                        status === "atrasado"
+                            ? daysOverdue(unit, i)
+                            : null;
+
+                    var dayLabel =
+                        lateDays === null
+                            ? ""
+                            : lateDays +
+                              (lateDays === 1 ? " dia" : " dias");
+
+                    var statusDays = dayLabel
+                        ? '<span class="status-days">' +
+                          dayLabel +
                           "</span>"
                         : "";
-                var tenant = unit.tenantName
-                    ? '<span class="tenant-name">' +
-                      escapeHtml(unit.tenantName) +
+
+                    var amount =
+                        status === "atrasado"
+                            ? updatedAmount(unit, i)
+                            : null;
+
+                    var statusAmount =
+                        amount === null
+                            ? ""
+                            : '<span class="status-amount">' +
+                              money(amount) +
+                              "</span>";
+
+                    var ariaLabel = dayLabel
+                        ? label + ", " + dayLabel
+                        : label;
+
+                    // ==================================================
+                    // RECIBO
+                    // ==================================================
+
+                    var receipt =
+                        status === "pago" ||
+                        status === "pago-atrasado"
+                            ? '<button class="receipt-btn" type="button" data-receipt-unit="' +
+                              escapeHtml(unit.id) +
+                              '" data-receipt-month="' +
+                              i +
+                              '" aria-label="Gerar recibo">🧾</button>'
+                            : "";
+
+                    // ==================================================
+                    // AJUSTE MANUAL DO PAGAMENTO
+                    //
+                    // O botão aparece para QUALQUER pagamento.
+                    // Não depende mais de paymentHistory existir.
+                    // ==================================================
+
+                    var adjustPayment =
+                        status === "pago" ||
+                        status === "pago-atrasado"
+                            ? '<button class="payment-adjust-btn" type="button" data-adjust-unit="' +
+                              escapeHtml(unit.id) +
+                              '" data-adjust-month="' +
+                              i +
+                              '" aria-label="Ajustar pagamento">✏️</button>'
+                            : "";
+
+                    return (
+                        '<td class="' +
+                        (i === currentMonth ? "month-current" : "") +
+                        '">' +
+                        '<div class="status-cell">' +
+
+                        '<button class="status-btn chip-' +
+                        status +
+                        '" data-unit="' +
+                        escapeHtml(unit.id) +
+                        '" data-month="' +
+                        i +
+                        '" aria-label="' +
+                        ariaLabel +
+                        '">' +
+
+                        icon +
+
+                        '<span class="status-label">' +
+                        label +
+                        "</span>" +
+
+                        statusDays +
+                        statusAmount +
+
+                        "</button>" +
+
+                        receipt +
+                        adjustPayment +
+
+                        "</div>" +
+                        "</td>"
+                    );
+                })
+                .join("");
+
+            var dueDay =
+                Number.isInteger(unit.dueDay) &&
+                unit.dueDay >= 1 &&
+                unit.dueDay <= 31
+                    ? '<span class="due-day">Vence dia ' +
+                      unit.dueDay +
                       "</span>"
                     : "";
-                var now = new Date();
-                var currentRent = rentForMonth(
-                    unit,
-                    now.getFullYear(),
-                    now.getMonth()
-                );
 
-                var enterprise =
-                    '<span class="enterprise-name">' +
-                    escapeHtml(empreendimentoName(unit.empreendimentoId)) +
-                    "</span>";
-                var reminderDays = dueReminder(unit);
-                var dueSoon =
-                    reminderDays === null
-                        ? ""
-                        : '<span class="due-soon">' +
-                          (reminderDays === 0
-                              ? "Vence hoje"
-                              : reminderDays === 1
-                              ? "Vence amanhã"
-                              : "Vence em " + reminderDays + " dias") +
-                          "</span>";
+            var tenant = unit.tenantName
+                ? '<span class="tenant-name">' +
+                  escapeHtml(unit.tenantName) +
+                  "</span>"
+                : "";
 
-                return (
-                    '<tr><th scope="row"><div class="unit-cell" data-edit="' +
-                    escapeHtml(unit.id) +
-                    '" role="button" tabindex="0"><span class="unit-name">' +
-                    escapeHtml(unit.name) +
-                    "</span>" +
-                    tenant +
-                    '<span class="rent">' +
-                    money(currentRent) +
-                    "</span>" +
-                    dueDay +
-                    dueSoon +
-                    '<span class="tenant-actions">' +
-                    tenantActions(unit) +
-                    "</span></div></th>" +
-                    cells +
-                    "</tr>"
-                );
+            var now = new Date();
+
+            var currentRent = rentForMonth(
+                unit,
+                now.getFullYear(),
+                now.getMonth()
+            );
+
+            var enterprise =
+                '<span class="enterprise-name">' +
+                escapeHtml(
+                    empreendimentoName(unit.empreendimentoId)
+                ) +
+                "</span>";
+
+            var reminderDays = dueReminder(unit);
+
+            var dueSoon =
+                reminderDays === null
+                    ? ""
+                    : '<span class="due-soon">' +
+                      (reminderDays === 0
+                          ? "Vence hoje"
+                          : reminderDays === 1
+                          ? "Vence amanhã"
+                          : "Vence em " +
+                            reminderDays +
+                            " dias") +
+                      "</span>";
+
+            return (
+                '<tr><th scope="row">' +
+                '<div class="unit-cell" data-edit="' +
+                escapeHtml(unit.id) +
+                '" role="button" tabindex="0">' +
+
+                '<span class="unit-name">' +
+                escapeHtml(unit.name) +
+                "</span>" +
+
+                tenant +
+
+                '<span class="rent">' +
+                money(currentRent) +
+                "</span>" +
+
+                dueDay +
+                dueSoon +
+
+                '<span class="tenant-actions">' +
+                tenantActions(unit) +
+                "</span>" +
+
+                "</div>" +
+                "</th>" +
+
+                cells +
+
+                "</tr>"
+            );
+        })
+        .join("");
+
+    // ==========================================================
+    // TOTAIS
+    // ==========================================================
+
+    grid.querySelector("tfoot").innerHTML =
+        '<tr><th scope="row">Total recebido</th>' +
+        months
+            .map(function (_, i) {
+                var total = scopedUnits().reduce(function (sum, unit) {
+                    return (
+                        sum +
+                        (isActive(unit, i) &&
+                        statusFor(unit, i) === "pago"
+                            ? rentForMonth(
+                                  unit,
+                                  selectedYear,
+                                  i
+                              )
+                            : 0)
+                    );
+                }, 0);
+
+                return "<td>" + money(total) + "</td>";
             })
-            .join("");
-			grid.querySelector("tfoot").innerHTML =
-		'<tr><th scope="row">Total recebido</th>' +
-		months
-			.map(function (_, i) {
-				var total = scopedUnits().reduce(function (sum, unit) {
-					return (
-						sum +
-						(isActive(unit, i) && statusFor(unit, i) === "pago"
-							? rentForMonth(unit, selectedYear, i)
-							: 0)
-					);
-				}, 0);
+            .join("") +
+        "</tr>" +
 
-				return "<td>" + money(total) + "</td>";
-			})
-			.join("") +
-			"</tr>" +
+        '<tr><th scope="row">Total juros</th>' +
+        months
+            .map(function (_, i) {
+                var totalJuros = scopedUnits().reduce(
+                    function (sum, unit) {
+                        if (
+                            !isActive(unit, i) ||
+                            !isPaidLate(unit, i)
+                        ) {
+                            return sum;
+                        }
 
-		'<tr><th scope="row">Total juros</th>' +
-		months
-			.map(function (_, i) {
-				var totalJuros = scopedUnits().reduce(function (sum, unit) {
-					if (
-						!isActive(unit, i) ||
-						!isPaidLate(unit, i)
-					) {
-						return sum;
-					}
+                        var key = monthKey(i);
 
-					var aluguel = rentForMonth(unit, selectedYear, i);
-					var totalAtualizado = updatedAmount(unit, i);
+                        var payment =
+                            unit.paymentHistory &&
+                            unit.paymentHistory[key];
 
-					if (totalAtualizado === null) {
-						return sum;
-					}
+                        // Usa somente o valor salvo no histórico.
+                        // Não recalcula juros pela data atual.
+                        if (!payment) {
+                            return sum;
+                        }
 
-					return sum + Math.max(0, totalAtualizado - aluguel);
-				}, 0);
+                        var juros =
+                            Number(payment.interestAmount) || 0;
 
-				return "<td>" + money(totalJuros) + "</td>";
-			})
-			.join("") +
-		"</tr>";
-        grid.querySelectorAll(".unit-cell").forEach(function (button) {
-            button.addEventListener("click", function () {
-                openModal(button.dataset.edit);
-            });
-            button.addEventListener("keydown", function (event) {
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    openModal(button.dataset.edit);
-                }
-            });
-            //--------------------------------------------------------------------------------------------
-        });
-        grid.querySelectorAll("[data-tenant-action]").forEach(function (link) {
-            link.addEventListener("click", function (event) {
-                event.stopPropagation();
-            });
-            link.addEventListener("keydown", function (event) {
-                event.stopPropagation();
-            });
-        });
-        grid.querySelectorAll(".status-btn").forEach(function (button) {
-            button.addEventListener("click", function () {
-                toggleStatus(button.dataset.unit, Number(button.dataset.month));
-            });
-        });
-        grid.querySelectorAll(".receipt-btn").forEach(function (button) {
-            button.addEventListener("click", function (event) {
-                event.stopPropagation();
-                openReceipt(
-                    button.dataset.receiptUnit,
-                    Number(button.dataset.receiptMonth)
+                        return sum + juros;
+                    },
+                    0
                 );
-            });
+
+                return "<td>" + money(totalJuros) + "</td>";
+            })
+            .join("") +
+        "</tr>";
+
+    // ==========================================================
+    // EVENTOS DAS UNIDADES
+    // ==========================================================
+
+    grid.querySelectorAll(".unit-cell").forEach(function (button) {
+        button.addEventListener("click", function () {
+            openModal(button.dataset.edit);
         });
-        if (!didInitialScroll) {
-            didInitialScroll = true;
-            window.requestAnimationFrame(function () {
-                scrollToCurrentMonth(currentMonth);
-            });
-        }
+
+        button.addEventListener("keydown", function (event) {
+            if (
+                event.key === "Enter" ||
+                event.key === " "
+            ) {
+                event.preventDefault();
+                openModal(button.dataset.edit);
+            }
+        });
+    });
+
+    // ==========================================================
+    // AÇÕES DO INQUILINO
+    // ==========================================================
+
+    grid.querySelectorAll("[data-tenant-action]").forEach(function (link) {
+        link.addEventListener("click", function (event) {
+            event.stopPropagation();
+        });
+
+        link.addEventListener("keydown", function (event) {
+            event.stopPropagation();
+        });
+    });
+
+    // ==========================================================
+    // BOTÕES DE STATUS
+    // ==========================================================
+
+    grid.querySelectorAll(".status-btn").forEach(function (button) {
+        button.addEventListener("click", function () {
+            toggleStatus(
+                button.dataset.unit,
+                Number(button.dataset.month)
+            );
+        });
+    });
+
+    // ==========================================================
+    // BOTÕES DE RECIBO
+    // ==========================================================
+
+    grid.querySelectorAll(".receipt-btn").forEach(function (button) {
+        button.addEventListener("click", function (event) {
+            event.stopPropagation();
+
+            openReceipt(
+                button.dataset.receiptUnit,
+                Number(button.dataset.receiptMonth)
+            );
+        });
+    });
+
+    // ==========================================================
+    // BOTÕES DE AJUSTE MANUAL
+    // ==========================================================
+
+    grid.querySelectorAll(".payment-adjust-btn").forEach(function (button) {
+        button.addEventListener("click", function (event) {
+            event.stopPropagation();
+
+            openPaymentAdjust(
+                button.dataset.adjustUnit,
+                Number(button.dataset.adjustMonth)
+            );
+        });
+    });
+
+    // ==========================================================
+    // SCROLL INICIAL
+    // ==========================================================
+
+    if (!didInitialScroll) {
+        didInitialScroll = true;
+
+        window.requestAnimationFrame(function () {
+            scrollToCurrentMonth(currentMonth);
+        });
     }
+}
 
     function scrollToCurrentMonth(currentMonth) {
         if (currentMonth < 0) {
@@ -2395,27 +2536,94 @@ function renderSummary() {
         });
         updateToggleExpensesButton();
     }
+	
+	function ensurePaymentHistory(unit) {
+		if (
+			!unit.paymentHistory ||
+			typeof unit.paymentHistory !== "object"
+		) {
+			unit.paymentHistory = {};
+		}
+
+		return unit.paymentHistory;
+	}
 
     function toggleStatus(id, month) {
-        var unit = state.units.find(function (item) {
-            return item.id === id;
-        });
-        if (!unit || !isActive(unit, month)) return;
-        var cycle = ["pendente", "pago", "pago-atrasado"];
-        var current = logicalStatus(unit, month);
-        var key = monthKey(month);
-        var next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
-        unit.status[key] =
-            next === "pago-atrasado" || next === "pago" ? "pago" : next;
+    var unit = state.units.find(function (item) {
+        return item.id === id;
+    });
+
+    if (!unit || !isActive(unit, month)) return;
+
+    var cycle = ["pendente", "pago", "pago-atrasado"];
+    var current = logicalStatus(unit, month);
+    var key = monthKey(month);
+    var next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
+
+    // Garante que o histórico de pagamentos exista
+    unit.paymentHistory =
+        unit.paymentHistory &&
+        typeof unit.paymentHistory === "object"
+            ? unit.paymentHistory
+            : {};
+
+    // ==========================================================
+    // PAGAMENTO COM ATRASO
+    // ==========================================================
+    if (next === "pago-atrasado") {
+        var payment = unit.paymentHistory[key];
+
+        // Se nunca houve registro desse pagamento, calcula agora
+        if (!payment) {
+            var aluguel = rentForMonth(unit, selectedYear, month);
+            var totalAtualizado = updatedAmount(unit, month);
+
+            // Se não for possível calcular, usa o valor original
+            if (totalAtualizado === null) {
+                totalAtualizado = aluguel;
+            }
+
+            var jurosEncargos = Math.max(
+                0,
+                totalAtualizado - aluguel
+            );
+
+            unit.paymentHistory[key] = {
+                paidAt: new Date().toISOString(),
+                rentAmount: aluguel,
+                interestAmount: jurosEncargos,
+                totalAmount: totalAtualizado
+            };
+        }
+
+        // Marca como pago com atraso
+        unit.status[key] = "pago";
+
         unit.paidLate =
-            unit.paidLate && typeof unit.paidLate === "object"
+            unit.paidLate &&
+            typeof unit.paidLate === "object"
                 ? unit.paidLate
                 : {};
-        if (next === "pago-atrasado") unit.paidLate[key] = true;
-        else delete unit.paidLate[key];
-        saveState();
-        render();
+
+        unit.paidLate[key] = true;
+    } else {
+        unit.status[key] =
+            next === "pago" ? "pago" : next;
+
+        unit.paidLate =
+            unit.paidLate &&
+            typeof unit.paidLate === "object"
+                ? unit.paidLate
+                : {};
+
+        if (next !== "pago-atrasado") {
+            delete unit.paidLate[key];
+        }
     }
+
+    saveState();
+    render();
+}
 
     function collapseExpenseMonths() {
         expensesList
@@ -2425,6 +2633,216 @@ function renderSummary() {
             });
         applyExpensesVisibility();
     }
+	
+	var paymentAdjustContext = null;
+
+function openPaymentAdjust(id, month) {
+    var unit = state.units.find(function (item) {
+        return item.id === id;
+    });
+
+    if (!unit || !isActive(unit, month)) return;
+
+    var key = monthKey(month);
+
+    unit.paymentHistory =
+        unit.paymentHistory &&
+        typeof unit.paymentHistory === "object"
+            ? unit.paymentHistory
+            : {};
+
+    var payment = unit.paymentHistory[key];
+
+    /*
+     * Se o pagamento ainda não possui histórico,
+     * criamos apenas os valores iniciais para permitir
+     * o ajuste manual.
+     *
+     * O histórico só será efetivamente salvo quando
+     * o usuário clicar em "Salvar ajuste".
+     */
+    if (!payment) {
+        payment = {
+            paidAt: new Date().toISOString(),
+            rentAmount: rentForMonth(
+                unit,
+                selectedYear,
+                month
+            ),
+            interestAmount: 0,
+            totalAmount: rentForMonth(
+                unit,
+                selectedYear,
+                month
+            )
+        };
+    }
+
+    paymentAdjustContext = {
+        unitId: id,
+        month: month,
+        key: key
+    };
+
+    document.getElementById("paymentAdjustTitle").textContent =
+        "Ajustar pagamento";
+
+    document.getElementById("paymentAdjustInfo").textContent =
+        unit.name +
+        " — " +
+        fullMonths[month] +
+        " de " +
+        selectedYear;
+
+    /*
+     * Data real do pagamento
+     */
+    var paidDate = payment.paidAt
+        ? new Date(payment.paidAt)
+        : new Date();
+
+    var dateInput =
+        document.getElementById("paymentAdjustDate");
+
+    if (!isNaN(paidDate.getTime())) {
+        dateInput.value =
+            paidDate.getFullYear() +
+            "-" +
+            String(paidDate.getMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(paidDate.getDate()).padStart(2, "0");
+    } else {
+        dateInput.value = "";
+    }
+
+    /*
+     * Valor do aluguel
+     */
+    document.getElementById("paymentAdjustRent").value =
+        Number(payment.rentAmount) || 0;
+
+    /*
+     * Juros / encargos
+     */
+    document.getElementById("paymentAdjustInterest").value =
+        Number(payment.interestAmount) || 0;
+
+    /*
+     * Total
+     */
+    updatePaymentAdjustTotal();
+
+    ModalManager.open(
+        document.getElementById("paymentAdjustModal")
+    );
+}
+
+function updatePaymentAdjustTotal() {
+    var rent =
+        Number(document.getElementById("paymentAdjustRent").value) || 0;
+
+    var interest =
+        Number(
+            document.getElementById("paymentAdjustInterest").value
+        ) || 0;
+
+    document.getElementById("paymentAdjustTotal").value =
+        (rent + interest).toFixed(2);
+}
+
+function savePaymentAdjust() {
+    if (!paymentAdjustContext) return;
+
+    var unit = state.units.find(function (item) {
+        return item.id === paymentAdjustContext.unitId;
+    });
+
+    if (!unit) return;
+
+    var key = paymentAdjustContext.key;
+
+    unit.paymentHistory =
+        unit.paymentHistory &&
+        typeof unit.paymentHistory === "object"
+            ? unit.paymentHistory
+            : {};
+
+    var payment = unit.paymentHistory[key];
+
+    if (!payment) {
+        alert("Pagamento não encontrado.");
+        return;
+    }
+
+    var dateValue =
+        document.getElementById("paymentAdjustDate").value;
+
+    var rent =
+        Number(document.getElementById("paymentAdjustRent").value) || 0;
+
+    var interest =
+        Number(
+            document.getElementById("paymentAdjustInterest").value
+        ) || 0;
+
+    if (!dateValue) {
+        alert("Informe a data real do pagamento.");
+        return;
+    }
+
+    if (rent < 0 || interest < 0) {
+        alert("Os valores não podem ser negativos.");
+        return;
+    }
+
+    // Converte a data escolhida para ISO sem alterar o dia
+    var parts = dateValue.split("-");
+
+    var paidAt = new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2]),
+        12,
+        0,
+        0
+    ).toISOString();
+
+    payment.paidAt = paidAt;
+    payment.rentAmount = rent;
+    payment.interestAmount = interest;
+    payment.totalAmount = rent + interest;
+
+    saveState();
+    render();
+
+    ModalManager.close(
+        document.getElementById("paymentAdjustModal")
+    );
+
+    paymentAdjustContext = null;
+}
+
+document
+    .getElementById("paymentAdjustRent")
+    .addEventListener("input", updatePaymentAdjustTotal);
+
+document
+    .getElementById("paymentAdjustInterest")
+    .addEventListener("input", updatePaymentAdjustTotal);
+
+document
+    .getElementById("savePaymentAdjust")
+    .addEventListener("click", savePaymentAdjust);
+
+document
+    .getElementById("cancelPaymentAdjust")
+    .addEventListener("click", function () {
+        paymentAdjustContext = null;
+
+        ModalManager.close(
+            document.getElementById("paymentAdjustModal")
+        );
+    });
 
     function openModal(id) {
 		editingId = id || null;
@@ -3561,19 +3979,43 @@ function saveExpense() {
 	function receiptData(unit, month) {
 		var status = displayStatus(unit, month);
 		var aluguel = rentForMonth(unit, selectedYear, month);
+		var key = monthKey(month);
 
-		// Valor total atualizado, usando exatamente o mesmo cálculo
-		// aplicado pelo sistema para pagamentos em atraso.
-		var totalAtualizado =
-			status === "pago-atrasado"
-				? updatedAmount(unit, month)
-				: aluguel;
+		// Recupera o histórico do pagamento, se existir
+		var payment =
+			unit.paymentHistory &&
+			typeof unit.paymentHistory === "object"
+				? unit.paymentHistory[key]
+				: null;
 
-		// Diferença entre o valor original e o valor pago com encargos
-		var jurosEncargos =
-			status === "pago-atrasado" && totalAtualizado !== null
-				? totalAtualizado - aluguel
-				: 0;
+		var jurosEncargos = 0;
+		var totalAtualizado = aluguel;
+
+		// ==========================================================
+		// PAGAMENTO COM ATRASO
+		// ==========================================================
+		if (status === "pago-atrasado") {
+			if (payment) {
+				// Usa os valores salvos no momento do pagamento
+				jurosEncargos = Number(payment.interestAmount) || 0;
+
+				totalAtualizado =
+					Number(payment.totalAmount) ||
+					(aluguel + jurosEncargos);
+			} else {
+				// Fallback para pagamentos antigos que ainda não possuem
+				// histórico salvo
+				var calculado = updatedAmount(unit, month);
+
+				if (calculado !== null) {
+					totalAtualizado = calculado;
+					jurosEncargos = Math.max(
+						0,
+						calculado - aluguel
+					);
+				}
+			}
+		}
 
 		return {
 			unit: unit,
@@ -3586,11 +4028,14 @@ function saveExpense() {
 			// Valor original do aluguel
 			amount: aluguel,
 
-			// Valor dos juros + multa
+			// Juros + multa registrados no momento do pagamento
 			interestAmount: jurosEncargos,
 
-			// Valor total efetivamente recebido
+			// Total efetivamente pago
 			totalAmount: totalAtualizado,
+
+			// Data real em que o pagamento foi registrado
+			paidAt: payment ? payment.paidAt : null,
 		};
 	}
 
@@ -3615,6 +4060,7 @@ function saveExpense() {
 
 		var aluguel = Number(data.amount) || 0;
 		var jurosEncargos = Number(data.interestAmount) || 0;
+
 		var totalRecebido =
 			data.status === "pago-atrasado"
 				? Number(data.totalAmount) || aluguel + jurosEncargos
@@ -3629,6 +4075,12 @@ function saveExpense() {
 				  money(totalRecebido) +
 				  "</span></div>"
 				: "";
+
+		var dataPagamento = data.paidAt
+			? '<div class="receipt-line"><strong>Data do pagamento</strong><span>' +
+			  formatDate(new Date(data.paidAt)) +
+			  "</span></div>"
+			: "";
 
 		var receiptText =
 			data.status === "pago-atrasado"
@@ -3671,6 +4123,7 @@ function saveExpense() {
 			" de " +
 			data.year +
 			"</span></div>" +
+			dataPagamento +
 			'<div class="receipt-line"><strong>Data de emissão</strong><span>' +
 			data.issuedAt +
 			"</span></div>" +
