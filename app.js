@@ -3531,76 +3531,137 @@ function saveExpense() {
         );
     }
 
-    function receiptData(unit, month) {
-        return {
-            unit: unit,
-            month: month,
-            year: selectedYear,
-            status: displayStatus(unit, month),
-            monthName: fullMonths[month],
-            issuedAt: formatDate(new Date()),
-            amount: rentForMonth(unit, selectedYear, month),
-        };
-    }
+	function receiptData(unit, month) {
+		var status = displayStatus(unit, month);
+		var aluguel = rentForMonth(unit, selectedYear, month);
+
+		// Valor total atualizado, usando exatamente o mesmo cálculo
+		// aplicado pelo sistema para pagamentos em atraso.
+		var totalAtualizado =
+			status === "pago-atrasado"
+				? updatedAmount(unit, month)
+				: aluguel;
+
+		// Diferença entre o valor original e o valor pago com encargos
+		var jurosEncargos =
+			status === "pago-atrasado" && totalAtualizado !== null
+				? totalAtualizado - aluguel
+				: 0;
+
+		return {
+			unit: unit,
+			month: month,
+			year: selectedYear,
+			status: status,
+			monthName: fullMonths[month],
+			issuedAt: formatDate(new Date()),
+
+			// Valor original do aluguel
+			amount: aluguel,
+
+			// Valor dos juros + multa
+			interestAmount: jurosEncargos,
+
+			// Valor total efetivamente recebido
+			totalAmount: totalAtualizado,
+		};
+	}
 
     function receiptMarkup(data) {
-        var receiver = state.settings.receiverName
-            ? '<div class="receipt-line"><strong>Recebedor</strong><span>' +
-              escapeHtml(state.settings.receiverName) +
-              "</span></div>"
-            : "";
+		var receiver = state.settings.receiverName
+			? '<div class="receipt-line"><strong>Recebedor</strong><span>' +
+			  escapeHtml(state.settings.receiverName) +
+			  "</span></div>"
+			: "";
 
-        var tenant =
-            data.unit && data.unit.tenantName
-                ? '<div class="receipt-line"><strong>Inquilino</strong><span>' +
-                  escapeHtml(data.unit.tenantName) +
-                  "</span></div>"
-                : "";
+		var tenant =
+			data.unit && data.unit.tenantName
+				? '<div class="receipt-line"><strong>Inquilino</strong><span>' +
+				  escapeHtml(data.unit.tenantName) +
+				  "</span></div>"
+				: "";
 
-        var lateNote =
-            data.status === "pago-atrasado"
-                ? '<p class="receipt-note">Pagamento efetuado em atraso.</p>'
-                : "";
+		var lateNote =
+			data.status === "pago-atrasado"
+				? '<p class="receipt-note">Pagamento efetuado em atraso.</p>'
+				: "";
 
-        return (
-            '<div class="receipt-paper"><h3>Recibo de Aluguel</h3>' +
-            receiver +
-            tenant +
-            '<div class="receipt-line"><strong>Unidade</strong><span>' +
-            escapeHtml(data.unit.name) +
-            "</span></div>" +
-            '<div class="receipt-line"><strong>Valor do aluguel</strong><span>' +
-            money(data.amount) +
-            "</span></div>" +
-            '<div class="receipt-line"><strong>Referência</strong><span>' +
-            data.monthName +
-            " de " +
-            data.year +
-            "</span></div>" +
-            '<div class="receipt-line"><strong>Data de emissão</strong><span>' +
-            data.issuedAt +
-            "</span></div>" +
-            '<p class="receipt-text">Recebi de forma integral a importância de ' +
-            money(data.amount) +
-            " referente ao aluguel da " +
-            escapeHtml(data.unit.name) +
-            " no mês de " +
-            data.monthName +
-            " de " +
-            data.year +
-            ".</p>" +
-            lateNote +
-            '<div class="receipt-signature">' +
-            '<div class="signature-line">' +
-            '<span class="signature-name">' +
-            escapeHtml(state.settings.receiverName || "Recebedor") +
-            "</span>" +
-            "</div>" +
-            '<span class="signature-label">Assinatura do recebedor</span>' +
-            "</div>" +
-            "</div>"
-        );
-    }
+		var aluguel = Number(data.amount) || 0;
+		var jurosEncargos = Number(data.interestAmount) || 0;
+		var totalRecebido =
+			data.status === "pago-atrasado"
+				? Number(data.totalAmount) || aluguel + jurosEncargos
+				: aluguel;
+
+		var valoresAtraso =
+			data.status === "pago-atrasado"
+				? '<div class="receipt-line"><strong>Juros/encargos</strong><span>' +
+				  money(jurosEncargos) +
+				  "</span></div>" +
+				  '<div class="receipt-line"><strong>Total recebido</strong><span>' +
+				  money(totalRecebido) +
+				  "</span></div>"
+				: "";
+
+		var receiptText =
+			data.status === "pago-atrasado"
+				? "Recebi de forma integral a importância de " +
+				  money(totalRecebido) +
+				  " referente ao aluguel da " +
+				  escapeHtml(data.unit.name) +
+				  " no mês de " +
+				  data.monthName +
+				  " de " +
+				  data.year +
+				  ", sendo " +
+				  money(aluguel) +
+				  " referentes ao aluguel e " +
+				  money(jurosEncargos) +
+				  " referentes aos juros e encargos pelo pagamento em atraso."
+				: "Recebi de forma integral a importância de " +
+				  money(aluguel) +
+				  " referente ao aluguel da " +
+				  escapeHtml(data.unit.name) +
+				  " no mês de " +
+				  data.monthName +
+				  " de " +
+				  data.year +
+				  ".";
+
+		return (
+			'<div class="receipt-paper"><h3>Recibo de Aluguel</h3>' +
+			receiver +
+			tenant +
+			'<div class="receipt-line"><strong>Unidade</strong><span>' +
+			escapeHtml(data.unit.name) +
+			"</span></div>" +
+			'<div class="receipt-line"><strong>Valor do aluguel</strong><span>' +
+			money(aluguel) +
+			"</span></div>" +
+			valoresAtraso +
+			'<div class="receipt-line"><strong>Referência</strong><span>' +
+			data.monthName +
+			" de " +
+			data.year +
+			"</span></div>" +
+			'<div class="receipt-line"><strong>Data de emissão</strong><span>' +
+			data.issuedAt +
+			"</span></div>" +
+			'<p class="receipt-text">' +
+			receiptText +
+			"</p>" +
+			lateNote +
+			'<div class="receipt-signature">' +
+			'<div class="signature-line">' +
+			'<span class="signature-name">' +
+			escapeHtml(state.settings.receiverName || "Recebedor") +
+			"</span>" +
+			"</div>" +
+			'<span class="signature-label">Assinatura do recebedor</span>' +
+			"</div>" +
+			"</div>"
+		);
+	}
 
 	function openReceipt(id, month) {
 		var unit = state.units.find(function (item) {
@@ -3667,209 +3728,312 @@ function saveExpense() {
     }
 
     function drawReceiptCanvas(context) {
-        var canvas = document.createElement("canvas");
-        var ctx = canvas.getContext("2d");
+		var canvas = document.createElement("canvas");
+		var ctx = canvas.getContext("2d");
 
-        // Dimensões do Canvas
-        canvas.width = 800;
-        canvas.height = 950;
+		// Dimensões do Canvas
+		canvas.width = 800;
+		canvas.height = 950;
 
-        // Fundo
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+		// Fundo
+		ctx.fillStyle = "#ffffff";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Cartão
-        var margin = 30;
-        var cardWidth = canvas.width - margin * 2;
-        var cardHeight = canvas.height - margin * 2;
+		// Cartão
+		var margin = 30;
+		var cardWidth = canvas.width - margin * 2;
+		var cardHeight = canvas.height - margin * 2;
 
-        ctx.strokeStyle = "#d1e2e0";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
-        ctx.stroke();
+		ctx.strokeStyle = "#d1e2e0";
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.roundRect(margin, margin, cardWidth, cardHeight, 16);
+		ctx.stroke();
 
-        var contentMargin = margin + 40;
-        var contentWidth = cardWidth - 80;
+		var contentMargin = margin + 40;
+		var contentWidth = cardWidth - 80;
 
-        // Título
-        ctx.fillStyle = "#0d5c58";
-        ctx.font = "bold 28px sans-serif";
-        ctx.textAlign = "left";
-        ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
+		// ==========================================================
+		// VALORES
+		// ==========================================================
 
-        // Dados
-        var startY = margin + 120;
-        var rowHeight = 48;
+		var aluguel = Number(context.amount) || 0;
 
-        var details = [
-            { label: "Recebedor", value: state.settings.receiverName || "-" },
-            {
-                label: "Inquilino",
-                value:
-                    context.tenantName ||
-                    (context.unit ? context.unit.tenantName : "-"),
-            },
-            {
-                label: "Unidade",
-                value:
-                    context.unitName ||
-                    (context.unit ? context.unit.name : "-"),
-            },
-            {
-                label: "Valor do aluguel",
-                value: context.amount
-                    ? "R$ " + formatCurrency(context.amount)
-                    : "-",
-            },
-            {
-                label: "Referência",
-                value: context.monthName + " de " + context.year,
-            },
-            { label: "Data de emissão", value: context.issuedAt || "-" },
-        ];
+		// Aceita diferentes nomes caso seu sistema já utilize algum deles
+		var juros =
+			Number(context.interestAmount) ||
+			Number(context.juros) ||
+			Number(context.lateFee) ||
+			Number(context.lateInterest) ||
+			0;
 
-        details.forEach(function (item) {
-            ctx.fillStyle = "#556b69";
-            ctx.font = "bold 18px sans-serif";
-            ctx.textAlign = "left";
-            ctx.fillText(item.label, contentMargin, startY);
+		var totalRecebido = aluguel + juros;
 
-            ctx.fillStyle = "#223331";
-            ctx.font = "18px sans-serif";
-            ctx.textAlign = "right";
-            ctx.fillText(item.value, contentMargin + contentWidth, startY);
+		// ==========================================================
+		// TÍTULO
+		// ==========================================================
 
-            ctx.strokeStyle = "#e8f0ef";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(contentMargin, startY + 15);
-            ctx.lineTo(contentMargin + contentWidth, startY + 15);
-            ctx.stroke();
+		ctx.fillStyle = "#0d5c58";
+		ctx.font = "bold 28px sans-serif";
+		ctx.textAlign = "left";
+		ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
 
-            startY += rowHeight;
-        });
+		// ==========================================================
+		// DADOS
+		// ==========================================================
 
-        ctx.textAlign = "left";
+		var startY = margin + 120;
+		var rowHeight = 48;
 
-        // Texto do recibo
-        var descriptionText =
-            context.descriptionText ||
-            "Recebi de forma integral a importância de R$ " +
-                formatCurrency(context.amount) +
-                " referente ao aluguel da " +
-                (context.unitName || (context.unit ? context.unit.name : "")) +
-                " no mês de " +
-                context.monthName +
-                " de " +
-                context.year +
-                ".";
+		var details = [
+			{
+				label: "Recebedor",
+				value: state.settings.receiverName || "-"
+			},
+			{
+				label: "Inquilino",
+				value:
+					context.tenantName ||
+					(context.unit ? context.unit.tenantName : "-")
+			},
+			{
+				label: "Unidade",
+				value:
+					context.unitName ||
+					(context.unit ? context.unit.name : "-")
+			},
+			{
+				label: "Valor do aluguel",
+				value:
+					aluguel > 0
+						? "R$ " + formatCurrency(aluguel)
+						: "-"
+			}
+		];
 
-        ctx.fillStyle = "#223331";
-        ctx.font = "18px sans-serif";
+		// Se estiver atrasado, evidencia os juros e o total recebido
+		if (context.status === "pago-atrasado") {
+			details.push({
+				label: "Juros/encargos",
+				value: "R$ " + formatCurrency(juros)
+			});
 
-        function wrapText(text, x, y, maxWidth, lineHeight) {
-            var words = text.split(" ");
-            var line = "";
+			details.push({
+				label: "Total recebido",
+				value: "R$ " + formatCurrency(totalRecebido)
+			});
+		}
 
-            for (var n = 0; n < words.length; n++) {
-                var testLine = line + words[n] + " ";
-                var width = ctx.measureText(testLine).width;
+		details.push(
+			{
+				label: "Referência",
+				value: context.monthName + " de " + context.year
+			},
+			{
+				label: "Data de emissão",
+				value: context.issuedAt || "-"
+			}
+		);
 
-                if (width > maxWidth && n > 0) {
-                    ctx.fillText(line, x, y);
-                    line = words[n] + " ";
-                    y += lineHeight;
-                } else {
-                    line = testLine;
-                }
-            }
+		details.forEach(function (item) {
+			ctx.fillStyle = "#556b69";
+			ctx.font = "bold 18px sans-serif";
+			ctx.textAlign = "left";
+			ctx.fillText(item.label, contentMargin, startY);
 
-            ctx.fillText(line, x, y);
-            return y;
-        }
+			// Destaca juros e total recebido
+			if (
+				item.label === "Juros/encargos" ||
+				item.label === "Total recebido"
+			) {
+				ctx.fillStyle =
+					item.label === "Juros/encargos"
+						? "#8a5a00"
+						: "#0d5c58";
 
-        var textEndY = wrapText(
-            descriptionText,
-            contentMargin,
-            startY + 30,
-            contentWidth,
-            28
-        );
+				ctx.font = "bold 19px sans-serif";
+			} else {
+				ctx.fillStyle = "#223331";
+				ctx.font = "18px sans-serif";
+			}
 
-        // ==========================================================
-        // AVISO DE PAGAMENTO EM ATRASO (COM CANTOS ARREDONDADOS)
-        // ==========================================================
-        if (context.status === "pago-atrasado") {
-            var boxY = textEndY + 25;
-            var boxHeight = 56;
-            var borderRadius = 8; // Raio dos cantos arredondados
+			ctx.textAlign = "right";
+			ctx.fillText(
+				item.value,
+				contentMargin + contentWidth,
+				startY
+			);
 
-            // Desenhar Fundo Arredondado
-            ctx.fillStyle = "#FFF3CD";
-            ctx.beginPath();
-            ctx.roundRect(
-                contentMargin,
-                boxY,
-                contentWidth,
-                boxHeight,
-                borderRadius
-            );
-            ctx.fill();
+			ctx.strokeStyle = "#e8f0ef";
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(contentMargin, startY + 15);
+			ctx.lineTo(contentMargin + contentWidth, startY + 15);
+			ctx.stroke();
 
-            // Desenhar Borda Arredondada
-            ctx.strokeStyle = "#FFE69C";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.roundRect(
-                contentMargin,
-                boxY,
-                contentWidth,
-                boxHeight,
-                borderRadius
-            );
-            ctx.stroke();
+			startY += rowHeight;
+		});
 
-            // Texto do Aviso
-            ctx.fillStyle = "#664D03";
-            ctx.font = "bold 20px Arial";
-            ctx.textAlign = "left";
-            ctx.fillText(
-                "Pagamento efetuado em atraso.",
-                contentMargin + 20,
-                boxY + 35
-            );
+		ctx.textAlign = "left";
 
-            textEndY = boxY + boxHeight;
-        }
+		// ==========================================================
+		// TEXTO DO RECIBO
+		// ==========================================================
 
-        // Assinatura
-        var sigY = textEndY + 60;
-        var centerX = canvas.width / 2;
+		var unitName =
+			context.unitName ||
+			(context.unit ? context.unit.name : "");
 
-        ctx.fillStyle = "#0d5c58";
-        ctx.font =
-            '30px "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive';
-        ctx.textAlign = "center";
-        ctx.fillText(
-            context.receiverName || state.settings.receiverName || "Recebedor",
-            centerX,
-            sigY
-        );
+		var descriptionText;
 
-        ctx.strokeStyle = "#a9c7c3";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(centerX - 120, sigY + 12);
-        ctx.lineTo(centerX + 120, sigY + 12);
-        ctx.stroke();
+		if (context.descriptionText) {
+			descriptionText = context.descriptionText;
+		} else if (context.status === "pago-atrasado") {
+			descriptionText =
+				"Recebi de forma integral a importância de R$ " +
+				formatCurrency(totalRecebido) +
+				" referente ao aluguel da " +
+				unitName +
+				" no mês de " +
+				context.monthName +
+				" de " +
+				context.year +
+				", sendo R$ " +
+				formatCurrency(aluguel) +
+				" referentes ao aluguel e R$ " +
+				formatCurrency(juros) +
+				" referentes aos juros e encargos pelo pagamento em atraso.";
+		} else {
+			descriptionText =
+				"Recebi de forma integral a importância de R$ " +
+				formatCurrency(aluguel) +
+				" referente ao aluguel da " +
+				unitName +
+				" no mês de " +
+				context.monthName +
+				" de " +
+				context.year +
+				".";
+		}
 
-        ctx.fillStyle = "#637d7a";
-        ctx.font = "15px sans-serif";
-        ctx.fillText("Assinatura do recebedor", centerX, sigY + 35);
+		ctx.fillStyle = "#223331";
+		ctx.font = "18px sans-serif";
 
-        return canvas;
-    }
+		function wrapText(text, x, y, maxWidth, lineHeight) {
+			var words = text.split(" ");
+			var line = "";
+
+			for (var n = 0; n < words.length; n++) {
+				var testLine = line + words[n] + " ";
+				var width = ctx.measureText(testLine).width;
+
+				if (width > maxWidth && n > 0) {
+					ctx.fillText(line, x, y);
+					line = words[n] + " ";
+					y += lineHeight;
+				} else {
+					line = testLine;
+				}
+			}
+
+			ctx.fillText(line, x, y);
+			return y;
+		}
+
+		var textEndY = wrapText(
+			descriptionText,
+			contentMargin,
+			startY + 30,
+			contentWidth,
+			28
+		);
+
+		// ==========================================================
+		// AVISO DE PAGAMENTO EM ATRASO
+		// ==========================================================
+
+		if (context.status === "pago-atrasado") {
+			var boxY = textEndY + 25;
+			var boxHeight = 56;
+			var borderRadius = 8;
+
+			// Fundo
+			ctx.fillStyle = "#FFF3CD";
+			ctx.beginPath();
+			ctx.roundRect(
+				contentMargin,
+				boxY,
+				contentWidth,
+				boxHeight,
+				borderRadius
+			);
+			ctx.fill();
+
+			// Borda
+			ctx.strokeStyle = "#FFE69C";
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.roundRect(
+				contentMargin,
+				boxY,
+				contentWidth,
+				boxHeight,
+				borderRadius
+			);
+			ctx.stroke();
+
+			// Texto
+			ctx.fillStyle = "#664D03";
+			ctx.font = "bold 20px Arial";
+			ctx.textAlign = "left";
+
+			ctx.fillText(
+				"Pagamento efetuado em atraso.",
+				contentMargin + 20,
+				boxY + 35
+			);
+
+			textEndY = boxY + boxHeight;
+		}
+
+		// ==========================================================
+		// ASSINATURA
+		// ==========================================================
+
+		var sigY = textEndY + 60;
+		var centerX = canvas.width / 2;
+
+		ctx.fillStyle = "#0d5c58";
+		ctx.font =
+			'30px "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive';
+		ctx.textAlign = "center";
+
+		ctx.fillText(
+			context.receiverName ||
+				state.settings.receiverName ||
+				"Recebedor",
+			centerX,
+			sigY
+		);
+
+		ctx.strokeStyle = "#a9c7c3";
+		ctx.lineWidth = 1.5;
+
+		ctx.beginPath();
+		ctx.moveTo(centerX - 120, sigY + 12);
+		ctx.lineTo(centerX + 120, sigY + 12);
+		ctx.stroke();
+
+		ctx.fillStyle = "#637d7a";
+		ctx.font = "15px sans-serif";
+		ctx.fillText(
+			"Assinatura do recebedor",
+			centerX,
+			sigY + 35
+		);
+
+		return canvas;
+	}
 
     function slugify(value) {
         return (
