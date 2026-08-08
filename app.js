@@ -1869,22 +1869,49 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 );
             })
             .join("");
-        grid.querySelector("tfoot").innerHTML =
-            '<tr><th scope="row">Total recebido</th>' +
-            months
-                .map(function (_, i) {
-                    var total = scopedUnits().reduce(function (sum, unit) {
-                        return (
-                            sum +
-                            (isActive(unit, i) && statusFor(unit, i) === "pago"
-                                ? rentForMonth(unit, selectedYear, i)
-                                : 0)
-                        );
-                    }, 0);
-                    return "<td>" + money(total) + "</td>";
-                })
-                .join("") +
-            "</tr>";
+			grid.querySelector("tfoot").innerHTML =
+		'<tr><th scope="row">Total recebido</th>' +
+		months
+			.map(function (_, i) {
+				var total = scopedUnits().reduce(function (sum, unit) {
+					return (
+						sum +
+						(isActive(unit, i) && statusFor(unit, i) === "pago"
+							? rentForMonth(unit, selectedYear, i)
+							: 0)
+					);
+				}, 0);
+
+				return "<td>" + money(total) + "</td>";
+			})
+			.join("") +
+			"</tr>" +
+
+		'<tr><th scope="row">Total juros</th>' +
+		months
+			.map(function (_, i) {
+				var totalJuros = scopedUnits().reduce(function (sum, unit) {
+					if (
+						!isActive(unit, i) ||
+						!isPaidLate(unit, i)
+					) {
+						return sum;
+					}
+
+					var aluguel = rentForMonth(unit, selectedYear, i);
+					var totalAtualizado = updatedAmount(unit, i);
+
+					if (totalAtualizado === null) {
+						return sum;
+					}
+
+					return sum + Math.max(0, totalAtualizado - aluguel);
+				}, 0);
+
+				return "<td>" + money(totalJuros) + "</td>";
+			})
+			.join("") +
+		"</tr>";
         grid.querySelectorAll(".unit-cell").forEach(function (button) {
             button.addEventListener("click", function () {
                 openModal(button.dataset.edit);
