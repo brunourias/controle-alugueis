@@ -193,7 +193,9 @@ var historyTenant = document.getElementById("historyTenant");
 var historyStart = document.getElementById("historyStart");
 var historyEnd = document.getElementById("historyEnd");
 var historyRent = document.getElementById("historyRent");
-var addContractHistory = document.getElementById("addContractHistory");
+    var historyStatus = document.getElementById("historyStatus");
+    var historyReason = document.getElementById("historyReason");
+    var addContractHistory = document.getElementById("addContractHistory");
 	
     var finePercent = document.getElementById("finePercent");
 
@@ -3167,12 +3169,7 @@ document
 
 		pendingContractHistory = unit
 			? (unit.contractHistory || []).map(function (contract) {
-				  return {
-					  tenantName: contract.tenantName,
-					  startYm: contract.startYm,
-					  endYm: contract.endYm,
-					  rent: contract.rent
-				  };
+				  return { id: contract.id, tenantName: contract.tenantName, startYm: contract.startYm, endYm: contract.endYm, rent: contract.rent, status: contract.status, reason: contract.reason };
 			  })
 			: [];
 
@@ -3513,6 +3510,17 @@ function addContractHistoryEntry() {
 	
 	
 	
+
+    /* Histórico de contratos: dados estruturados, linha do tempo e ações */
+    var editingHistoryIndex = null;
+    function newContractHistoryId(){return "contract-"+Date.now().toString(36)+Math.random().toString(36).slice(2)}
+    function normalizeContractHistoryStatus(value){return ["encerrado","rescisao","pendente"].indexOf(value)>=0?value:"encerrado"}
+    function normalizeContractHistory(list){if(!Array.isArray(list))return [];return list.map(function(item){if(!item||typeof item!=="object"||Array.isArray(item))return null;var name=typeof item.tenantName==="string"?item.tenantName.trim():"",start=isValidStartYm(item.startYm)?item.startYm:null,end=isValidStartYm(item.endYm)?item.endYm:null,amount=item.rent===null||item.rent===undefined||item.rent===""?null:Number(item.rent),rent=amount!==null&&Number.isFinite(amount)&&amount>=0?amount:null;if(!name&&!start&&!end&&rent===null)return null;return{id:typeof item.id==="string"&&item.id.trim()?item.id:newContractHistoryId(),tenantName:name,startYm:start,endYm:end,rent:rent,status:normalizeContractHistoryStatus(item.status),reason:typeof item.reason==="string"?item.reason.trim():""}}).filter(function(item){return item!==null})}
+    function contractHistoryStatusInfo(value){return{encerrado:["Encerrado normalmente","is-closed"],rescisao:["Rescisão antecipada","is-ended"],pendente:["Encerrado com pendências","is-pending"]}[normalizeContractHistoryStatus(value)]}
+    function contractHistoryPeriod(contract){return(contract.startYm?ymLabel(contract.startYm):"Início não informado")+" até "+(contract.endYm?ymLabel(contract.endYm):"fim não informado")}
+    function resetHistoryForm(){editingHistoryIndex=null;historyTenant.value="";historyStart.value="";historyEnd.value="";historyRent.value="";historyStatus.value="encerrado";historyReason.value="";addContractHistory.textContent="Adicionar ao histórico"}
+    function renderContractHistory(){var active=tenantName.value.trim(),current=active?'<article class="contract-timeline-card is-current"><div class="contract-timeline-heading"><strong>'+escapeHtml(active)+'</strong><span class="contract-status">Contrato atual</span></div><p>'+escapeHtml(contractHistoryPeriod({startYm:unitStartYm.value||null,endYm:unitEndYm.value||null}))+(unitRent.value!==""?" · "+money(Number(unitRent.value)):"")+"</p></article>":'<p class="rent-changes-empty">Nenhum contrato atual cadastrado.</p>',records=pendingContractHistory.map(function(contract,index){return{contract:contract,index:index}}).sort(function(a,b){return(b.contract.endYm||b.contract.startYm||"").localeCompare(a.contract.endYm||a.contract.startYm||"")}),cards=records.length?records.map(function(item){var c=item.contract,s=contractHistoryStatusInfo(c.status);return'<article class="contract-timeline-card '+s[1]+'"><div class="contract-timeline-heading"><strong>'+escapeHtml(c.tenantName||"Inquilino não informado")+'</strong><span class="contract-status">'+s[0]+"</span></div><p>"+escapeHtml(contractHistoryPeriod(c))+(c.rent!==null?" · "+money(c.rent):"")+"</p>"+(c.reason?'<p class="contract-history-reason">'+escapeHtml(c.reason)+"</p>":"")+'<div class="contract-history-actions"><button class="btn btn-ghost" type="button" data-history-edit="'+item.index+'">Editar</button><button class="btn btn-ghost" type="button" data-history-reactivate="'+item.index+'">Reativar</button><button class="btn btn-danger" type="button" data-history-remove="'+item.index+'">Remover</button></div></article>'}).join(""):'<p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p>';contractHistoryList.innerHTML='<div class="contract-timeline">'+current+cards+"</div>";contractHistoryList.querySelectorAll("[data-history-edit]").forEach(function(button){button.addEventListener("click",function(){var i=Number(button.dataset.historyEdit),c=pendingContractHistory[i];if(!c)return;editingHistoryIndex=i;historyTenant.value=c.tenantName||"";historyStart.value=c.startYm||"";historyEnd.value=c.endYm||"";historyRent.value=c.rent===null?"":c.rent;historyStatus.value=normalizeContractHistoryStatus(c.status);historyReason.value=c.reason||"";addContractHistory.textContent="Salvar alterações";historyTenant.focus()})});contractHistoryList.querySelectorAll("[data-history-reactivate]").forEach(function(button){button.addEventListener("click",function(){var i=Number(button.dataset.historyReactivate),c=pendingContractHistory[i];if(!c||(tenantName.value.trim()&&!window.confirm("Substituir os dados do contrato atual por este contrato?")))return;tenantName.value=c.tenantName||"";unitStartYm.value=c.startYm||"";unitEndYm.value="";unitRent.value=c.rent===null?"":c.rent;pendingContractHistory.splice(i,1);resetHistoryForm();renderRentChanges();renderContractHistory();tenantName.focus()})});contractHistoryList.querySelectorAll("[data-history-remove]").forEach(function(button){button.addEventListener("click",function(){var i=Number(button.dataset.historyRemove);if(!window.confirm("Remover este contrato do histórico?"))return;pendingContractHistory.splice(i,1);resetHistoryForm();renderContractHistory()})})}
+    function addContractHistoryEntry(){var name=historyTenant.value.trim(),start=historyStart.value||null,end=historyEnd.value||null,amount=Number(historyRent.value);if(!name&&!start&&!end){historyTenant.focus();return}if(start&&end&&end<start){historyEnd.setCustomValidity("O fim deve ser igual ou posterior ao início.");historyEnd.reportValidity();historyEnd.focus();return}historyEnd.setCustomValidity("");var c={id:editingHistoryIndex!==null&&pendingContractHistory[editingHistoryIndex]?pendingContractHistory[editingHistoryIndex].id:newContractHistoryId(),tenantName:name,startYm:start,endYm:end,rent:Number.isFinite(amount)&&amount>=0?amount:null,status:normalizeContractHistoryStatus(historyStatus.value),reason:historyReason.value.trim()};if(editingHistoryIndex!==null)pendingContractHistory[editingHistoryIndex]=c;else pendingContractHistory.push(c);resetHistoryForm();renderContractHistory()}
     //--------------------------------------------------------------------------------------------
     function setCategoryStatus(message, isError) {
         categoryStatus.textContent = message;
