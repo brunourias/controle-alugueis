@@ -2162,6 +2162,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         grid.hidden = !hasUnits || visibleUnits.length === 0;
         empty.hidden = hasUnits;
         filterEmpty.hidden = !hasUnits || visibleUnits.length > 0;
+        renderActionCenter();
         renderGrid(visibleUnits);
         if (didInitialScroll && visibleUnits.length > 0)
             tableWrap.scrollLeft = lastGridScrollLeft;
@@ -2169,6 +2170,37 @@ undefined || item.rent === "" ? null : Number(item.rent);
         renderExpenses();
     }
 
+
+    function renderActionCenter() {
+        var container = document.getElementById("actionCenter");
+        if (!container) return;
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var overdue = 0, dueSoon = 0, endingSoon = 0, vacant = 0;
+        scopedUnits().forEach(function (unit) {
+            if (!String(unit.tenantName || "").trim()) vacant += 1;
+            months.forEach(function (_, month) {
+                var key = monthKey(month);
+                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") overdue += 1;
+            });
+            if (isActive(unit, today.getMonth()) && statusFor(unit, today.getMonth()) === "pendente") {
+                var reminder = dueReminder(unit);
+                if (reminder) dueSoon += 1;
+            }
+            if (unit.endDate && String(unit.endDate).match(/^\d{4}-\d{2}-\d{2}$/)) {
+                var end = new Date(unit.endDate + "T12:00:00");
+                var days = Math.ceil((end - today) / 86400000);
+                if (days >= 0 && days <= 60 && String(unit.tenantName || "").trim()) endingSoon += 1;
+            }
+        });
+        var cards = [];
+        if (overdue) cards.push('<div class="action-item is-danger"><strong>' + overdue + ' parcela' + (overdue === 1 ? '' : 's') + ' em atraso</strong><span>Prioridade: cobrar e dar baixa</span></div>');
+        if (dueSoon) cards.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Acompanhe os próximos dias</span></div>');
+        if (endingSoon) cards.push('<div class="action-item is-info"><strong>' + endingSoon + ' contrato' + (endingSoon === 1 ? '' : 's') + ' perto do fim</strong><span>Decida renovar ou encerrar</span></div>');
+        if (vacant) cards.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para nova locação</span></div>');
+        container.innerHTML = '<div class="action-center-heading"><div><h2>O que precisa de ação</h2><p>Seu painel de decisões do período.</p></div><span class="action-count">' + (cards.length || '0') + '</span></div>' + (cards.length ? '<div class="action-list">' + cards.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>');
+    }
 
     // Retorna o contrato encerrado que abrangia determinado mês.
     // É usado somente para a visualização histórica da grade; não
