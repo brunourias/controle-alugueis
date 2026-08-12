@@ -2422,7 +2422,9 @@ textarea:focus-visible {
         font-size: 1.8rem;
     }
 
-    body:has(.modal-overlay:not([hidden])) .mobile-fab {
+    body:has(.modal-backdrop:not([hidden])) .mobile-fab,
+    body:has(.modal-overlay[style*="display: flex"]) .mobile-fab,
+    body:has(.modal-overlay[style*="display: block"]) .mobile-fab {
         display: none;
     }
 
