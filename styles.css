@@ -2414,18 +2414,12 @@ textarea:focus-visible {
     .mobile-fab {
         right: 14px;
         bottom: calc(14px + env(safe-area-inset-bottom));
-        z-index: 20;
+        z-index: 15;
         width: 52px;
         height: 52px;
         border: 2px solid #d8f0ea;
         box-shadow: 0 8px 18px rgba(15, 118, 110, .26);
         font-size: 1.8rem;
-    }
-
-    body:has(.modal-backdrop:not([hidden])) .mobile-fab,
-    body:has(.modal-overlay[style*="display: flex"]) .mobile-fab,
-    body:has(.modal-overlay[style*="display: block"]) .mobile-fab {
-        display: none;
     }
 
     /* O menu deixa de ser um popover cortado pela tabela: abre na própria unidade. */
