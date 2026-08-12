@@ -1294,7 +1294,7 @@ tfoot td {
     border-bottom: 1px solid var(--line);
 }
 
-.rent-changes-section h3,
+.rent-changes-section summary,
 .contract-history-section h3,
 .category-section h3,
 .enterprise-section h3,
@@ -1304,12 +1304,21 @@ tfoot td {
     font-size: 1rem;
 }
 
-.rent-changes-section > .field-help,
+.rent-changes-section summary {
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.rent-changes-section[open] summary {
+    margin-bottom: 10px;
+}
+
+.rent-changes-section .field-help,
 .contract-history-section > .field-help {
     margin-bottom: 10px;
 }
 
-.rent-changes-section > .btn,
+.rent-changes-section .btn,
 .contract-history-section > .btn {
     width: 100%;
     margin: 0 0 12px;
