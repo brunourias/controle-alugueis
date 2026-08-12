@@ -892,7 +892,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function cloudDocRef() {
-        var ref = cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        var ref = firebaseUser && cloudWorkspaceId
+            ? workspaceRef(cloudWorkspaceId)
+            : null;
         return ref ? ref.collection("state").doc("current") : null;
     }
 
@@ -954,11 +956,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 }
 
                 return batch.commit().then(function () {
-                    cloudWorkspaceId = workspaceId;
+                    if (firebaseUser && firebaseUser.uid === user.uid)
+                        cloudWorkspaceId = workspaceId;
                 });
             });
         }).then(function () {
-            cloudWorkspaceReady = true;
+            if (firebaseUser && firebaseUser.uid === user.uid)
+                cloudWorkspaceReady = true;
             return workspaceId;
         });
     }
@@ -1236,6 +1240,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
             ensurePersonalWorkspace(user)
                 .then(function () {
+                    if (!firebaseUser || firebaseUser.uid !== user.uid) return;
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
                     reconcileCloud();
                 })
