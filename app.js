@@ -2458,10 +2458,38 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function overdueTenantName(unit) {
-        if (unit.tenantName) return unit.tenantName;
         var history = Array.isArray(unit.contractHistory)
             ? unit.contractHistory.slice()
             : [];
+        var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object"
+            ? unit.lateLedger
+            : {};
+
+        // Atrasos guardados no histórico pertencem ao contrato encerrado,
+        // nunca ao inquilino que ocupa a unidade hoje.
+        var historicalLateKeys = Object.keys(lateLedger).filter(function (key) {
+            return lateLedger[key] === true ||
+                lateLedger[key] === "open" ||
+                lateLedger[key] === "paid";
+        });
+        if (historicalLateKeys.length && history.length) {
+            var matchingContracts = history.filter(function (contract) {
+                return historicalLateKeys.some(function (key) {
+                    return (!contract.startYm || key >= contract.startYm) &&
+                        (!contract.endYm || key <= contract.endYm);
+                });
+            });
+            var candidates = matchingContracts.length ? matchingContracts : history;
+            candidates.sort(function (left, right) {
+                return String(right.endYm || right.startYm || "").localeCompare(
+                    String(left.endYm || left.startYm || "")
+                );
+            });
+            if (candidates[0] && candidates[0].tenantName)
+                return candidates[0].tenantName;
+        }
+
+        if (unit.tenantName) return unit.tenantName;
         history.sort(function (left, right) {
             return String(right.endYm || right.startYm || "").localeCompare(
                 String(left.endYm || left.startYm || "")
