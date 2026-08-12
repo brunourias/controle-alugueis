@@ -2189,32 +2189,72 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function renderActionCenter() {
         var container = document.getElementById("actionCenter");
         if (!container) return;
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-        var overdue = 0, dueSoon = 0, endingSoon = 0, vacant = 0;
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var overdue = 0, dueSoon = 0, vacant = 0, renewals = [], calendar = [], enterprises = {};
         scopedUnits().forEach(function (unit) {
+            var enterprise = empreendimentoName(unit.empreendimentoId);
+            enterprises[enterprise] = enterprises[enterprise] || { units: 0, expected: 0, received: 0, late: 0 };
+            enterprises[enterprise].units += 1;
             if (!String(unit.tenantName || "").trim()) vacant += 1;
             months.forEach(function (_, month) {
-                var key = monthKey(month);
-                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") overdue += 1;
+                var key = monthKey(month), ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") { overdue += 1; enterprises[enterprise].late += 1; }
             });
-            if (isActive(unit, today.getMonth()) && statusFor(unit, today.getMonth()) === "pendente") {
+            var currentMonth = today.getMonth();
+            if (isActive(unit, currentMonth)) {
+                enterprises[enterprise].expected += Number(rentForMonth(unit, selectedYear, currentMonth)) || 0;
+                enterprises[enterprise].received += historicalReceivedAmount(unit, selectedYear, currentMonth);
                 var reminder = dueReminder(unit);
-                if (reminder) dueSoon += 1;
+                if (reminder !== null) { dueSoon += 1; calendar.push({ date: dueDateFor(unit, currentMonth), label: unit.name + " · vence em " + reminder + " dia(s)" }); }
             }
-            if (unit.endDate && String(unit.endDate).match(/^\d{4}-\d{2}-\d{2}$/)) {
-                var end = new Date(unit.endDate + "T12:00:00");
-                var days = Math.ceil((end - today) / 86400000);
-                if (days >= 0 && days <= 60 && String(unit.tenantName || "").trim()) endingSoon += 1;
+            if (unit.endDate && String(unit.endDate).match(/^\d{4}-\d{2}-\d{2}$/) && String(unit.tenantName || "").trim()) {
+                var endDate = new Date(unit.endDate + "T12:00:00"), days = Math.ceil((endDate - today) / 86400000);
+                if (days >= 0 && days <= 60) { renewals.push({ unit: unit, days: days }); calendar.push({ date: endDate, label: unit.name + " · contrato termina" }); }
             }
         });
-        var cards = [];
-        if (overdue) cards.push('<div class="action-item is-danger"><strong>' + overdue + ' parcela' + (overdue === 1 ? '' : 's') + ' em atraso</strong><span>Prioridade: cobrar e dar baixa</span></div>');
-        if (dueSoon) cards.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Acompanhe os próximos dias</span></div>');
-        if (endingSoon) cards.push('<div class="action-item is-info"><strong>' + endingSoon + ' contrato' + (endingSoon === 1 ? '' : 's') + ' perto do fim</strong><span>Decida renovar ou encerrar</span></div>');
-        if (vacant) cards.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para nova locação</span></div>');
-        container.innerHTML = '<div class="action-center-heading"><div><h2>O que precisa de ação</h2><p>Seu painel de decisões do período.</p></div><span class="action-count">' + (cards.length || '0') + '</span></div>' + (cards.length ? '<div class="action-list">' + cards.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>');
+        var tasks = state.tasks.filter(function (task) { return !task.done; }).sort(function (a,b) { return String(a.dueDate).localeCompare(String(b.dueDate)); });
+        var alerts = [];
+        if (overdue) alerts.push('<div class="action-item is-danger"><strong>' + overdue + ' parcela' + (overdue === 1 ? '' : 's') + ' em atraso</strong><span>Prioridade: cobrar e dar baixa</span></div>');
+        if (dueSoon) alerts.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Antecedência configurada nas configurações</span></div>');
+        if (vacant) alerts.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para nova locação</span></div>');
+        var renewalHtml = renewals.map(function (item) {
+            var decision = state.renewalDecisions[item.unit.id] || "";
+            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName) + ' · termina em ' + item.days + ' dias' + (decision ? ' · ' + escapeHtml(decision) : '') + '</span></div><div><button class="btn btn-ghost" data-renewal-decision="renovar" data-unit-id="' + escapeHtml(item.unit.id) + '">Renovar</button><button class="btn btn-ghost" data-renewal-decision="decidir" data-unit-id="' + escapeHtml(item.unit.id) + '">A decidir</button></div></div>';
+        }).join("") || '<p class="operations-empty">Nenhum contrato perto do fim.</p>';
+        var tasksHtml = tasks.slice(0,5).map(function (task) {
+            return '<div class="operations-row"><label><input type="checkbox" data-task-done="' + escapeHtml(task.id) + '"> <strong>' + escapeHtml(task.title) + '</strong><span>' + (task.dueDate ? 'Até ' + escapeHtml(formatTimelineDate(task.dueDate)) : 'Sem prazo') + '</span></label></div>';
+        }).join("") || '<p class="operations-empty">Nenhuma tarefa pendente.</p>';
+        var calendarHtml = calendar.filter(function (item) { return item.date && item.date >= today; }).sort(function(a,b){return a.date-b.date;}).slice(0,5).map(function(item) {
+            return '<div class="calendar-event"><b>' + String(item.date.getDate()).padStart(2,"0") + '</b><span>' + escapeHtml(item.label) + '</span></div>';
+        }).join("") || '<p class="operations-empty">Nenhum evento próximo.</p>';
+        var enterpriseHtml = Object.keys(enterprises).map(function (name) { var item=enterprises[name]; return '<div class="enterprise-kpi"><strong>' + escapeHtml(name) + '</strong><span>' + item.units + ' unidades · ' + money(item.received) + ' recebido de ' + money(item.expected) + '</span>' + (item.late ? '<em>' + item.late + ' atraso(s)</em>' : '') + '</div>'; }).join("");
+        container.innerHTML = '<div class="action-center-heading"><div><h2>O que precisa de ação</h2><p>Decisões, cobranças e próximos passos.</p></div><div class="operations-actions"><button class="btn btn-ghost" id="addOperationalTask" type="button">+ Tarefa</button><button class="btn btn-ghost" id="exportOperationalCsv" type="button">Exportar planilha</button></div></div>' +
+            (alerts.length ? '<div class="action-list">' + alerts.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>') +
+            '<div class="operations-grid"><section><h3>Renovações</h3>' + renewalHtml + '</section><section><h3>Tarefas</h3>' + tasksHtml + '</section><section><h3>Próximos eventos</h3>' + calendarHtml + '</section><section><h3>Por empreendimento</h3>' + enterpriseHtml + '</section></div>';
+        var add = document.getElementById("addOperationalTask");
+        if (add) add.addEventListener("click", function () {
+            var title = window.prompt("Qual tarefa você quer registrar?");
+            if (!title || !title.trim()) return;
+            var due = window.prompt("Prazo (DD/MM/AAAA, opcional):") || "";
+            var parsed = due.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            state.tasks.push({ id:"task-"+Date.now().toString(36), title:title.trim(), dueDate:parsed ? parsed[3]+"-"+parsed[2]+"-"+parsed[1] : "", unitId:"", done:false, createdAt:new Date().toISOString() });
+            saveState(); render();
+        });
+        container.querySelectorAll("[data-task-done]").forEach(function (input) { input.addEventListener("change", function () { var task=state.tasks.find(function(item){return item.id===input.dataset.taskDone;}); if(task){task.done=input.checked;saveState();render();} }); });
+        container.querySelectorAll("[data-renewal-decision]").forEach(function (button) { button.addEventListener("click", function () { state.renewalDecisions[button.dataset.unitId] = button.dataset.renewalDecision === "renovar" ? "Renovar" : "A decidir"; saveState(); render(); }); });
+        var exportButton = document.getElementById("exportOperationalCsv");
+        if (exportButton) exportButton.addEventListener("click", exportOperationalCsv);
+    }
+
+    function exportOperationalCsv() {
+        var rows = [["Unidade","Empreendimento","Inquilino","Aluguel atual","Status atual","Atrasos 12 meses","Decisão de renovação"]];
+        scopedUnits().forEach(function (unit) {
+            var current = new Date().getFullYear() === selectedYear ? new Date().getMonth() : 0;
+            rows.push([unit.name, empreendimentoName(unit.empreendimentoId), unit.tenantName || "", String(rentForMonth(unit, selectedYear, current) || 0).replace(".",","), displayStatus(unit,current), lateRecurrenceStatus(unit,selectedYear,current).count, state.renewalDecisions[unit.id] || ""]);
+        });
+        var csv = "\ufeff" + rows.map(function(row){return row.map(function(cell){return '"' + String(cell).replace(/"/g,'""') + '"';}).join(";");}).join("\n");
+        var url = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"})), link=document.createElement("a");
+        link.href=url; link.download="controle-alugueis-"+selectedYear+".csv"; link.click(); URL.revokeObjectURL(url);
     }
 
     // Retorna o contrato encerrado que abrangia determinado mês.
