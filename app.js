@@ -2495,7 +2495,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                       "</span>";
 
             var compactActions = tenantActions(unit)
-                ? '<details class="unit-context-menu"><summary aria-label="Mais ações para ' +
+                ? '<details class="unit-context-menu" data-tenant-action><summary aria-label="Mais ações para ' +
                   escapeHtml(unit.name) +
                   '">⋯</summary><div class="unit-context-actions">' +
                   tenantActions(unit) +
