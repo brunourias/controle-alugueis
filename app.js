@@ -257,6 +257,10 @@ var historyRent = document.getElementById("historyRent");
     var firebaseUser = null;
     var firebaseUnsubscribe = null;
     var cloudWriteTimer = null;
+    var cloudWriteInFlight = false;
+    var cloudWriteQueued = false;
+    var cloudHasPendingWrite = false;
+    var cloudWriteRevision = 0;
     var cloudUpdatedAt = 0;
     var cloudApplyingRemote = false;
     var cloudPendingRemote = null;
@@ -847,29 +851,55 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function scheduleCloudWrite() {
         if (!firebaseUser || !firebaseDb || cloudApplyingRemote) return;
 
+        cloudHasPendingWrite = true;
+        cloudWriteRevision += 1;
         updateConnectionStatus();
 
-        clearTimeout(cloudWriteTimer);
+        if (!navigator.onLine) {
+            setSyncStatus("Offline — alterações salvas localmente");
+            return;
+        }
 
+        if (cloudWriteInFlight) {
+            cloudWriteQueued = true;
+            return;
+        }
+
+        clearTimeout(cloudWriteTimer);
         cloudWriteTimer = setTimeout(writeCloudState, 800);
     }
 
     function writeCloudState() {
         var ref = cloudDocRef();
 
-        if (!ref) return;
+        if (!ref || !cloudHasPendingWrite) return;
 
+        if (!navigator.onLine) {
+            setSyncStatus("Offline — alterações salvas localmente");
+            return;
+        }
+
+        if (cloudWriteInFlight) {
+            cloudWriteQueued = true;
+            return;
+        }
+
+        var revision = cloudWriteRevision;
         var updatedAt = Date.now();
+        var payload = JSON.parse(JSON.stringify(state));
 
+        cloudWriteInFlight = true;
+        cloudWriteQueued = false;
         cloudUpdatedAt = Math.max(cloudUpdatedAt, updatedAt);
 
         ref.set({
-            payload: state,
+            payload: payload,
             updatedAt: updatedAt,
         })
             .then(function () {
                 cloudUpdatedAt = updatedAt;
                 cloudPendingRemote = null;
+                cloudHasPendingWrite = revision < cloudWriteRevision;
 
                 cloudReconcile.hidden = true;
                 cloudBanner.hidden = true;
@@ -877,9 +907,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 setCloudStatus(
                     "Conta conectada. Sincronização automática ativa."
                 );
-                setSyncStatus("Sincronizado");
+                setSyncStatus(
+                    cloudHasPendingWrite ? "Sincronizando..." : "Sincronizado"
+                );
             })
             .catch(function (error) {
+                // Mantém a alteração pendente para uma nova tentativa ao reconectar.
+                cloudHasPendingWrite = true;
                 setCloudError(cloudErrorMessage(error));
 
                 setSyncStatus(
@@ -887,6 +921,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         ? "Não sincronizado — salvo localmente"
                         : "Offline — alterações salvas localmente"
                 );
+            })
+            .then(function () {
+                cloudWriteInFlight = false;
+
+                if (cloudWriteQueued || cloudWriteRevision > revision) {
+                    cloudWriteQueued = false;
+                    clearTimeout(cloudWriteTimer);
+                    cloudWriteTimer = setTimeout(writeCloudState, 0);
+                }
             });
     }
 
@@ -959,7 +1002,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     data && data.payload ? normalizeState(data.payload) : null;
                 cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
                 if (!remoteState) {
-                    writeCloudState();
+                    scheduleCloudWrite();
                     subscribeCloud();
                     return;
                 }
@@ -1006,7 +1049,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         cloudUpdatedAt = Date.now();
 
-        writeCloudState();
+        scheduleCloudWrite();
 
         subscribeCloud();
     }
@@ -5844,7 +5887,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     bannerUseLocal.addEventListener("click", chooseLocalData);
 
     window.addEventListener("online", function () {
-        if (firebaseUser) updateConnectionStatus();
+        if (!firebaseUser) return;
+        updateConnectionStatus();
+        if (cloudHasPendingWrite) scheduleCloudWrite();
     });
 
     window.addEventListener("offline", function () {
