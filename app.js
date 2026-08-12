@@ -3330,6 +3330,7 @@ document
 		renderContractHistory();
 
 		document.getElementById("deleteUnit").hidden = !unit;
+		document.getElementById("startNewContract").hidden = hasCurrentContract;
 
 		// Abre o modal usando o ModalManager
 		ModalManager.open(modal);
@@ -6471,5 +6472,51 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     archiveContract.removeEventListener("click", archiveCurrentContract);
     archiveContract.addEventListener("click", startNewContractTransition);
+
+
+
+    /* Encerrar e cadastrar são etapas independentes. */
+    var startNewContractButton = document.getElementById("startNewContract");
+
+    function prepareNewContractForm() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        document.getElementById("modalTitle").textContent = unit
+            ? "Novo contrato · " + unit.name
+            : "Novo contrato";
+        tenantName.value = "";
+        tenantPhone.value = "";
+        tenantEmail.value = "";
+        tenantNotes.value = "";
+        unitRent.value = "";
+        unitDueDay.value = "";
+        unitStartYm.value = "";
+        unitEndYm.value = "";
+        pendingRentChanges = [];
+        document.getElementById("rentChanges").open = false;
+        renderRentChanges();
+        startNewContractButton.hidden = true;
+        tenantName.focus();
+    }
+
+    function endCurrentContractOnly() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        if (!unit || !String(tenantName.value || "").trim()) {
+            tenantName.focus();
+            return;
+        }
+        var previousTenant = tenantName.value.trim();
+        if (!window.confirm(
+            "Encerrar o contrato de " + previousTenant +
+            "? As parcelas, pagamentos e pendências serão preservados. A unidade poderá ficar vaga."
+        )) return;
+
+        archiveCurrentContract();
+        document.getElementById("modalTitle").textContent = "Unidade vaga · " + unit.name;
+        startNewContractButton.hidden = false;
+    }
+
+    archiveContract.removeEventListener("click", startNewContractTransition);
+    archiveContract.addEventListener("click", endCurrentContractOnly);
+    startNewContractButton.addEventListener("click", prepareNewContractForm);
 
 })();
