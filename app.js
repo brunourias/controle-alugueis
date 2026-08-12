@@ -142,6 +142,7 @@ const ModalManager = (() => {
     var authMode = "login";
     var autoLockTimer = null;
     var AUTO_LOCK_MS = 5 * 60 * 1000;
+    var sensitiveAction = null;
 
     var grid = document.getElementById("grid");
     var tableWrap = grid.parentElement;
@@ -1431,6 +1432,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
             return;
         }
 
+        if (authMode === "sensitive") {
+            if (!(await verifyPin(authPin.value, lockConfig))) {
+                showAuthError("PIN incorreto.");
+                authPin.select();
+                return;
+            }
+            var action = sensitiveAction;
+            sensitiveAction = null;
+            closeAuth();
+            if (action) action();
+            return;
+        }
+
         if (authMode === "create") {
             if (!isValidPin(authNewPin.value)) {
                 showAuthError("O PIN deve ter pelo menos 4 dígitos numéricos.");
@@ -1501,7 +1515,28 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (appUnlocked) armAutoLock();
     }
 
-    function exportBackup() {
+    function requireSensitiveAccess(action, callback) {
+        if (!lockConfig) {
+            window.alert("Defina um PIN em Configurações > Segurança para confirmar " + action + ".");
+            return;
+        }
+        sensitiveAction = callback;
+        authMode = "sensitive";
+        authTitle.textContent = "Confirmar ação";
+        authMessage.textContent = "Digite seu PIN para " + action + ".";
+        authNewLabel.hidden = true;
+        authConfirmLabel.hidden = true;
+        authPinLabel.hidden = false;
+        authPinLabel.firstChild.textContent = "PIN";
+        authSkip.hidden = true;
+        authSubmit.textContent = "Confirmar";
+        authPin.value = "";
+        showAuthError("");
+        authModal.hidden = false;
+        setTimeout(function () { focusAuthInput(authPin); }, 0);
+    }
+
+    function exportBackupNow() {
         var date = new Date().toISOString().slice(0, 10);
         var blob = new Blob([JSON.stringify(state, null, 2)], {
             type: "application/json",
@@ -1516,7 +1551,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         URL.revokeObjectURL(url);
     }
 
-    function importBackup(event) {
+    function importBackupNow(event) {
         //--------------------------------------------------------------------------------------------
         var file = event.target.files[0];
         event.target.value = "";
@@ -3466,6 +3501,16 @@ document
 
 		
 	}
+
+    function exportBackup() {
+        requireSensitiveAccess("exportar o backup", exportBackupNow);
+    }
+
+    function importBackup(event) {
+        requireSensitiveAccess("importar um backup", function () {
+            importBackupNow(event);
+        });
+    }
 
     function closeModal() {
         ModalManager.close(modal);
