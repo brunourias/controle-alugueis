@@ -6438,4 +6438,38 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         render();
     }
 
+
+
+    /* Fluxo único de troca: encerra, persiste o financeiro e prepara o novo contrato. */
+    function startNewContractTransition() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        if (!unit || !String(tenantName.value || "").trim()) {
+            tenantName.focus();
+            return;
+        }
+        var previousTenant = tenantName.value.trim();
+        if (!window.confirm(
+            "Encerrar o contrato de " + previousTenant +
+            " e iniciar um novo? As parcelas, pagamentos e pendências já registrados serão preservados."
+        )) return;
+
+        archiveCurrentContract();
+
+        document.getElementById("modalTitle").textContent = "Novo contrato · " + unit.name;
+        tenantName.value = "";
+        tenantPhone.value = "";
+        tenantEmail.value = "";
+        tenantNotes.value = "";
+        unitRent.value = "";
+        unitDueDay.value = "";
+        unitStartYm.value = "";
+        unitEndYm.value = "";
+        pendingRentChanges = [];
+        document.getElementById("rentChanges").open = false;
+        tenantName.focus();
+    }
+
+    archiveContract.removeEventListener("click", archiveCurrentContract);
+    archiveContract.addEventListener("click", startNewContractTransition);
+
 })();
