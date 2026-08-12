@@ -2359,3 +2359,7 @@ textarea:focus-visible {
     .backup-toolbar,
     .action-center { border-radius: var(--radius-md); }
 }
+
+/* Ações concentradas no celular */
+.mobile-fab,.unit-context-menu{display:none;}
+@media(max-width:768px){.mobile-fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;display:grid;place-items:center;width:58px;height:58px;border:0;border-radius:50%;color:#fff;background:var(--teal);box-shadow:0 12px 26px rgba(15,118,110,.32);font-size:2rem;line-height:1}.mobile-fab:active{transform:scale(.94)}#addUnit{display:none}.unit-cell .tenant-actions{display:none}.unit-context-menu{position:absolute;top:9px;right:8px;display:block;z-index:3}.unit-context-menu summary{display:grid;place-items:center;width:30px;height:30px;list-style:none;border-radius:50%;color:#37625f;background:#edf5f4;font-size:1.3rem;font-weight:800;cursor:pointer}.unit-context-menu summary::-webkit-details-marker{display:none}.unit-context-actions{position:absolute;top:35px;right:0;display:flex;gap:5px;min-width:max-content;padding:7px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 10px 24px rgba(15,77,73,.18)}.unit-context-actions .tenant-action{min-width:34px;min-height:34px;display:grid;place-items:center;padding:5px 8px}.unit-cell{position:relative;padding-right:38px}}
