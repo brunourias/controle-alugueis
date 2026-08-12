@@ -6413,4 +6413,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         saveState(); renderBackupHistory();
     });
 
+
+
+    /* Integrações de interface da auditoria. */
+    document.getElementById("cancelPaymentAdjust").addEventListener("click", function () {
+        historicPaymentAdjustContext = null;
+    });
+    document.getElementById("settingsButton").addEventListener("click", function () {
+        setTimeout(renderBackupHistory, 0);
+    });
+
 })();
