@@ -2406,3 +2406,80 @@ textarea:focus-visible {
 .summary-bar + .summary .summary-cards {
     margin-top: 0;
 }
+
+
+/* Ajustes de ações compactas no celular */
+@media (max-width: 768px) {
+    /* O botão fica presente, mas nunca concorre com um diálogo aberto. */
+    .mobile-fab {
+        right: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom));
+        z-index: 20;
+        width: 52px;
+        height: 52px;
+        border: 2px solid #d8f0ea;
+        box-shadow: 0 8px 18px rgba(15, 118, 110, .26);
+        font-size: 1.8rem;
+    }
+
+    body:has(.modal-overlay:not([hidden])) .mobile-fab {
+        display: none;
+    }
+
+    /* O menu deixa de ser um popover cortado pela tabela: abre na própria unidade. */
+    .unit-cell {
+        padding-right: 46px;
+    }
+
+    .unit-context-menu {
+        position: static;
+        display: block;
+        width: 100%;
+        margin-top: 9px;
+    }
+
+    .unit-context-menu summary {
+        position: absolute;
+        top: 7px;
+        right: 5px;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid #d4e7e3;
+        border-radius: 11px;
+        color: #0d5c58;
+        background: #edf7f5;
+        font-size: 1.55rem;
+        font-weight: 850;
+        line-height: 1;
+        box-shadow: 0 2px 5px rgba(15, 77, 73, .08);
+    }
+
+    .unit-context-menu[open] summary {
+        color: #fff;
+        background: var(--teal);
+        border-color: var(--teal);
+    }
+
+    .unit-context-actions {
+        position: static;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        padding: 8px;
+        border: 1px solid #d6e6e3;
+        border-radius: 12px;
+        background: #f9fcfb;
+        box-shadow: none;
+    }
+
+    .unit-context-actions .tenant-action,
+    .unit-context-actions .charge-btn {
+        min-width: 34px;
+        min-height: 34px;
+    }
+}
