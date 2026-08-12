@@ -429,9 +429,9 @@
                 </label>
                 <section class="contract-attachments-section">
                     <h3>Documentos do contrato</h3>
-                    <p class="field-help">Anexe contrato, vistoria ou comprovantes desta unidade. Os arquivos serão guardados na sua nuvem.</p>
-                    <input id="contractAttachment" type="file" accept=".pdf,image/*,.doc,.docx" />
-                    <p id="attachmentStatus" class="field-help"></p>
+                    <p class="field-help">Envio de documentos para a nuvem está desabilitado para evitar custos de armazenamento.</p>
+                    <input id="contractAttachment" type="file" disabled aria-disabled="true" />
+                    <p id="attachmentStatus" class="field-help">Anexos novos estão desabilitados.</p>
                     <div id="attachmentList" class="attachment-list"></div>
                 </section>
 
@@ -1109,7 +1109,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
     <script src="app.js"></script>
