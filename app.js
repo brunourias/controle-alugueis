@@ -2417,6 +2417,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
         lastGridScrollLeft = tableWrap.scrollLeft;
     }
 
+    function overdueTenantName(unit) {
+        if (unit.tenantName) return unit.tenantName;
+        var history = Array.isArray(unit.contractHistory)
+            ? unit.contractHistory.slice()
+            : [];
+        history.sort(function (left, right) {
+            return String(right.endYm || right.startYm || "").localeCompare(
+                String(left.endYm || left.startYm || "")
+            );
+        });
+        return history.length ? history[0].tenantName : "";
+    }
+
 function renderSummary() {
     var annual = scopedUnits().reduce(function (sum, unit) {
         return (
@@ -2489,8 +2502,8 @@ function renderSummary() {
     scopedUnits().forEach(function (unit) {
         months.forEach(function (_, i) {
             if (
-                isActive(unit, i) &&
-                effectiveStatus(unit, i) === "atrasado"
+                effectiveStatus(unit, i) === "atrasado" ||
+                statusFor(unit, i) === "atrasado"
             ) {
                 overdueCount += 1;
                 overdueTotal +=
@@ -2517,15 +2530,15 @@ function renderSummary() {
             var paidLate = 0;
             months.forEach(function (_, i) {
                 if (
-                    isActive(unit, i) &&
-                    effectiveStatus(unit, i) === "atrasado"
+                    effectiveStatus(unit, i) === "atrasado" ||
+                    statusFor(unit, i) === "atrasado"
                 )
                     openLate += 1;
                 if (isPaidLate(unit, i)) paidLate += 1;
             });
             return {
                 name: unit.name,
-                tenantName: unit.tenantName,
+                tenantName: overdueTenantName(unit),
                 enterprise: empreendimentoName(unit.empreendimentoId),
                 openLate: openLate,
                 paidLate: paidLate,
