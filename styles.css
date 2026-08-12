@@ -2201,3 +2201,14 @@ tfoot td {
 
 /* Estados da grade: pendente e fora do período têm contraste próprio */
 .status-inactive{color:#8d7a4f;background:#f5f0e4;border:1px dashed #d9cba7}.status-inactive span{color:#8d7a4f}.status-btn.chip-pendente{color:#53636b;background:#e3ebee;border:1px solid #c8d5da}
+
+
+.contract-installments-modal { max-width: 650px; }
+.contract-installments-list { display: grid; gap: 8px; max-height: 52vh; overflow: auto; margin: 14px 0; }
+.contract-installment-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px; border: 1px solid var(--line); border-radius: 10px; }
+.contract-installment-row strong { display: block; color: var(--ink); font-size: .84rem; }
+.contract-installment-row span { color: var(--muted); font-size: .75rem; }
+.contract-installment-row.is-late { border-color: #eab1b7; background: #fff8f8; }
+.contract-installment-row.is-paid { border-color: #b9dfd5; background: #f4fcf9; }
+.contract-installment-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.contract-installment-actions .btn { min-height: 34px; padding: 0 9px; font-size: .72rem; }
