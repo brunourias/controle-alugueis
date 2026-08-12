@@ -966,6 +966,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
                 if (remoteUpdatedAt <= cloudUpdatedAt || !data.payload) return;
 
+                /*
+                 * Outra sessão/aparelho alterou a nuvem enquanto este ainda
+                 * possui uma alteração local pendente. Não sobrescrevemos
+                 * nada silenciosamente: o usuário escolhe qual versão manter.
+                 */
+                if (
+                    cloudHasPendingWrite &&
+                    !cloudStatesEqual(state, data.payload)
+                ) {
+                    cloudPendingRemote = normalizeState(data.payload);
+                    setCloudReconcilePrompt(cloudPendingRemote);
+                    setSyncStatus("Aguardando escolha");
+                    return;
+                }
+
                 cloudUpdatedAt = remoteUpdatedAt;
 
                 applyRemoteState(data.payload);
@@ -1035,6 +1050,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function chooseCloudData() {
         if (!cloudPendingRemote) return;
+
+        // A escolha pela nuvem descarta somente a alteração local pendente.
+        clearTimeout(cloudWriteTimer);
+        cloudWriteQueued = false;
+        cloudHasPendingWrite = false;
 
         applyRemoteState(cloudPendingRemote);
 
