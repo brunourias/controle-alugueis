@@ -2514,17 +2514,13 @@ function renderSummary() {
     var now = new Date();
     var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
 
+    // Usa a mesma fonte de verdade do total anual: pagamentos confirmados
+    // de contratos ativos e encerrados, sem depender do inquilino atual.
     var received =
         current < 0
             ? 0
             : scopedUnits().reduce(function (sum, unit) {
-                  return (
-                      sum +
-                      (isActive(unit, current) &&
-                      statusFor(unit, current) === "pago"
-                          ? rentForMonth(unit, selectedYear, current)
-                          : 0)
-                  );
+                  return sum + historicalReceivedAmount(unit, selectedYear, current);
               }, 0);
 
     var pending =
