@@ -86,6 +86,7 @@ const ModalManager = (() => {
         // O valor agora representa JUROS DE MORA AO MÊS, não ao dia.
         dailyInterestPercent: 1,
         receiverName: "",
+        reminderDays: 5,
     };
     var months = [
         "Jan",
@@ -207,6 +208,7 @@ var historyRent = document.getElementById("historyRent");
 
     var dailyInterestPercent = document.getElementById("dailyInterestPercent");
     var receiverName = document.getElementById("receiverName");
+    var reminderDays = document.getElementById("reminderDays");
     var securityStatus = document.getElementById("securityStatus");
     var currentPinLabel = document.getElementById("currentPinLabel");
     var currentPin = document.getElementById("currentPin");
@@ -479,6 +481,10 @@ var historyRent = document.getElementById("historyRent");
                 settings && typeof settings.receiverName === "string"
                     ? settings.receiverName.trim()
                     : DEFAULT_SETTINGS.receiverName,
+            reminderDays:
+                settings && Number.isInteger(Number(settings.reminderDays)) && Number(settings.reminderDays) >= 0 && Number(settings.reminderDays) <= 30
+                    ? Number(settings.reminderDays)
+                    : DEFAULT_SETTINGS.reminderDays,
         };
     }
 
@@ -1871,7 +1877,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var today = new Date();
         today.setHours(0, 0, 0, 0);
         var days = Math.round((due - today) / 86400000);
-        if (days < 0 || days > DUE_SOON_DAYS) return null;
+        if (days < 0 || days > Number(state.settings.reminderDays || DUE_SOON_DAYS)) return null;
         return days;
     }
 
@@ -4483,6 +4489,7 @@ function saveExpense() {
     function saveSettings() {
         var fine = Number(finePercent.value);
         var interest = Number(dailyInterestPercent.value);
+        var reminder = Number(reminderDays.value);
         if (!Number.isFinite(fine) || fine < 0) {
             finePercent.setCustomValidity(
                 "Informe um percentual válido igual ou maior que zero."
@@ -4499,13 +4506,18 @@ function saveExpense() {
             dailyInterestPercent.focus();
             return;
         }
+        if (!Number.isInteger(reminder) || reminder < 0 || reminder > 30) {
+            reminderDays.setCustomValidity("Informe de 0 a 30 dias."); reminderDays.reportValidity(); reminderDays.focus(); return;
+        }
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
+        reminderDays.setCustomValidity("");
         state.settings = {
             finePercent: fine,
             // Este campo mantém o nome antigo, mas representa % ao mês.
             dailyInterestPercent: interest,
             receiverName: receiverName.value.trim(),
+            reminderDays: reminder,
         };
         saveState();
         closeSettings();
