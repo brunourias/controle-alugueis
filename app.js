@@ -6619,4 +6619,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     document.getElementById("paymentAdjustFine").addEventListener("input", updatePaymentAdjustTotal);
 
+
+
+    document.getElementById("cancelPaymentAdjust").addEventListener("click", function () {
+        historicPaymentAdjustContext = null;
+    });
+
 })();
