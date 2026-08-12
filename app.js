@@ -3438,6 +3438,14 @@ function archiveCurrentContract() {
             var key = monthKey(month);
             var status = statusFor(existingUnit, month);
 
+            // Converte atrasos calculados automaticamente em um status persistido
+            // antes de limpar os dados do contrato. Sem isso, o vencimento some
+            // ao encerrar a unidade e a dívida deixa de aparecer no resumo.
+            if (effectiveStatus(existingUnit, month) === "atrasado") {
+                existingUnit.status[key] = "atrasado";
+                status = "atrasado";
+            }
+
             if (status !== "pago") return;
 
             if (existingUnit.paymentHistory[key]) return;
