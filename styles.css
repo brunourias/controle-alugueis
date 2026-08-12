@@ -1304,9 +1304,19 @@ tfoot td {
     font-size: 1rem;
 }
 
+.rent-changes-section {
+    margin-top: 12px;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: 0;
+    border-bottom: 0;
+}
+
 .rent-changes-section summary {
+    color: var(--teal-dark);
     cursor: pointer;
-    font-weight: 800;
+    font-size: .76rem;
+    font-weight: 750;
 }
 
 .rent-changes-section[open] summary {
