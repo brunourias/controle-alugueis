@@ -1433,8 +1433,25 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         if (authMode === "sensitive") {
-            if (!(await verifyPin(authPin.value, lockConfig))) {
-                showAuthError("PIN incorreto.");
+            try {
+                if (firebaseUser && firebaseAuth) {
+                    var usesGoogle = firebaseUser.providerData.some(function (provider) {
+                        return provider.providerId === "google.com";
+                    });
+                    if (usesGoogle) {
+                        await firebaseUser.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+                    } else {
+                        var credential = firebase.auth.EmailAuthProvider.credential(
+                            firebaseUser.email,
+                            authPin.value
+                        );
+                        await firebaseUser.reauthenticateWithCredential(credential);
+                    }
+                } else if (!(await verifyPin(authPin.value, lockConfig))) {
+                    throw new Error("PIN incorreto.");
+                }
+            } catch (error) {
+                showAuthError(error.message === "PIN incorreto." ? error.message : "Não foi possível confirmar sua identidade.");
                 authPin.select();
                 return;
             }
@@ -1522,12 +1539,17 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
         sensitiveAction = callback;
         authMode = "sensitive";
+        var requiresAccountPassword = !!(firebaseUser && firebaseAuth);
         authTitle.textContent = "Confirmar ação";
-        authMessage.textContent = "Digite seu PIN para " + action + ".";
+        authMessage.textContent = requiresAccountPassword
+            ? "Digite a senha da sua conta para " + action + "."
+            : "Digite seu PIN para " + action + ".";
         authNewLabel.hidden = true;
         authConfirmLabel.hidden = true;
         authPinLabel.hidden = false;
-        authPinLabel.firstChild.textContent = "PIN";
+        authPinLabel.firstChild.textContent = requiresAccountPassword ? "Senha da conta" : "PIN";
+        authPin.inputMode = requiresAccountPassword ? "text" : "numeric";
+        authPin.removeAttribute("pattern");
         authSkip.hidden = true;
         authSubmit.textContent = "Confirmar";
         authPin.value = "";
