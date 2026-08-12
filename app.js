@@ -683,6 +683,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 : 0;
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
+        unit.chargeLog = Array.isArray(unit.chargeLog) ? unit.chargeLog.filter(function (entry) {
+            return entry && typeof entry === "object" && typeof entry.createdAt === "string";
+        }).slice(0, 40) : [];
         unit.lateLedger =
             unit.lateLedger &&
             typeof unit.lateLedger === "object" &&
@@ -2144,7 +2147,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 escapeHtml(charge) +
                 '" target="_blank" rel="noopener noreferrer" aria-label="Cobrar ' +
                 escapeHtml(unit.tenantName || "inquilino") +
-                ' pelo WhatsApp" data-tenant-action>Cobrar</a>';
+                ' pelo WhatsApp" data-tenant-action data-charge-unit="' + escapeHtml(unit.id) + '">Cobrar</a>';
         }
         var whatsapp = whatsappUrl(unit.tenantPhone);
         if (whatsapp) {
@@ -2511,10 +2514,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
                       "</span>"
                     : "";
 
+			var recurrence = lateRecurrenceStatus(unit, selectedYear, currentMonth >= 0 ? currentMonth : 0);
+            var recurrenceBadge = recurrence.count
+                ? '<span class="tenant-recurrence ' + (recurrence.reached ? "is-alert" : "") + '">' + recurrence.count + ' atraso(s) / 12 meses</span>'
+                : "";
 			var tenant = unit.tenantName
-				? '<span class="tenant-name">' +
-				  escapeHtml(unit.tenantName) +
-				  "</span>"
+				? '<span class="tenant-name">' + escapeHtml(unit.tenantName) + "</span>" + recurrenceBadge
 				: '<span class="tenant-name tenant-no-contract">Sem contrato ativo</span>';
 
             var now = new Date();
@@ -2664,6 +2669,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
     grid.querySelectorAll("[data-tenant-action]").forEach(function (link) {
         link.addEventListener("click", function (event) {
             event.stopPropagation();
+            if (link.dataset.chargeUnit) {
+                var unit = state.units.find(function (item) { return item.id === link.dataset.chargeUnit; });
+                if (unit) {
+                    unit.chargeLog = Array.isArray(unit.chargeLog) ? unit.chargeLog : [];
+                    unit.chargeLog.unshift({ createdAt:new Date().toISOString(), channel:"WhatsApp", tenantName:unit.tenantName || "" });
+                    unit.chargeLog = unit.chargeLog.slice(0,40);
+                    recordOperation("Cobrança enviada", unit.name + " · WhatsApp");
+                    saveState();
+                }
+            }
         });
 
         link.addEventListener("keydown", function (event) {
