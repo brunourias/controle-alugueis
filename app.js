@@ -657,6 +657,30 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 : 0;
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
+        unit.lateLedger =
+            unit.lateLedger &&
+            typeof unit.lateLedger === "object" &&
+            !Array.isArray(unit.lateLedger)
+                ? unit.lateLedger
+                : {};
+        // Migra atrasos do contrato anterior quando uma nova locação começa depois dele.
+        if (isValidDateValue(unit.startDate)) {
+            unit.contractHistory.forEach(function (contract) {
+                if (!isValidDateValue(contract.endDate) || contract.endDate >= unit.startDate) return;
+                Object.keys(unit.status).forEach(function (key) {
+                    if (key <= contract.endYm && unit.status[key] === "atrasado") {
+                        unit.lateLedger[key] = "open";
+                        delete unit.status[key];
+                    }
+                });
+                Object.keys(unit.paidLate).forEach(function (key) {
+                    if (key <= contract.endYm && unit.paidLate[key] === true) {
+                        unit.lateLedger[key] = "paid";
+                        delete unit.paidLate[key];
+                    }
+                });
+            });
+        }
 		if (unit.startYm && unit.endYm && unit.endYm < unit.startYm)
             unit.endYm = null;
         unit.tenantName =
@@ -2548,13 +2572,15 @@ function renderSummary() {
                 var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object"
                     ? unit.lateLedger
                     : {};
+                var recordedLate = lateLedger[monthKey(i)];
                 if (
                     effectiveStatus(unit, i) === "atrasado" ||
                     statusFor(unit, i) === "atrasado" ||
-                    lateLedger[monthKey(i)] === true
+                    recordedLate === true ||
+                    recordedLate === "open"
                 )
                     openLate += 1;
-                if (isPaidLate(unit, i)) paidLate += 1;
+                if (isPaidLate(unit, i) || recordedLate === "paid") paidLate += 1;
             });
             return {
                 name: unit.name,
@@ -4365,6 +4391,31 @@ function saveExpense() {
                 return unit.id === editingId;
             });
             if (existing) {
+                var incomingTenantName = tenantName.value.trim();
+                var contractChanged =
+                    hasCurrentContract &&
+                    (existing.tenantName !== incomingTenantName ||
+                        existing.startDate !== startDate);
+
+                if (contractChanged) {
+                    var lateLedger =
+                        existing.lateLedger &&
+                        typeof existing.lateLedger === "object"
+                            ? existing.lateLedger
+                            : {};
+                    Object.keys(existing.status || {}).forEach(function (key) {
+                        if (existing.status[key] === "atrasado")
+                            lateLedger[key] = "open";
+                    });
+                    Object.keys(existing.paidLate || {}).forEach(function (key) {
+                        if (existing.paidLate[key] === true)
+                            lateLedger[key] = "paid";
+                    });
+                    existing.lateLedger = lateLedger;
+                    existing.status = {};
+                    existing.paidLate = {};
+                }
+
                 existing.name = name;
                 existing.empreendimentoId = unitEmpreendimento.value;
                 existing.rent = rent;
