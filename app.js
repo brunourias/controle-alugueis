@@ -2633,6 +2633,9 @@ function renderSummary() {
             );
         });
 
+    // Atrasos são informação de ação: nunca ficam escondidos no resumo.
+    if (reportRows.length > 0) summaryCardsExpanded = true;
+
     var report =
         '<section class="summary-report"><h3>Atrasos no ano</h3><p class="summary-report-intro">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>' +
         (reportRows.length
