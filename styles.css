@@ -2396,3 +2396,13 @@ textarea:focus-visible {
 
 /* Centro de atenção recolhível */
 .action-heading-controls{display:flex;align-items:center;gap:8px}.action-alert-badge,.action-ok-badge{display:grid;place-items:center;min-width:27px;height:27px;padding:0 7px;border-radius:999px;font-size:.72rem;font-weight:800}.action-alert-badge{color:#fff;background:var(--danger-ink);box-shadow:0 3px 8px rgba(165,45,59,.22)}.action-ok-badge{color:var(--success-ink);background:var(--success-bg)}.action-center-detail{margin-top:2px}@media(max-width:650px){.action-heading-controls{width:100%;justify-content:space-between}.action-heading-controls .btn{min-width:76px}}
+
+
+/* Espaçamento uniforme entre os blocos financeiros */
+.summary-bar + .summary {
+    margin-top: 18px;
+}
+
+.summary-bar + .summary .summary-cards {
+    margin-top: 0;
+}
