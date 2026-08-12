@@ -6709,13 +6709,27 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         var cards = pendingContractHistory.map(function (contract, index) {
             var lateCount = unit ? historicLateKeysForContract(unit, contract).length : 0;
+            var installmentKeys = contractInstallmentKeys(contract);
+            var pendingCount = unit ? installmentKeys.filter(function (key) {
+                return historicalInstallmentState(unit, key) === "pendente";
+            }).length : 0;
             var status = contractHistoryStatusInfo(contract.status);
-            return '<article class="contract-timeline-card ' + status[1] + '"><div class="contract-timeline-heading"><strong>' +
-                escapeHtml(contract.tenantName || "Inquilino não informado") + '</strong><span class="contract-status">' +
-                status[0] + '</span></div><p>' + escapeHtml(formatTimelineDate(resolveHistoryDate(contract, "start", false)) +
-                " até " + formatTimelineDate(resolveHistoryDate(contract, "end", true))) +
-                (contract.rent !== null ? " · " + money(contract.rent) : "") + '</p>' +
-                (lateCount ? '<p class="contract-history-reason">' + lateCount + ' parcela' + (lateCount === 1 ? '' : 's') + ' em atraso.</p>' : '') +
+            var tone = lateCount ? " is-alert" : " is-neutral";
+            var summary = lateCount
+                ? '<span class="contract-metric is-late">' + lateCount + ' em atraso</span>'
+                : (pendingCount
+                    ? '<span class="contract-metric is-pending">' + pendingCount + ' pendente' + (pendingCount === 1 ? '' : 's') + '</span>'
+                    : '<span class="contract-metric is-ok">Sem pendências</span>');
+            return '<article class="contract-timeline-card ' + status[1] + tone + '">' +
+                '<span class="contract-timeline-node" aria-hidden="true"></span>' +
+                '<div class="contract-timeline-heading"><div><strong>' +
+                escapeHtml(contract.tenantName || "Inquilino não informado") +
+                '</strong><span class="contract-period">' +
+                escapeHtml(formatTimelineDate(resolveHistoryDate(contract, "start", false)) + " até " +
+                formatTimelineDate(resolveHistoryDate(contract, "end", true))) +
+                '</span></div><span class="contract-status">' + status[0] + '</span></div>' +
+                '<div class="contract-timeline-details"><span class="contract-rent">' +
+                money(Number(contract.rent) || 0) + ' / mês</span>' + summary + '</div>' +
                 '<div class="contract-history-actions"><button class="btn btn-ghost" type="button" data-history-installments="' + index +
                 '">Ver parcelas</button><button class="btn btn-ghost" type="button" data-history-reactivate="' + index +
                 '">Reativar</button><button class="btn btn-danger" type="button" data-history-remove="' + index + '">Remover</button></div></article>';
