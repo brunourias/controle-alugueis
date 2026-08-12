@@ -1449,11 +1449,144 @@ undefined || item.rent === "" ? null : Number(item.rent);
         );
     }
 
-    function isActive(unit, month) {
-        var key = monthKey(month);
+    function ymLabel(ym) {
+        if (!isValidStartYm(ym)) return "data inválida";
+
+        var parts = ym.split("-").map(Number);
+        var monthIndex = parts[1] - 1;
+
+        return fullMonths[monthIndex] + " de " + parts[0];
+    }
+
+	function isActive(unit, month) {
+		// Sem inquilino = não existe contrato ativo
+		if (!unit || !String(unit.tenantName || "").trim()) {
+			return false;
+		}
+
+		var key = monthKey(month);
+
+		return (
+			(!isValidStartYm(unit.startYm) || key >= unit.startYm) &&
+			(!isValidStartYm(unit.endYm) || key <= unit.endYm)
+		);
+	}
+
+
+    // ==========================================================
+    // HISTÓRICO FINANCEIRO
+    //
+    // Os pagamentos pertencem ao mês em que foram recebidos,
+    // e não ao contrato atualmente ativo da unidade.
+    //
+    // Quando um contrato é arquivado, os pagamentos já registrados
+    // precisam continuar disponíveis para as somatórias anuais.
+    // ==========================================================
+    function getPaymentRecord(unit, year, month) {
+        if (!unit) return null;
+
+        var history =
+            unit.paymentHistory &&
+            typeof unit.paymentHistory === "object"
+                ? unit.paymentHistory
+                : {};
+
+        return history[monthKey(month)] || null;
+    }
+
+    function historicalReceivedAmount(unit, year, month) {
+        /*
+         * REGRA DO TOTAL RECEBIDO:
+         * somente "Pago" e "Pago atrasado" entram na soma.
+         *
+         * Internamente os dois usam status = "pago"; o segundo é
+         * diferenciado por paidLate[key] = true.
+         *
+         * Portanto, um registro em paymentHistory sozinho NÃO significa
+         * que houve recebimento. O status do mês continua sendo a fonte
+         * de verdade para a soma.
+         */
+        var storedStatus = statusFor(unit, month);
+
+        if (storedStatus !== "pago") {
+            return 0;
+        }
+
+        var payment = getPaymentRecord(unit, year, month);
+
+        // Pagamento já salvo: mantém exatamente o valor registrado.
+        if (
+            payment &&
+            Number.isFinite(Number(payment.rentAmount))
+        ) {
+            return Math.max(0, Number(payment.rentAmount));
+        }
+
+        // Contrato ainda ativo, mas pagamento antigo sem paymentHistory.
+        if (isActive(unit, month)) {
+            return Math.max(
+                0,
+                Number(rentForMonth(unit, year, month)) || 0
+            );
+        }
+
+        // Contrato já arquivado antes da criação do paymentHistory.
+        var archived = archivedContractForMonth(unit, month);
+
+        if (
+            archived &&
+            Number.isFinite(Number(archived.rent))
+        ) {
+            return Math.max(0, Number(archived.rent));
+        }
+
+        return 0;
+    }
+
+    function historicalInterestAmount(unit, year, month) {
+        /*
+         * Juros só existem para um pagamento que foi efetivamente
+         * registrado como "Pago atrasado".
+         *
+         * É importante NÃO olhar apenas paymentHistory:
+         * o histórico pode conter um valor salvo, mas isso não significa
+         * que o mês tenha juros. O marcador paidLate é a confirmação de
+         * que aquele pagamento foi feito com atraso.
+         *
+         * Também não usamos isPaidLate() aqui porque ela exige contrato
+         * ativo. Contratos arquivados precisam continuar mostrando os
+         * juros históricos.
+         */
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+
+        if (
+            statusFor(unit, month) !== "pago" ||
+            !unit.paidLate ||
+            unit.paidLate[key] !== true
+        ) {
+            return 0;
+        }
+
+        var payment = getPaymentRecord(unit, year, month);
+
+        if (
+            payment &&
+            Number.isFinite(Number(payment.interestAmount))
+        ) {
+            return Math.max(0, Number(payment.interestAmount));
+        }
+
+        return 0;
+    }
+
+    function hasHistoricalPayment(unit, month) {
+        var payment = getPaymentRecord(unit, selectedYear, month);
+
+        if (payment) return true;
+
         return (
-            (!isValidStartYm(unit.startYm) || key >= unit.startYm) &&
-            (!isValidStartYm(unit.endYm) || key <= unit.endYm)
+            isActive(unit, month) &&
+            statusFor(unit, month) === "pago"
         );
     }
 
@@ -1710,6 +1843,77 @@ undefined || item.rent === "" ? null : Number(item.rent);
         renderExpenses();
     }
 
+
+    // Retorna o contrato encerrado que abrangia determinado mês.
+    // É usado somente para a visualização histórica da grade; não
+    // transforma o contrato arquivado em contrato ativo.
+    function archivedContractForMonth(unit, month) {
+        if (!unit || !Array.isArray(unit.contractHistory)) return null;
+
+        var key = monthKey(month);
+
+        /*
+         * IMPORTANTE:
+         * "Contrato arquivado" representa somente um contrato que já
+         * terminou. Portanto ele NUNCA pode ocupar meses posteriores
+         * ao mês em que o arquivamento foi feito.
+         *
+         * Contratos antigos podem ter sido salvos com endYm vazio ou até
+         * com uma data futura. Como a unidade já está sem contrato ativo,
+         * usamos o mês atual como limite máximo de segurança.
+         */
+        var now = new Date();
+        var archiveCutoff =
+            now.getFullYear() +
+            "-" +
+            String(now.getMonth() + 1).padStart(2, "0");
+
+        for (var i = unit.contractHistory.length - 1; i >= 0; i--) {
+            var contract = unit.contractHistory[i];
+            if (!contract) continue;
+
+            var startOk =
+                !isValidStartYm(contract.startYm) ||
+                key >= contract.startYm;
+
+            /*
+             * Se houver endYm, ele define o fim do contrato.
+             * Porém, como este contrato está arquivado, nunca permitimos
+             * que o histórico avance para um mês futuro em relação ao
+             * arquivamento atual.
+             */
+            var contractEnd = isValidStartYm(contract.endYm)
+                ? contract.endYm
+                : archiveCutoff;
+
+            if (contractEnd > archiveCutoff) {
+                contractEnd = archiveCutoff;
+            }
+
+            var endOk = key <= contractEnd;
+
+            if (startOk && endOk) return contract;
+        }
+
+        return null;
+    }
+
+
+    function archivedMonthCell(unit, month, currentMonth) {
+        var contract = archivedContractForMonth(unit, month);
+        if (!contract) return null;
+
+        return (
+            '<td class="' +
+            (month === currentMonth ? "month-current" : "") +
+            '">' +
+            '<div class="status-inactive" aria-label="Contrato arquivado">' +
+            '<span>Contrato arquivado</span>' +
+            "</div>" +
+            "</td>"
+        );
+    }
+
     function renderGrid(visibleUnits) {
     var currentMonth =
         new Date().getFullYear() === selectedYear
@@ -1737,13 +1941,31 @@ undefined || item.rent === "" ? null : Number(item.rent);
         .map(function (unit) {
             var cells = months
                 .map(function (_, i) {
-                    if (!isActive(unit, i)) {
-                        return (
-                            '<td class="' +
-                            (i === currentMonth ? "month-current" : "") +
-                            '"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></td>'
+                    if (!String(unit.tenantName || "").trim()) {
+                        var archivedCell = archivedMonthCell(
+                            unit,
+                            i,
+                            currentMonth
                         );
+
+                        if (archivedCell) return archivedCell;
                     }
+
+					if (!String(unit.tenantName || "").trim()) {
+						return (
+							'<td class="' +
+							(i === currentMonth ? "month-current" : "") +
+							'"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div></td>'
+						);
+					}
+
+					if (!isActive(unit, i)) {
+						return (
+							'<td class="' +
+							(i === currentMonth ? "month-current" : "") +
+							'"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></td>'
+						);
+					}
 
                     var status = displayStatus(unit, i);
 
@@ -1863,7 +2085,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 })
                 .join("");
 
+            var hasCurrentContract =
+                !!String(unit.tenantName || "").trim();
+
             var dueDay =
+                hasCurrentContract &&
                 Number.isInteger(unit.dueDay) &&
                 unit.dueDay >= 1 &&
                 unit.dueDay <= 31
@@ -1872,19 +2098,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
                       "</span>"
                     : "";
 
-            var tenant = unit.tenantName
-                ? '<span class="tenant-name">' +
-                  escapeHtml(unit.tenantName) +
-                  "</span>"
-                : "";
+			var tenant = unit.tenantName
+				? '<span class="tenant-name">' +
+				  escapeHtml(unit.tenantName) +
+				  "</span>"
+				: '<span class="tenant-name tenant-no-contract">Sem contrato ativo</span>';
 
             var now = new Date();
 
-            var currentRent = rentForMonth(
-                unit,
-                now.getFullYear(),
-                now.getMonth()
-            );
+			var currentRent = String(unit.tenantName || "").trim()
+				? rentForMonth(
+					  unit,
+					  now.getFullYear(),
+					  now.getMonth()
+				  )
+				: 0;
 
             var enterprise =
                 '<span class="enterprise-name">' +
@@ -1952,14 +2180,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 var total = scopedUnits().reduce(function (sum, unit) {
                     return (
                         sum +
-                        (isActive(unit, i) &&
-                        statusFor(unit, i) === "pago"
-                            ? rentForMonth(
-                                  unit,
-                                  selectedYear,
-                                  i
-                              )
-                            : 0)
+                        historicalReceivedAmount(
+                            unit,
+                            selectedYear,
+                            i
+                        )
                     );
                 }, 0);
 
@@ -1973,29 +2198,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
             .map(function (_, i) {
                 var totalJuros = scopedUnits().reduce(
                     function (sum, unit) {
-                        if (
-                            !isActive(unit, i) ||
-                            !isPaidLate(unit, i)
-                        ) {
-                            return sum;
-                        }
-
-                        var key = monthKey(i);
-
-                        var payment =
-                            unit.paymentHistory &&
-                            unit.paymentHistory[key];
-
-                        // Usa somente o valor salvo no histórico.
-                        // Não recalcula juros pela data atual.
-                        if (!payment) {
-                            return sum;
-                        }
-
-                        var juros =
-                            Number(payment.interestAmount) || 0;
-
-                        return sum + juros;
+                        return (
+                            sum +
+                            historicalInterestAmount(
+                                unit,
+                                selectedYear,
+                                i
+                            )
+                        );
                     },
                     0
                 );
@@ -2122,9 +2332,7 @@ function renderSummary() {
             months.reduce(function (monthSum, _, i) {
                 return (
                     monthSum +
-                    (isActive(unit, i) && statusFor(unit, i) === "pago"
-                        ? rentForMonth(unit, selectedYear, i)
-                        : 0)
+                    historicalReceivedAmount(unit, selectedYear, i)
                 );
             }, 0)
         );
@@ -2867,9 +3075,14 @@ document
 			false
 		);
 
-		unitRent.value = unit ? unit.rent : "";
+		var hasCurrentContract =
+			!!(unit && String(unit.tenantName || "").trim());
 
-		pendingRentChanges = unit
+		// Se a unidade não possui contrato atual, não reutiliza dados
+		// antigos que possam ter ficado gravados após o arquivamento.
+		unitRent.value = hasCurrentContract ? unit.rent : "";
+
+		pendingRentChanges = hasCurrentContract
 			? (unit.rentChanges || []).map(function (change) {
 				  return {
 					  fromYm: change.fromYm,
@@ -2890,15 +3103,21 @@ document
 			: [];
 
 		unitDueDay.value =
-			unit && Number.isInteger(unit.dueDay) ? unit.dueDay : "";
+			hasCurrentContract && Number.isInteger(unit.dueDay)
+				? unit.dueDay
+				: "";
 
 		unitStartYm.value =
-			unit && isValidStartYm(unit.startYm) ? unit.startYm : "";
+			hasCurrentContract && isValidStartYm(unit.startYm)
+				? unit.startYm
+				: "";
 
 		unitEndYm.value =
-			unit && isValidStartYm(unit.endYm) ? unit.endYm : "";
+			hasCurrentContract && isValidStartYm(unit.endYm)
+				? unit.endYm
+				: "";
 
-		tenantName.value = unit ? unit.tenantName : "";
+		tenantName.value = hasCurrentContract ? unit.tenantName : "";
 		tenantPhone.value = unit ? unit.tenantPhone : "";
 		tenantEmail.value = unit ? unit.tenantEmail : "";
 		tenantNotes.value = unit ? unit.tenantNotes : "";
@@ -3077,59 +3296,105 @@ document
  
 
 function archiveCurrentContract() {
+    var archivedTenant = tenantName.value.trim();
+    var archivedStart = unitStartYm.value || null;
+    var archivedEnd = unitEndYm.value || null;
+    var archivedRentValue = Number(unitRent.value);
 
-  var archivedTenant = tenantName.value.trim();
+    /*
+     * Se o contrato estava aberto/sem fim e está sendo arquivado agora,
+     * o mês atual é o último mês possível desse contrato.
+     * Assim, meses futuros ficam como "Sem contrato".
+     */
+    if (!archivedEnd) {
+        var now = new Date();
+        archivedEnd =
+            now.getFullYear() +
+            "-" +
+            String(now.getMonth() + 1).padStart(2, "0");
+    }
 
-  var archivedStart = unitStartYm.value || null;
+    if (!archivedTenant && !archivedStart && !archivedEnd) {
+        tenantName.focus();
+        return;
+    }
 
-  var archivedEnd = unitEndYm.value || null;
+    /*
+     * ==========================================================
+     * PRESERVA O FINANCEIRO ANTES DE ENCERRAR O CONTRATO
+     *
+     * O contrato pode deixar de ser "ativo", mas pagamentos de
+     * meses anteriores continuam sendo registros financeiros
+     * daquele ano. Por isso, criamos paymentHistory para qualquer
+     * mês já marcado como pago que ainda não tenha um registro.
+     * ==========================================================
+     */
+    var existingUnit = editingId
+        ? state.units.find(function (item) {
+              return item.id === editingId;
+          })
+        : null;
 
-  var archivedRentValue = Number(unitRent.value);
+    if (existingUnit) {
+        existingUnit.paymentHistory =
+            existingUnit.paymentHistory &&
+            typeof existingUnit.paymentHistory === "object"
+                ? existingUnit.paymentHistory
+                : {};
 
-  if (!archivedTenant && !archivedStart && !archivedEnd) {
+        months.forEach(function (_, month) {
+            var key = monthKey(month);
+            var status = statusFor(existingUnit, month);
 
+            if (status !== "pago") return;
+
+            if (existingUnit.paymentHistory[key]) return;
+
+            var rentAtPayment =
+                rentForMonth(
+                    existingUnit,
+                    selectedYear,
+                    month
+                );
+
+            existingUnit.paymentHistory[key] = {
+                paidAt: null,
+                rentAmount: rentAtPayment,
+                interestAmount: 0,
+                totalAmount: rentAtPayment
+            };
+        });
+    }
+
+    // Guarda o contrato encerrado no histórico temporário.
+    pendingContractHistory.push({
+        tenantName: archivedTenant,
+        startYm: archivedStart,
+        endYm: archivedEnd,
+        rent:
+            Number.isFinite(archivedRentValue) && archivedRentValue >= 0
+                ? archivedRentValue
+                : null
+    });
+
+    // Limpa COMPLETAMENTE o contrato atual.
+    tenantName.value = "";
+    tenantPhone.value = "";
+    tenantEmail.value = "";
+    tenantNotes.value = "";
+
+    unitRent.value = "";
+    unitDueDay.value = "";
+    unitStartYm.value = "";
+    unitEndYm.value = "";
+
+    // Reajustes pertencem ao contrato encerrado.
+    pendingRentChanges = [];
+    renderRentChanges();
+
+    // Não cria automaticamente o início do próximo contrato.
+    renderContractHistory();
     tenantName.focus();
-
-    return;
-
-  }
-
-  pendingContractHistory.push({
-
-    tenantName: archivedTenant,
-
-    startYm: archivedStart,
-
-    endYm: archivedEnd,
-
-    rent: Number.isFinite(archivedRentValue) && archivedRentValue >= 0 ? archivedRentValue : null
-
-  });
-
-  tenantName.value = "";
-
-  tenantPhone.value = "";
-
-  tenantEmail.value = "";
-
-  tenantNotes.value = "";
-
-  unitEndYm.value = "";
-
-  if (isValidStartYm(archivedEnd)) {
-
-    var parts = archivedEnd.split("-").map(Number);
-
-    var nextDate = new Date(parts[0], parts[1], 1);
-
-    unitStartYm.value = nextDate.getFullYear() + "-" + String(nextDate.getMonth() + 1).padStart(2, "0");
-
-  }
-
-  renderContractHistory();
-
-  tenantName.focus();
-
 }
 
  
@@ -3848,9 +4113,22 @@ function saveExpense() {
             unitName.focus();
             return;
         }
-        if (!Number.isFinite(rent) || rent < 0) {
+        var hasCurrentContract =
+            !!tenantName.value.trim();
+
+        if (
+            hasCurrentContract &&
+            (!Number.isFinite(rent) || rent < 0)
+        ) {
             unitRent.focus();
             return;
+        }
+
+        if (!hasCurrentContract) {
+            rent = 0;
+            dueDay = null;
+            startYm = null;
+            endYm = null;
         }
 
         if (!unitEmpreendimento.value) {
@@ -4616,12 +4894,17 @@ function saveExpense() {
 
         units.forEach(function (unit) {
             months.forEach(function (_, i) {
-                if (!isActive(unit, i)) return;
+                annualReceived += historicalReceivedAmount(
+                    unit,
+                    selectedYear,
+                    i
+                );
 
-                if (statusFor(unit, i) === "pago")
-                    annualReceived += rentForMonth(unit, selectedYear, i);
-
-                if (effectiveStatus(unit, i) === "atrasado") {
+                // Atrasos em aberto continuam dependendo de contrato ativo.
+                if (
+                    isActive(unit, i) &&
+                    effectiveStatus(unit, i) === "atrasado"
+                ) {
                     var updated = updatedAmount(unit, i);
 
                     annualOverdue +=
@@ -4644,9 +4927,11 @@ function saveExpense() {
             var received = units.reduce(function (sum, unit) {
                 return (
                     sum +
-                    (isActive(unit, i) && statusFor(unit, i) === "pago"
-                        ? rentForMonth(unit, selectedYear, i)
-                        : 0)
+                    historicalReceivedAmount(
+                        unit,
+                        selectedYear,
+                        i
+                    )
                 );
             }, 0);
 
@@ -4678,15 +4963,34 @@ function saveExpense() {
                 var received = 0;
 
                 months.forEach(function (_, i) {
-                    if (!isActive(unit, i)) return;
+                    var receivedForMonth =
+                        historicalReceivedAmount(
+                            unit,
+                            selectedYear,
+                            i
+                        );
 
-                    if (statusFor(unit, i) === "pago") {
+                    if (receivedForMonth > 0) {
+                        received += receivedForMonth;
                         paid += 1;
-
-                        received += rentForMonth(unit, selectedYear, i);
                     }
 
-                    if (isPaidLate(unit, i)) paidLate += 1;
+                    var paymentRecord = getPaymentRecord(
+                        unit,
+                        selectedYear,
+                        i
+                    );
+
+                    if (
+                        paymentRecord &&
+                        Number(paymentRecord.interestAmount) > 0
+                    ) {
+                        paidLate += 1;
+                    } else if (isPaidLate(unit, i)) {
+                        paidLate += 1;
+                    }
+
+                    if (!isActive(unit, i)) return;
 
                     if (effectiveStatus(unit, i) === "atrasado") {
                         overdueMonths += 1;
