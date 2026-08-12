@@ -6519,4 +6519,104 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     archiveContract.addEventListener("click", endCurrentContractOnly);
     startNewContractButton.addEventListener("click", prepareNewContractForm);
 
+
+
+    /* Formulário completo de baixa individual, inclusive para contrato encerrado. */
+    var historicPaymentAdjustContext = null;
+
+    function updatePaymentAdjustTotal() {
+        var rent = Number(document.getElementById("paymentAdjustRent").value) || 0;
+        var fine = Number(document.getElementById("paymentAdjustFine").value) || 0;
+        var interest = Number(document.getElementById("paymentAdjustInterest").value) || 0;
+        document.getElementById("paymentAdjustTotal").value = (rent + fine + interest).toFixed(2);
+    }
+
+    function openHistoricPaymentAdjust(index, key) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        if (!unit || !contract) return;
+
+        historicPaymentAdjustContext = { unitId: unit.id, contractIndex: index, contractId: contract.id, key: key };
+        paymentAdjustContext = null;
+        document.getElementById("paymentAdjustTitle").textContent = "Dar baixa em parcela";
+        document.getElementById("paymentAdjustInfo").textContent =
+            unit.name + " · " + (contract.tenantName || "Contrato encerrado") +
+            " · " + ymLabel(key);
+        document.getElementById("paymentAdjustDate").value = localDateValue(new Date());
+        document.getElementById("paymentAdjustRent").value = Number(contract.rent) || 0;
+        document.getElementById("paymentAdjustFine").value = 0;
+        document.getElementById("paymentAdjustInterest").value = 0;
+        document.getElementById("paymentAdjustNotes").value = "";
+        updatePaymentAdjustTotal();
+        ModalManager.open(document.getElementById("paymentAdjustModal"));
+    }
+
+    function settleHistoricInstallment(index, key) {
+        openHistoricPaymentAdjust(index, key);
+    }
+
+    function savePaymentAdjust() {
+        var modal = document.getElementById("paymentAdjustModal");
+        var dateValue = document.getElementById("paymentAdjustDate").value;
+        var rent = Number(document.getElementById("paymentAdjustRent").value);
+        var fine = Number(document.getElementById("paymentAdjustFine").value) || 0;
+        var interest = Number(document.getElementById("paymentAdjustInterest").value) || 0;
+        var notes = document.getElementById("paymentAdjustNotes").value.trim();
+
+        if (!dateValue) { alert("Informe a data real do pagamento."); return; }
+        if (!Number.isFinite(rent) || rent < 0 || fine < 0 || interest < 0) {
+            alert("Informe valores válidos, sem números negativos.");
+            return;
+        }
+        var parts = dateValue.split("-");
+        var paidAt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12).toISOString();
+
+        if (historicPaymentAdjustContext) {
+            var unit = state.units.find(function (item) { return item.id === historicPaymentAdjustContext.unitId; });
+            if (!unit) return;
+            unit.lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+            unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object" ? unit.paymentHistory : {};
+            unit.lateLedger[historicPaymentAdjustContext.key] = "paid";
+            unit.paymentHistory[historicPaymentAdjustContext.key] = {
+                rentAmount: rent,
+                fineAmount: fine,
+                interestAmount: interest,
+                chargesAmount: fine + interest,
+                totalAmount: rent + fine + interest,
+                paidAt: paidAt,
+                notes: notes,
+                historicContractId: historicPaymentAdjustContext.contractId
+            };
+            var historyIndex = historicPaymentAdjustContext.contractIndex;
+            historicPaymentAdjustContext = null;
+            saveState();
+            ModalManager.close(modal);
+            ModalManager.close(contractInstallmentsModal);
+            openContractInstallments(historyIndex);
+            renderContractHistory();
+            render();
+            return;
+        }
+
+        if (!paymentAdjustContext) return;
+        var currentUnit = state.units.find(function (item) { return item.id === paymentAdjustContext.unitId; });
+        if (!currentUnit) return;
+        currentUnit.paymentHistory = currentUnit.paymentHistory && typeof currentUnit.paymentHistory === "object" ? currentUnit.paymentHistory : {};
+        currentUnit.paymentHistory[paymentAdjustContext.key] = {
+            rentAmount: rent,
+            fineAmount: fine,
+            interestAmount: interest,
+            chargesAmount: fine + interest,
+            totalAmount: rent + fine + interest,
+            paidAt: paidAt,
+            notes: notes
+        };
+        paymentAdjustContext = null;
+        saveState();
+        render();
+        ModalManager.close(modal);
+    }
+
+    document.getElementById("paymentAdjustFine").addEventListener("input", updatePaymentAdjustTotal);
+
 })();
