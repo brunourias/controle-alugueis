@@ -3284,9 +3284,21 @@ document
 		unitEndYm.value = hasCurrentContract && isValidDateValue(unit.endDate) ? unit.endDate : "";
 
 		tenantName.value = hasCurrentContract ? unit.tenantName : "";
-		tenantPhone.value = unit ? unit.tenantPhone : "";
-		tenantEmail.value = unit ? unit.tenantEmail : "";
-		tenantNotes.value = unit ? unit.tenantNotes : "";
+		tenantPhone.value = hasCurrentContract ? unit.tenantPhone : "";
+		var savedTenantEmail = hasCurrentContract ? unit.tenantEmail : "";
+		var isOwnerEmail = !!(
+			firebaseUser &&
+			firebaseUser.email &&
+			savedTenantEmail &&
+			savedTenantEmail.toLowerCase() === firebaseUser.email.toLowerCase()
+		);
+		if (isOwnerEmail) {
+			unit.tenantEmail = "";
+			savedTenantEmail = "";
+			saveState();
+		}
+		tenantEmail.value = savedTenantEmail;
+		tenantNotes.value = hasCurrentContract ? unit.tenantNotes : "";
 
 		historyTenant.value = "";
 		historyStart.value = "";
@@ -3304,6 +3316,7 @@ document
 		rentChangeYm.setCustomValidity("");
 		rentChangeAbsolute.setCustomValidity("");
 
+		document.getElementById("rentChanges").open = false;
 		renderRentChanges();
 		renderContractHistory();
 
@@ -4364,6 +4377,22 @@ function saveExpense() {
             unitRent.focus();
             return;
         }
+
+        if (hasCurrentContract && !tenantName.value.trim()) {
+            tenantName.setCustomValidity("Informe o nome do inquilino.");
+            tenantName.reportValidity();
+            tenantName.focus();
+            return;
+        }
+        tenantName.setCustomValidity("");
+
+        if (hasCurrentContract && !tenantPhone.value.trim()) {
+            tenantPhone.setCustomValidity("Informe o telefone do inquilino.");
+            tenantPhone.reportValidity();
+            tenantPhone.focus();
+            return;
+        }
+        tenantPhone.setCustomValidity("");
 
         if (!hasCurrentContract) {
             rent = 0;
