@@ -144,6 +144,7 @@ const ModalManager = (() => {
     var authMode = "login";
     var autoLockTimer = null;
     var AUTO_LOCK_MS = 5 * 60 * 1000;
+    var appLastActivityAt = Date.now();
     var sensitiveAction = null;
 
     var grid = document.getElementById("grid");
@@ -1441,6 +1442,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function revealApp() {
         scrollPageToTop();
         document.body.classList.remove("app-loading");
+        appLastActivityAt = Date.now();
         armAutoLock();
 
         // O teclado virtual pode reajustar a viewport após o login no Android.
@@ -1543,19 +1545,30 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function armAutoLock() {
         clearTimeout(autoLockTimer);
         if (!lockConfig || !appUnlocked) return;
+        var remaining = Math.max(0, AUTO_LOCK_MS - (Date.now() - appLastActivityAt));
         autoLockTimer = setTimeout(function () {
-            lockApp();
-        }, AUTO_LOCK_MS);
+            if (Date.now() - appLastActivityAt >= AUTO_LOCK_MS) lockApp();
+            else armAutoLock();
+        }, remaining);
     }
 
     function lockApp() {
+        clearTimeout(autoLockTimer);
         if (!lockConfig || !appUnlocked) return;
         appUnlocked = false;
         openAuthLogin();
     }
 
     function registerAppActivity() {
-        if (appUnlocked) armAutoLock();
+        if (!appUnlocked) return;
+        appLastActivityAt = Date.now();
+        armAutoLock();
+    }
+
+    function checkSessionOnReturn() {
+        if (!appUnlocked) return;
+        if (Date.now() - appLastActivityAt >= AUTO_LOCK_MS) lockApp();
+        else armAutoLock();
     }
 
     function requireSensitiveAccess(action, callback) {
@@ -6221,8 +6234,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         document.addEventListener(eventName, registerAppActivity, { passive: eventName === "touchstart" });
     });
     document.addEventListener("visibilitychange", function () {
-        if (document.hidden) lockApp();
-        else registerAppActivity();
+        if (document.hidden) {
+            // Mantém a sessão por alguns minutos ao alternar de aplicativo.
+            clearTimeout(autoLockTimer);
+        } else {
+            checkSessionOnReturn();
+        }
     });
 
     modal.addEventListener("click", function (event) {
