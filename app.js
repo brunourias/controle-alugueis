@@ -280,6 +280,8 @@ var historyRent = document.getElementById("historyRent");
     var cloudApplyingRemote = false;
     var cloudPendingRemote = null;
     var cloudInitialized = false;
+    var cloudWorkspaceId = null;
+    var cloudWorkspaceReady = false;
 
     function newEnterpriseId() {
         return (
@@ -876,10 +878,93 @@ undefined || item.rent === "" ? null : Number(item.rent);
         );
     }
 
+    function personalWorkspaceId(user) {
+        return "personal-" + user.uid;
+    }
+
+    function workspaceRef(workspaceId) {
+        return firebaseDb ? firebaseDb.collection("workspaces").doc(workspaceId) : null;
+    }
+
+    function workspaceMemberRef(workspaceId, userId) {
+        var ref = workspaceRef(workspaceId);
+        return ref ? ref.collection("members").doc(userId) : null;
+    }
+
     function cloudDocRef() {
-        return firebaseDb && firebaseUser
-            ? firebaseDb.collection("users").doc(firebaseUser.uid)
-            : null;
+        var ref = cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return ref ? ref.collection("state").doc("current") : null;
+    }
+
+    /*
+     * A primeira entrada de cada conta cria uma área pessoal.
+     * Contas antigas têm o documento users/{uid} copiado para essa área;
+     * o documento legado é preservado como uma cópia de segurança.
+     */
+    function ensurePersonalWorkspace(user) {
+        if (!firebaseDb || !user) return Promise.reject(new Error("Nuvem indisponível"));
+
+        var workspaceId = personalWorkspaceId(user);
+        var workspace = workspaceRef(workspaceId);
+        var profile = firebaseDb.collection("profiles").doc(user.uid);
+        var member = workspaceMemberRef(workspaceId, user.uid);
+        var now = Date.now();
+        var profileData = {
+            email: user.email || "",
+            displayName: user.displayName || "",
+            personalWorkspaceId: workspaceId,
+            updatedAt: now
+        };
+
+        cloudWorkspaceReady = false;
+        cloudWorkspaceId = null;
+
+        return workspace.get().then(function (snapshot) {
+            if (snapshot.exists) {
+                cloudWorkspaceId = workspaceId;
+                return profile.set(profileData, { merge: true });
+            }
+
+            // O formato anterior guardava o estado diretamente em users/{uid}.
+            return firebaseDb.collection("users").doc(user.uid).get().then(function (legacySnapshot) {
+                var legacy = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
+                var batch = firebaseDb.batch();
+                batch.set(profile, Object.assign({}, profileData, { createdAt: now }), { merge: true });
+                batch.set(workspace, {
+                    name: "Meus imóveis",
+                    ownerId: user.uid,
+                    type: "personal",
+                    createdAt: now,
+                    updatedAt: now
+                });
+                batch.set(member, {
+                    role: "owner",
+                    email: user.email || "",
+                    displayName: user.displayName || "",
+                    joinedAt: now
+                });
+
+                if (legacy && legacy.payload) {
+                    batch.set(cloudDocRefFor(workspace), {
+                        payload: legacy.payload,
+                        updatedAt: Number(legacy.updatedAt) || now,
+                        migratedFrom: "users/" + user.uid,
+                        migratedAt: now
+                    });
+                }
+
+                return batch.commit().then(function () {
+                    cloudWorkspaceId = workspaceId;
+                });
+            });
+        }).then(function () {
+            cloudWorkspaceReady = true;
+            return workspaceId;
+        });
+    }
+
+    function cloudDocRefFor(workspace) {
+        return workspace.collection("state").doc("current");
     }
 
     function scheduleCloudWrite() {
@@ -1147,10 +1232,22 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         if (user) {
-            setCloudStatus("Conta conectada. Preparando sincronização...");
+            setCloudStatus("Conta conectada. Preparando sua área de trabalho...");
 
-            reconcileCloud();
+            ensurePersonalWorkspace(user)
+                .then(function () {
+                    setCloudStatus("Conta conectada. Sincronização automática ativa.");
+                    reconcileCloud();
+                })
+                .catch(function (error) {
+                    cloudWorkspaceReady = false;
+                    cloudWorkspaceId = null;
+                    setCloudError(cloudErrorMessage(error));
+                    setSyncStatus("Não sincronizado — salvo localmente");
+                });
         } else {
+            cloudWorkspaceId = null;
+            cloudWorkspaceReady = false;
             setCloudStatus(
                 "Sincronização opcional com Firebase. Seus dados locais permanecem disponíveis."
             );
