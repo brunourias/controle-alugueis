@@ -2568,16 +2568,25 @@ function renderSummary() {
     var overdueTotal = 0;
 
     scopedUnits().forEach(function (unit) {
+        var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object"
+            ? unit.lateLedger
+            : {};
         months.forEach(function (_, i) {
+            var key = monthKey(i);
+            var isHistoricalOpenLate =
+                lateLedger[key] === true || lateLedger[key] === "open";
             if (
                 effectiveStatus(unit, i) === "atrasado" ||
-                statusFor(unit, i) === "atrasado"
+                statusFor(unit, i) === "atrasado" ||
+                isHistoricalOpenLate
             ) {
                 overdueCount += 1;
                 overdueTotal +=
-                    updatedAmount(unit, i) === null
-                        ? rentForMonth(unit, selectedYear, i)
-                        : updatedAmount(unit, i);
+                    isHistoricalOpenLate
+                        ? historicLateRent(unit, key)
+                        : (updatedAmount(unit, i) === null
+                            ? rentForMonth(unit, selectedYear, i)
+                            : updatedAmount(unit, i));
             }
         });
     });
@@ -6108,6 +6117,116 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderContractHistory();
         render();
         tenantName.focus();
+    }
+
+
+
+    /* Baixa de parcelas de contratos encerrados sem reativar a unidade. */
+    function historicLateRent(unit, key) {
+        var contract = (unit.contractHistory || []).find(function (item) {
+            return (!item.startYm || key >= item.startYm) &&
+                (!item.endYm || key <= item.endYm);
+        });
+        return contract && Number.isFinite(Number(contract.rent))
+            ? Number(contract.rent)
+            : 0;
+    }
+
+    function historicLateKeysForContract(unit, contract) {
+        var ledger = unit.lateLedger && typeof unit.lateLedger === "object"
+            ? unit.lateLedger
+            : {};
+        return Object.keys(ledger).filter(function (key) {
+            var value = ledger[key];
+            return (value === true || value === "open") &&
+                (!contract.startYm || key >= contract.startYm) &&
+                (!contract.endYm || key <= contract.endYm);
+        });
+    }
+
+    function settleHistoricLatePayments(index) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        if (!unit || !contract) return;
+        var keys = historicLateKeysForContract(unit, contract);
+        if (!keys.length) return;
+
+        var label = keys.length === 1 ? "parcela" : "parcelas";
+        if (!window.confirm("Dar baixa em " + keys.length + " " + label +
+            " em atraso de " + (contract.tenantName || "este contrato") + "?")) return;
+
+        unit.lateLedger = unit.lateLedger && typeof unit.lateLedger === "object"
+            ? unit.lateLedger
+            : {};
+        unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object"
+            ? unit.paymentHistory
+            : {};
+
+        keys.forEach(function (key) {
+            unit.lateLedger[key] = "paid";
+            unit.paymentHistory[key] = {
+                rentAmount: Number(contract.rent) || 0,
+                paidAt: new Date().toISOString(),
+                historicContractId: contract.id
+            };
+        });
+        saveState();
+        renderContractHistory();
+        render();
+    }
+
+    function renderContractHistory() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var cards = pendingContractHistory.map(function (contract, index) {
+            var startDate = resolveHistoryDate(contract, "start", false);
+            var endDate = resolveHistoryDate(contract, "end", true);
+            var status = contractHistoryStatusInfo(contract.status);
+            var lateCount = unit ? historicLateKeysForContract(unit, contract).length : 0;
+            var settlement = lateCount
+                ? '<button class="btn btn-ghost" type="button" data-history-settle="' + index +
+                  '">Dar baixa em ' + lateCount + ' atraso' + (lateCount === 1 ? '' : 's') + '</button>'
+                : '';
+            return '<article class="contract-timeline-card ' + status[1] + '">' +
+                '<div class="contract-timeline-heading"><strong>' +
+                escapeHtml(contract.tenantName || "Inquilino não informado") +
+                '</strong><span class="contract-status">' + status[0] + '</span></div>' +
+                '<p>' + escapeHtml(formatTimelineDate(startDate) + " até " +
+                formatTimelineDate(endDate)) + (contract.rent !== null ? " · " +
+                money(contract.rent) : "") + '</p>' +
+                (lateCount ? '<p class="contract-history-reason">' + lateCount +
+                ' parcela' + (lateCount === 1 ? '' : 's') + ' em atraso.</p>' : '') +
+                '<div class="contract-history-actions">' + settlement +
+                '<button class="btn btn-ghost" type="button" data-history-reactivate="' +
+                index + '">Reativar</button><button class="btn btn-danger" type="button" ' +
+                'data-history-remove="' + index + '">Remover</button></div></article>';
+        }).join("");
+
+        contractHistoryList.innerHTML = cards
+            ? '<div class="contract-timeline">' + cards + '</div>'
+            : '<p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p>';
+
+        contractHistoryList.querySelectorAll("[data-history-settle]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                settleHistoricLatePayments(Number(button.dataset.historySettle));
+            });
+        });
+        contractHistoryList.querySelectorAll("[data-history-reactivate]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                reactivateHistoricalContract(Number(button.dataset.historyReactivate));
+            });
+        });
+        contractHistoryList.querySelectorAll("[data-history-remove]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var index = Number(button.dataset.historyRemove);
+                if (!window.confirm("Remover este contrato do histórico?")) return;
+                pendingContractHistory.splice(index, 1);
+                if (unit) {
+                    unit.contractHistory = serializeContractHistory(pendingContractHistory);
+                    saveState();
+                }
+                renderContractHistory();
+            });
+        });
     }
 
 })();
