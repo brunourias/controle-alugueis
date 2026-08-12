@@ -6392,4 +6392,50 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
+
+
+    /* Pagamentos históricos compõem os totais mesmo sem contrato ativo. */
+    function historicalReceivedAmount(unit, year, month) {
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        var payment = getPaymentRecord(unit, year, month);
+        var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+
+        if (payment && (
+            statusFor(unit, month) === "pago" ||
+            ledger[key] === "paid" ||
+            payment.historicContractId
+        )) {
+            return Math.max(0, Number(payment.rentAmount) || 0);
+        }
+        if (statusFor(unit, month) !== "pago") return 0;
+        if (isActive(unit, month)) return Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+
+        var archived = archivedContractForMonth(unit, month);
+        return archived && Number.isFinite(Number(archived.rent))
+            ? Math.max(0, Number(archived.rent))
+            : 0;
+    }
+
+    function settleHistoricInstallment(index, key) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        if (!unit || !contract) return;
+        if (!window.confirm("Dar baixa da parcela de " + ymLabel(key) + "?")) return;
+        unit.lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object" ? unit.paymentHistory : {};
+        unit.lateLedger[key] = "paid";
+        unit.paymentHistory[key] = {
+            rentAmount: Number(contract.rent) || 0,
+            totalAmount: Number(contract.rent) || 0,
+            paidAt: new Date().toISOString(),
+            historicContractId: contract.id,
+            tenantName: contract.tenantName || ""
+        };
+        saveState();
+        ModalManager.close(contractInstallmentsModal);
+        openContractInstallments(index);
+        renderContractHistory();
+        render();
+    }
+
 })();
