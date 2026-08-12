@@ -2363,3 +2363,26 @@ textarea:focus-visible {
 /* Ações concentradas no celular */
 .mobile-fab,.unit-context-menu{display:none;}
 @media(max-width:768px){.mobile-fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;display:grid;place-items:center;width:58px;height:58px;border:0;border-radius:50%;color:#fff;background:var(--teal);box-shadow:0 12px 26px rgba(15,118,110,.32);font-size:2rem;line-height:1}.mobile-fab:active{transform:scale(.94)}#addUnit{display:none}.unit-cell .tenant-actions{display:none}.unit-context-menu{position:absolute;top:9px;right:8px;display:block;z-index:3}.unit-context-menu summary{display:grid;place-items:center;width:30px;height:30px;list-style:none;border-radius:50%;color:#37625f;background:#edf5f4;font-size:1.3rem;font-weight:800;cursor:pointer}.unit-context-menu summary::-webkit-details-marker{display:none}.unit-context-actions{position:absolute;top:35px;right:0;display:flex;gap:5px;min-width:max-content;padding:7px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 10px 24px rgba(15,77,73,.18)}.unit-context-actions .tenant-action{min-width:34px;min-height:34px;display:grid;place-items:center;padding:5px 8px}.unit-cell{position:relative;padding-right:38px}}
+
+/* Linha do tempo de contratos */
+.contract-timeline { position:relative; display:grid; gap:12px; margin:14px 0; padding-left:20px; }
+.contract-timeline::before { content:""; position:absolute; top:7px; bottom:7px; left:6px; width:2px; background:#d9e7e5; }
+.contract-timeline-card { position:relative; padding:14px; border:1px solid #dce8e6; background:#f9fbfb; box-shadow:none; }
+.contract-timeline-card.is-neutral { border-color:#dce7e7; background:#f7faf9; }
+.contract-timeline-card.is-alert { border-color:#f2bcc4; background:#fff8f8; }
+.contract-timeline-node { position:absolute; top:19px; left:-20px; width:13px; height:13px; border:3px solid #fff; border-radius:50%; background:#78908e; box-shadow:0 0 0 2px #c6d8d6; }
+.contract-timeline-card.is-alert .contract-timeline-node { background:var(--danger-ink); box-shadow:0 0 0 2px #efb9c2; }
+.contract-timeline-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.contract-timeline-heading strong { display:block; color:var(--ink); font-size:.9rem; }
+.contract-period { display:block; margin-top:3px; color:var(--muted); font-size:.74rem; }
+.contract-status { flex-shrink:0; padding:4px 7px; border-radius:999px; color:#53636b; background:#e9f0ef; font-size:.66rem; font-weight:750; text-align:center; }
+.contract-timeline-card.is-alert .contract-status { color:var(--danger-ink); background:var(--danger-bg); }
+.contract-timeline-details { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+.contract-rent,.contract-metric { padding:5px 8px; border-radius:8px; font-size:.72rem; font-weight:750; }
+.contract-rent { color:#135f5a; background:#e6f4f1; }
+.contract-metric.is-ok { color:#4f6563; background:#edf2f2; }
+.contract-metric.is-pending { color:var(--warning-ink); background:var(--warning-bg); }
+.contract-metric.is-late { color:var(--danger-ink); background:var(--danger-bg); }
+.contract-history-actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+.contract-history-actions .btn { min-height:34px; padding:6px 10px; font-size:.72rem; }
+@media(max-width:520px){ .contract-timeline{padding-left:18px}.contract-timeline-card{padding:12px}.contract-timeline-heading{flex-direction:column;gap:7px}.contract-status{align-self:flex-start}.contract-history-actions .btn{flex:1;min-width:0} }
