@@ -6028,6 +6028,37 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return archived && Number.isFinite(Number(archived.rent)) ? Math.max(0, Number(archived.rent)) : 0;
     }
 
+    function recordedInterestAmount(payment) {
+        if (!payment || typeof payment !== "object") return 0;
+
+        var fine = Number(payment.fineAmount);
+        if (!Number.isFinite(fine) || fine < 0) fine = 0;
+
+        /*
+         * Versões atuais registram chargesAmount = multa + juros. Esse é o
+         * campo mais seguro: impede que um valor legado incorreto em
+         * interestAmount (por exemplo, o valor do aluguel) infle o total.
+         */
+        var charges = Number(payment.chargesAmount);
+        if (Number.isFinite(charges) && charges >= 0) {
+            return Math.max(0, charges - fine);
+        }
+
+        /*
+         * Para registros sem chargesAmount, o total efetivamente pago é a
+         * segunda fonte de verdade. Se não houve valor acima do aluguel e
+         * da multa, não houve juros a somar.
+         */
+        var total = Number(payment.totalAmount);
+        var rent = Number(payment.rentAmount);
+        if (Number.isFinite(total) && Number.isFinite(rent)) {
+            return Math.max(0, total - rent - fine);
+        }
+
+        // Compatibilidade com o formato mais antigo, que só tinha juros.
+        return Math.max(0, Number(payment.interestAmount) || 0);
+    }
+
     function historicalInterestAmount(unit, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
@@ -6035,7 +6066,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         // Juros só entram quando foram efetivamente registrados numa baixa.
         // Isso inclui parcelas de contratos ainda ativos e já encerrados.
         if (!paymentIsConfirmedForTotals(unit, key, payment)) return 0;
-        return Math.max(0, Number(payment.interestAmount) || 0);
+        return recordedInterestAmount(payment);
     }
 
     function ensureFinancialHistory(unit) {
