@@ -2212,3 +2212,5 @@ tfoot td {
 .contract-installment-row.is-paid { border-color: #b9dfd5; background: #f4fcf9; }
 .contract-installment-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .contract-installment-actions .btn { min-height: 34px; padding: 0 9px; font-size: .72rem; }
+
+.contract-transition-help { margin-top: -4px; margin-bottom: 14px; }
