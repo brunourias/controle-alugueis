@@ -6059,13 +6059,33 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return Math.max(0, Number(payment.interestAmount) || 0);
     }
 
+    function paymentWasLate(unit, key) {
+        var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object"
+            ? unit.lateLedger
+            : {};
+        var paidLate = unit && unit.paidLate && typeof unit.paidLate === "object"
+            ? unit.paidLate
+            : {};
+
+        return ledger[key] === "paid" || paidLate[key] === true;
+    }
+
     function historicalInterestAmount(unit, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
 
-        // Juros só entram quando foram efetivamente registrados numa baixa.
-        // Isso inclui parcelas de contratos ainda ativos e já encerrados.
-        if (!paymentIsConfirmedForTotals(unit, key, payment)) return 0;
+        /*
+         * Juros existem somente em uma parcela confirmada como paga com
+         * atraso. Um campo de juros eventualmente salvo em uma parcela
+         * normal (formato legado) não pode contaminar o total.
+         */
+        if (
+            !paymentIsConfirmedForTotals(unit, key, payment) ||
+            !paymentWasLate(unit, key)
+        ) {
+            return 0;
+        }
+
         return recordedInterestAmount(payment);
     }
 
