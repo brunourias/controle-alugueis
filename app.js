@@ -82,7 +82,9 @@ const ModalManager = (() => {
 
     var DEFAULT_SETTINGS = {
         finePercent: 10,
-        dailyInterestPercent: 0.3,
+        // Mantém o nome antigo do campo para compatibilidade com dados salvos.
+        // O valor agora representa JUROS DE MORA AO MÊS, não ao dia.
+        dailyInterestPercent: 1,
         receiverName: "",
     };
     var months = [
@@ -455,7 +457,9 @@ var addContractHistory = document.getElementById("addContractHistory");
                 settings &&
                 Number.isFinite(Number(settings.dailyInterestPercent)) &&
                 Number(settings.dailyInterestPercent) >= 0
-                    ? Number(settings.dailyInterestPercent)
+                    ? (Number(settings.dailyInterestPercent) === 0.3
+                        ? DEFAULT_SETTINGS.dailyInterestPercent
+                        : Number(settings.dailyInterestPercent))
                     : DEFAULT_SETTINGS.dailyInterestPercent,
             receiverName:
                 settings && typeof settings.receiverName === "string"
@@ -1634,16 +1638,46 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return days > 0 ? days : null;
     }
 
+    function lateChargeBreakdown(unit, month) {
+        var days = daysOverdue(unit, month);
+        if (days === null) return null;
+
+        var rent = Number(rentForMonth(unit, selectedYear, month)) || 0;
+        var fineRate = Number(state.settings.finePercent) / 100;
+        var monthlyInterestRate = Number(state.settings.dailyInterestPercent) / 100;
+        var dailyInterestRate = monthlyInterestRate / 30;
+
+        var fineAmount = rent * fineRate;
+        var interestAmount = rent * dailyInterestRate * days;
+        var chargesAmount = fineAmount + interestAmount;
+        var totalAmount = rent + chargesAmount;
+
+        return {
+            days: days,
+            rentAmount: rent,
+            fineAmount: fineAmount,
+            interestAmount: interestAmount,
+            chargesAmount: chargesAmount,
+            totalAmount: totalAmount
+        };
+    }
+
     function updatedAmount(unit, month) {
         var days = daysOverdue(unit, month);
         if (days === null) return null;
+
         var rent = rentForMonth(unit, selectedYear, month);
-        return (
-            rent *
-            (1 +
-                state.settings.finePercent / 100 +
-                (state.settings.dailyInterestPercent / 100) * days)
-        );
+        var fineRate = Number(state.settings.finePercent) / 100;
+        var monthlyInterestRate = Number(state.settings.dailyInterestPercent) / 100;
+        var dailyInterestRate = monthlyInterestRate / 30;
+
+        // Contrato V2.5:
+        // multa de 10% uma única vez + juros de mora de 1% a.m.
+        // pro rata die, sem capitalização e sem juros sobre a multa.
+        var multa = rent * fineRate;
+        var juros = rent * dailyInterestRate * days;
+
+        return rent + multa + juros;
     }
 
     function effectiveStatus(unit, month) {
@@ -1713,6 +1747,47 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (digits.length === 10 || digits.length === 11)
             digits = "55" + digits;
         return digits ? "https://wa.me/" + digits : "";
+    }
+
+    function lateOccurrencesLast12Months(unit, referenceYear, referenceMonth) {
+        if (!unit) return 0;
+
+        var count = 0;
+        var history = unit.paidLate && typeof unit.paidLate === "object" ? unit.paidLate : {};
+        var statuses = unit.status && typeof unit.status === "object" ? unit.status : {};
+
+        for (var offset = 0; offset < 12; offset++) {
+            var absolute = referenceYear * 12 + referenceMonth - offset;
+            var y = Math.floor(absolute / 12);
+            var m = absolute % 12;
+            if (m < 0) { m += 12; y -= 1; }
+            var key = String(y) + "-" + String(m + 1).padStart(2, "0");
+
+            if (history[key] === true) {
+                count += 1;
+                continue;
+            }
+
+            // Atraso atualmente em aberto também conta como uma ocorrência.
+            // Para meses fora do ano selecionado, não tentamos recalcular a data;
+            // usamos apenas o status persistido.
+            if (y === selectedYear && statuses[key] === "atrasado") {
+                count += 1;
+            }
+        }
+
+        return count;
+    }
+
+    function lateRecurrenceStatus(unit, referenceYear, referenceMonth) {
+        var count = lateOccurrencesLast12Months(unit, referenceYear, referenceMonth);
+        return {
+            count: count,
+            reached: count >= 3,
+            label: count >= 3
+                ? "Limite de 3 atrasos em 12 meses atingido"
+                : count + " atraso(s) registrado(s) nos últimos 12 meses"
+        };
     }
 
     function chargeMessage(unit) {
@@ -2784,22 +2859,21 @@ function renderSummary() {
         // Se nunca houve registro desse pagamento, calcula agora
         if (!payment) {
             var aluguel = rentForMonth(unit, selectedYear, month);
-            var totalAtualizado = updatedAmount(unit, month);
+            var breakdown = lateChargeBreakdown(unit, month);
 
-            // Se não for possível calcular, usa o valor original
-            if (totalAtualizado === null) {
-                totalAtualizado = aluguel;
-            }
+            var totalAtualizado = breakdown
+                ? breakdown.totalAmount
+                : aluguel;
 
-            var jurosEncargos = Math.max(
-                0,
-                totalAtualizado - aluguel
-            );
+            var multa = breakdown ? breakdown.fineAmount : 0;
+            var juros = breakdown ? breakdown.interestAmount : 0;
 
             unit.paymentHistory[key] = {
                 paidAt: new Date().toISOString(),
                 rentAmount: aluguel,
-                interestAmount: jurosEncargos,
+                fineAmount: multa,
+                interestAmount: juros,
+                chargesAmount: multa + juros,
                 totalAmount: totalAtualizado
             };
         }
@@ -3360,7 +3434,9 @@ function archiveCurrentContract() {
             existingUnit.paymentHistory[key] = {
                 paidAt: null,
                 rentAmount: rentAtPayment,
+                fineAmount: 0,
                 interestAmount: 0,
+                chargesAmount: 0,
                 totalAmount: rentAtPayment
             };
         });
@@ -3954,6 +4030,57 @@ function saveExpense() {
     function openSettings() {
         finePercent.value = state.settings.finePercent;
         dailyInterestPercent.value = state.settings.dailyInterestPercent;
+
+        // O campo continua com o id antigo para preservar os dados salvos,
+        // mas a interface deve deixar claro que 1 representa 1% AO MÊS.
+        var interestLabel = document.querySelector('label[for="dailyInterestPercent"]');
+
+        if (!interestLabel && settingsModal) {
+            interestLabel = Array.from(
+                settingsModal.querySelectorAll("label")
+            ).find(function (label) {
+                return /juros/i.test(label.textContent || "");
+            });
+        }
+
+        // IMPORTANTE: o input pode estar dentro do próprio <label>.
+        // Não usar label.textContent aqui, pois isso apaga o <input>.
+        function setInterestLabelText(label) {
+            if (!label) return;
+            var textNode = Array.from(label.childNodes).find(function (node) {
+                return node.nodeType === Node.TEXT_NODE;
+            });
+            if (textNode) {
+                textNode.nodeValue = "Juros de mora (% ao mês)";
+            } else {
+                var span = document.createElement("span");
+                span.textContent = "Juros de mora (% ao mês)";
+                label.insertBefore(span, label.firstChild);
+            }
+        }
+
+        if (interestLabel) {
+            setInterestLabelText(interestLabel);
+        }
+
+        // Proteção extra caso o HTML tenha mais de um rótulo de juros.
+        if (settingsModal) {
+            settingsModal.querySelectorAll("label").forEach(function (label) {
+                if (/juros/i.test(label.textContent || "")) {
+                    setInterestLabelText(label);
+                }
+            });
+        }
+
+        // Garante que o campo não volte a exibir a unidade antiga.
+        if (dailyInterestPercent) {
+            dailyInterestPercent.title =
+                "Taxa mensal de juros de mora. Ex.: 1 = 1% ao mês.";
+            dailyInterestPercent.setAttribute(
+                "aria-label",
+                "Juros de mora, porcentagem ao mês"
+            );
+        }
         receiverName.value = state.settings.receiverName;
         currentPin.value = "";
         newPin.value = "";
@@ -3999,6 +4126,7 @@ function saveExpense() {
         dailyInterestPercent.setCustomValidity("");
         state.settings = {
             finePercent: fine,
+            // Este campo mantém o nome antigo, mas representa % ao mês.
             dailyInterestPercent: interest,
             receiverName: receiverName.value.trim(),
         };
@@ -4266,7 +4394,9 @@ function saveExpense() {
 				? unit.paymentHistory[key]
 				: null;
 
-		var jurosEncargos = 0;
+		var multa = 0;
+		var juros = 0;
+		var encargos = 0;
 		var totalAtualizado = aluguel;
 
 		// ==========================================================
@@ -4274,23 +4404,28 @@ function saveExpense() {
 		// ==========================================================
 		if (status === "pago-atrasado") {
 			if (payment) {
-				// Usa os valores salvos no momento do pagamento
-				jurosEncargos = Number(payment.interestAmount) || 0;
+				// Usa os valores salvos no momento do pagamento.
+				multa = Number(payment.fineAmount) || 0;
+				juros = Number(payment.interestAmount) || 0;
+				encargos = Number(payment.chargesAmount);
+
+				// Compatibilidade com pagamentos antigos: interestAmount
+				// antigo armazenava multa + juros juntos.
+				if (!Number.isFinite(encargos)) {
+					encargos = Number(payment.interestAmount) || 0;
+				}
 
 				totalAtualizado =
 					Number(payment.totalAmount) ||
-					(aluguel + jurosEncargos);
+					(aluguel + encargos);
 			} else {
-				// Fallback para pagamentos antigos que ainda não possuem
-				// histórico salvo
-				var calculado = updatedAmount(unit, month);
+				var calculado = lateChargeBreakdown(unit, month);
 
-				if (calculado !== null) {
-					totalAtualizado = calculado;
-					jurosEncargos = Math.max(
-						0,
-						calculado - aluguel
-					);
+				if (calculado) {
+					multa = calculado.fineAmount;
+					juros = calculado.interestAmount;
+					encargos = calculado.chargesAmount;
+					totalAtualizado = calculado.totalAmount;
 				}
 			}
 		}
@@ -4306,8 +4441,10 @@ function saveExpense() {
 			// Valor original do aluguel
 			amount: aluguel,
 
-			// Juros + multa registrados no momento do pagamento
-			interestAmount: jurosEncargos,
+			// Encargos registrados no momento do pagamento
+			fineAmount: multa,
+			interestAmount: juros,
+			chargesAmount: encargos,
 
 			// Total efetivamente pago
 			totalAmount: totalAtualizado,
@@ -4337,7 +4474,12 @@ function saveExpense() {
 				: "";
 
 		var aluguel = Number(data.amount) || 0;
-		var jurosEncargos = Number(data.interestAmount) || 0;
+		var multa = Number(data.fineAmount) || 0;
+		var juros = Number(data.interestAmount) || 0;
+		var jurosEncargos = Number(data.chargesAmount);
+		if (!Number.isFinite(jurosEncargos)) {
+			jurosEncargos = multa + juros;
+		}
 
 		var totalRecebido =
 			data.status === "pago-atrasado"
@@ -4346,7 +4488,13 @@ function saveExpense() {
 
 		var valoresAtraso =
 			data.status === "pago-atrasado"
-				? '<div class="receipt-line"><strong>Juros/encargos</strong><span>' +
+				? '<div class="receipt-line"><strong>Multa (10%)</strong><span>' +
+				  money(multa) +
+				  "</span></div>" +
+				  '<div class="receipt-line"><strong>Juros de mora (1% a.m.)</strong><span>' +
+				  money(juros) +
+				  "</span></div>" +
+				  '<div class="receipt-line"><strong>Total de encargos</strong><span>' +
 				  money(jurosEncargos) +
 				  "</span></div>" +
 				  '<div class="receipt-line"><strong>Total recebido</strong><span>' +
@@ -4374,7 +4522,7 @@ function saveExpense() {
 				  money(aluguel) +
 				  " referentes ao aluguel e " +
 				  money(jurosEncargos) +
-				  " referentes aos juros e encargos pelo pagamento em atraso."
+				  " referentes aos encargos pelo pagamento em atraso (multa e juros de mora)."
 				: "Recebi de forma integral a importância de " +
 				  money(aluguel) +
 				  " referente ao aluguel da " +
@@ -4518,14 +4666,18 @@ function saveExpense() {
 		var aluguel = Number(context.amount) || 0;
 
 		// Aceita diferentes nomes caso seu sistema já utilize algum deles
+		var multa = Number(context.fineAmount) || Number(context.lateFee) || 0;
 		var juros =
 			Number(context.interestAmount) ||
 			Number(context.juros) ||
-			Number(context.lateFee) ||
 			Number(context.lateInterest) ||
 			0;
+		var encargos = Number(context.chargesAmount);
+		if (!Number.isFinite(encargos)) encargos = multa + juros;
 
-		var totalRecebido = aluguel + juros;
+		var totalRecebido =
+			Number(context.totalAmount) ||
+			(aluguel + encargos);
 
 		// ==========================================================
 		// TÍTULO
@@ -4569,11 +4721,21 @@ function saveExpense() {
 			}
 		];
 
-		// Se estiver atrasado, evidencia os juros e o total recebido
+		// Se estiver atrasado, evidencia multa, juros e total recebido
 		if (context.status === "pago-atrasado") {
 			details.push({
-				label: "Juros/encargos",
+				label: "Multa (10%)",
+				value: "R$ " + formatCurrency(multa)
+			});
+
+			details.push({
+				label: "Juros de mora (1% a.m.)",
 				value: "R$ " + formatCurrency(juros)
+			});
+
+			details.push({
+				label: "Total de encargos",
+				value: "R$ " + formatCurrency(encargos)
 			});
 
 			details.push({
@@ -4601,13 +4763,15 @@ function saveExpense() {
 
 			// Destaca juros e total recebido
 			if (
-				item.label === "Juros/encargos" ||
+				item.label === "Multa (10%)" ||
+				item.label === "Juros de mora (1% a.m.)" ||
+				item.label === "Total de encargos" ||
 				item.label === "Total recebido"
 			) {
 				ctx.fillStyle =
-					item.label === "Juros/encargos"
-						? "#8a5a00"
-						: "#0d5c58";
+					item.label === "Total recebido"
+						? "#0d5c58"
+						: "#8a5a00";
 
 				ctx.font = "bold 19px sans-serif";
 			} else {
@@ -4660,7 +4824,7 @@ function saveExpense() {
 				formatCurrency(aluguel) +
 				" referentes ao aluguel e R$ " +
 				formatCurrency(juros) +
-				" referentes aos juros e encargos pelo pagamento em atraso.";
+				" referentes aos encargos pelo pagamento em atraso (multa e juros de mora).";
 		} else {
 			descriptionText =
 				"Recebi de forma integral a importância de R$ " +
