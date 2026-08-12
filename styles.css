@@ -2260,3 +2260,102 @@ tfoot td {
  .chip { padding:1px 5px; font-size:.64rem; }
  .action-list { grid-template-columns:1fr; }
 }
+
+/* =========================================================
+   SISTEMA VISUAL CONSISTENTE
+   ========================================================= */
+:root {
+    --success-bg: #dff7ef;
+    --success-ink: #08705f;
+    --warning-bg: #fff2ce;
+    --warning-ink: #8a5a00;
+    --danger-bg: #ffe1e5;
+    --danger-ink: #a52d3b;
+    --neutral-bg: #edf2f3;
+    --neutral-ink: #53636b;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --shadow-card: 0 8px 24px rgba(16, 77, 73, .07);
+}
+
+.btn {
+    min-height: 38px;
+    border-radius: var(--radius-sm);
+    font-weight: 750;
+    letter-spacing: -.01em;
+    transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.btn:focus-visible,
+.icon-btn:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid #5ed4c1;
+    outline-offset: 2px;
+}
+
+.btn:active { transform: translateY(1px); }
+.btn-primary { box-shadow: 0 5px 12px rgba(15, 118, 110, .18); }
+.btn-ghost { background: #eff6f5; color: #135f5a; }
+.btn-danger { background: var(--danger-bg); color: var(--danger-ink); }
+
+.summary-bar,
+.backup-toolbar,
+.action-center,
+.cloud-section,
+.security-section,
+.backup-section,
+.enterprise-section {
+    border-radius: var(--radius-lg);
+}
+
+.summary-card,
+.action-item,
+.contract-timeline-card,
+.backup-history-row {
+    border-radius: var(--radius-md);
+}
+
+.chip-pago,
+.status-pago,
+.payment-status.is-paid {
+    color: var(--success-ink);
+    background: var(--success-bg);
+}
+
+.chip-pago-atrasado,
+.status-pago-atrasado {
+    color: var(--warning-ink);
+    background: var(--warning-bg);
+}
+
+.chip-atrasado,
+.status-atrasado,
+.payment-status.is-late {
+    color: var(--danger-ink);
+    background: var(--danger-bg);
+}
+
+.chip-pendente,
+.status-pendente,
+.payment-status.is-pending {
+    color: var(--neutral-ink);
+    background: var(--neutral-bg);
+}
+
+.summary-card,
+.summary-report,
+.action-center {
+    border-color: var(--line);
+    box-shadow: var(--shadow-card);
+}
+
+@media (max-width: 520px) {
+    .btn { min-height: 36px; }
+    .summary-bar,
+    .backup-toolbar,
+    .action-center { border-radius: var(--radius-md); }
+}
