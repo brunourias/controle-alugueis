@@ -186,6 +186,9 @@ const ModalManager = (() => {
     var tenantPhone = document.getElementById("tenantPhone");
     var tenantEmail = document.getElementById("tenantEmail");
     var tenantNotes = document.getElementById("tenantNotes");
+    var contractAttachment = document.getElementById("contractAttachment");
+    var attachmentStatus = document.getElementById("attachmentStatus");
+    var attachmentList = document.getElementById("attachmentList");
     var rentChangesList = document.getElementById("rentChangesList");
     var rentChangeYm = document.getElementById("rentChangeYm");
     var rentChangePercent = document.getElementById("rentChangePercent");
@@ -263,6 +266,7 @@ var historyRent = document.getElementById("historyRent");
     var bannerUseLocal = document.getElementById("bannerUseLocal");
     var firebaseAuth = null;
     var firebaseDb = null;
+    var firebaseStorage = null;
     var firebaseUser = null;
     var firebaseUnsubscribe = null;
     var cloudWriteTimer = null;
@@ -683,6 +687,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 : 0;
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
+        unit.attachments = Array.isArray(unit.attachments) ? unit.attachments.filter(function (item) {
+            return item && typeof item === "object" && typeof item.name === "string" && typeof item.url === "string";
+        }).slice(0, 30) : [];
         unit.chargeLog = Array.isArray(unit.chargeLog) ? unit.chargeLog.filter(function (entry) {
             return entry && typeof entry === "object" && typeof entry.createdAt === "string";
         }).slice(0, 40) : [];
@@ -1167,6 +1174,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             firebaseAuth = firebase.auth();
 
             firebaseDb = firebase.firestore();
+            firebaseStorage = firebase.storage ? firebase.storage() : null;
 
             firebaseDb
                 .enablePersistence({ synchronizeTabs: true })
@@ -3541,6 +3549,38 @@ document
         );
     });
 
+    function renderAttachmentList(unit) {
+        if (!attachmentList) return;
+        var files = unit && Array.isArray(unit.attachments) ? unit.attachments : [];
+        attachmentList.innerHTML = files.length ? files.map(function (file) {
+            return '<a class="attachment-row" href="' + escapeHtml(file.url) + '" target="_blank" rel="noopener noreferrer">📎 ' + escapeHtml(file.name) + '<span>' + escapeHtml(formatTimelineDate(String(file.createdAt || "").slice(0,10))) + '</span></a>';
+        }).join("") : '<p class="rent-changes-empty">Nenhum documento anexado.</p>';
+    }
+
+    function uploadContractAttachment() {
+        var file = contractAttachment.files && contractAttachment.files[0];
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        contractAttachment.value = "";
+        if (!file || !unit) return;
+        if (!firebaseUser || !firebaseStorage) {
+            attachmentStatus.textContent = "Conecte sua conta e habilite o Firebase Storage para enviar documentos.";
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) { attachmentStatus.textContent = "O arquivo deve ter no máximo 10 MB."; return; }
+        attachmentStatus.textContent = "Enviando documento...";
+        var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        var path = "users/" + firebaseUser.uid + "/units/" + unit.id + "/" + Date.now() + "-" + safeName;
+        firebaseStorage.ref().child(path).put(file).then(function (snapshot) {
+            return snapshot.ref.getDownloadURL();
+        }).then(function (url) {
+            unit.attachments = Array.isArray(unit.attachments) ? unit.attachments : [];
+            unit.attachments.unshift({ name:file.name, url:url, path:path, createdAt:new Date().toISOString() });
+            saveState(); renderAttachmentList(unit); attachmentStatus.textContent = "Documento anexado.";
+        }).catch(function () {
+            attachmentStatus.textContent = "Não foi possível enviar. Verifique se o Firebase Storage está habilitado e protegido.";
+        });
+    }
+
     function openModal(id) {
 		editingId = id || null;
 
@@ -3564,6 +3604,8 @@ document
 			false
 		);
 
+		attachmentStatus.textContent = "";
+        renderAttachmentList(unit);
 		var hasCurrentContract =
 			!!(unit && String(unit.tenantName || "").trim());
 
@@ -6033,6 +6075,7 @@ function saveExpense() {
     document.getElementById("mobileAddUnit").addEventListener("click", function () {
         openModal();
     });
+    contractAttachment.addEventListener("change", uploadContractAttachment);
 
     document
         .getElementById("addExpense")
