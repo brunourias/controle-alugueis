@@ -732,22 +732,18 @@
                             >
                                 Entrar
                             </button>
-                            <button
-                                id="cloudSignUp"
-                                class="btn btn-ghost"
-                                type="button"
-                            >
-                                Criar conta
-                            </button>
+                            <button id="cloudSignUp" class="btn btn-ghost" type="button">Criar conta</button>
+                            <button id="cloudGoogleSignIn" class="btn btn-ghost" type="button">Entrar com Google</button>
+                            <button id="cloudResetPassword" class="btn btn-ghost" type="button">Esqueci minha senha</button>
                         </div>
                     </div>
                     <div id="cloudSignedIn" hidden>
                         <p class="cloud-user">
                             Conectado como <strong id="cloudUserEmail"></strong>
                         </p>
-                        <p id="syncStatus" class="settings-note">
-                            Sincronizando...
-                        </p>
+                        <p id="syncStatus" class="settings-note">Sincronizando...</p>
+                        <p id="cloudVerification" class="settings-note" hidden></p>
+                        <button id="cloudResendVerification" class="btn btn-ghost" type="button" hidden>Reenviar confirmação de e-mail</button>
                         <button
                             id="cloudSignOut"
                             class="btn btn-ghost"
