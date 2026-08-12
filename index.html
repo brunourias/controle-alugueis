@@ -307,51 +307,53 @@
                     />
                 </label>
 
-                <section class="rent-changes-section">
-                    <h3>Reajuste de aluguel</h3>
-                    <p class="field-help">
-                        O valor acima é o aluguel base. Cada reajuste vale a
-                        partir do mês informado.
-                    </p>
-                    <div id="rentChangesList"></div>
+                <details id="rentChanges" class="rent-changes-section">
+                    <summary>Reajuste de aluguel</summary>
+                    <div class="rent-changes-content">
+                        <p class="field-help">
+                            O valor acima é o aluguel base. Cada reajuste vale a
+                            partir do mês informado.
+                        </p>
+                        <div id="rentChangesList"></div>
 
-                    <label
-                        >Aplicar a partir de
-                        <input type="month" id="rentChangeYm" />
-                    </label>
+                        <label
+                            >Aplicar a partir de
+                            <input type="month" id="rentChangeYm" />
+                        </label>
 
-                    <label
-                        >Percentual de reajuste (%)
-                        <input
-                            type="number"
-                            id="rentChangePercent"
-                            min="-100"
-                            step="0.01"
-                            placeholder="Ex.: 10"
-                            inputmode="decimal"
-                        />
-                    </label>
+                        <label
+                            >Percentual de reajuste (%)
+                            <input
+                                type="number"
+                                id="rentChangePercent"
+                                min="-100"
+                                step="0.01"
+                                placeholder="Ex.: 10"
+                                inputmode="decimal"
+                            />
+                        </label>
 
-                    <label
-                        >Novo valor absoluto (R$)
-                        <input
-                            type="number"
-                            id="rentChangeAbsolute"
-                            min="0"
-                            step="0.01"
-                            placeholder="Opcional"
-                            inputmode="decimal"
-                        />
-                    </label>
+                        <label
+                            >Novo valor absoluto (R$)
+                            <input
+                                type="number"
+                                id="rentChangeAbsolute"
+                                min="0"
+                                step="0.01"
+                                placeholder="Opcional"
+                                inputmode="decimal"
+                            />
+                        </label>
 
-                    <button
-                        id="addRentChange"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Adicionar reajuste
-                    </button>
-                </section>
+                        <button
+                            id="addRentChange"
+                            class="btn btn-ghost"
+                            type="button"
+                        >
+                            Adicionar reajuste
+                        </button>
+                    </div>
+                </details>
 
                 <label
                     >Dia de vencimento
@@ -387,8 +389,9 @@
                     <input
                         type="text"
                         id="tenantName"
-                        placeholder="Opcional"
+                        placeholder="Obrigatório"
                         autocomplete="name"
+                        required
                     />
                 </label>
 
@@ -397,8 +400,9 @@
                     <input
                         type="tel"
                         id="tenantPhone"
-                        placeholder="(11) 99999-9999"
+                        placeholder="Obrigatório"
                         autocomplete="tel"
+                        required
                     />
                 </label>
 
@@ -408,7 +412,8 @@
                         type="email"
                         id="tenantEmail"
                         placeholder="Opcional"
-                        autocomplete="email"
+                        autocomplete="off"
+                        name="tenant-contact-email"
                     />
                 </label>
 
