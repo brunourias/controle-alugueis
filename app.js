@@ -2061,7 +2061,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             // Atraso atualmente em aberto também conta como uma ocorrência.
             // Para meses fora do ano selecionado, não tentamos recalcular a data;
             // usamos apenas o status persistido.
-            if (y === selectedYear && statuses[key] === "atrasado") {
+            if (
+                y === selectedYear &&
+                (statuses[key] === "atrasado" || effectiveStatus(unit, m) === "atrasado")
+            ) {
                 count += 1;
             }
         }
