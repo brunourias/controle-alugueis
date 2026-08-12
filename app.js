@@ -346,6 +346,15 @@ var historyRent = document.getElementById("historyRent");
             if (validIds.indexOf(expense.empreendimentoId) < 0)
                 expense.empreendimentoId = validIds[0];
         });
+        saved.tasks = Array.isArray(saved.tasks) ? saved.tasks.filter(function (task) {
+            return task && typeof task === "object" && typeof task.title === "string";
+        }).map(function (task) {
+            return { id: typeof task.id === "string" ? task.id : "task-" + Date.now().toString(36),
+                title: task.title.trim().slice(0, 140), unitId: typeof task.unitId === "string" ? task.unitId : "",
+                dueDate: isValidDateValue(task.dueDate) ? task.dueDate : "", done: task.done === true,
+                createdAt: typeof task.createdAt === "string" ? task.createdAt : new Date().toISOString() };
+        }) : [];
+        saved.renewalDecisions = saved.renewalDecisions && typeof saved.renewalDecisions === "object" ? saved.renewalDecisions : {};
         return saved;
     }
 
