@@ -442,10 +442,12 @@
                         class="btn btn-ghost"
                         type="button"
                     >
-                        Arquivar contrato atual
+                        Encerrar contrato atual
                     </button>
 
-                    <div class="contract-history-add">
+                    <details id="historyManual" class="contract-history-manual">
+                        <summary>Adicionar contrato antigo</summary>
+                        <div class="contract-history-add">
                         <label>Inquilino
                             <input type="text" id="historyTenant" placeholder="Nome" autocomplete="off" />
                         </label>
@@ -471,7 +473,8 @@
                         </label>
                         <button id="addContractHistory" class="btn btn-ghost"
                                 type="button">Adicionar ao histórico</button>
-                    </div>
+                        </div>
+                    </details>
                 </section>
 
 
