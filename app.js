@@ -5798,4 +5798,78 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function archiveCurrentContract(){var unit=editingId?state.units.find(function(item){return item.id===editingId}):null,startDate=unitStartYm.value||null,endDate=unitEndYm.value||null;if(!endDate)endDate=new Date().toISOString().slice(0,10);if(!tenantName.value.trim()){tenantName.focus();return}if(unit){months.forEach(function(_,month){var key=monthKey(month);if(effectiveStatus(unit,month)==="atrasado")unit.status[key]="atrasado"})}pendingContractHistory.push({id:newContractHistoryId(),tenantName:tenantName.value.trim(),tenantPhone:tenantPhone.value.trim(),tenantEmail:tenantEmail.value.trim(),tenantNotes:tenantNotes.value.trim(),startDate:startDate,endDate:endDate,startYm:contractMonthValue(startDate),endYm:contractMonthValue(endDate),rent:Number.isFinite(Number(unitRent.value))?Number(unitRent.value):null,dueDay:unitDueDay.value===""?null:Number(unitDueDay.value),status:"encerrado",reason:""});tenantName.value="";tenantPhone.value="";tenantEmail.value="";tenantNotes.value="";unitRent.value="";unitDueDay.value="";unitStartYm.value="";unitEndYm.value="";pendingRentChanges=[];renderRentChanges();renderContractHistory();tenantName.focus()}
 
     function renderContractHistory(){var cards=pendingContractHistory.map(function(c,index){var start=historyDate(c.startDate||c.startYm,false),end=historyDate(c.endDate||c.endYm,true),status=contractHistoryStatusInfo(c.status);return'<article class="contract-timeline-card '+status[1]+'"><div class="contract-timeline-heading"><strong>'+escapeHtml(c.tenantName||"Inquilino não informado")+'</strong><span class="contract-status">'+status[0]+'</span></div><p>'+escapeHtml(formatContractHistoryDate(start)+" até "+formatContractHistoryDate(end))+(c.rent!==null?" · "+money(c.rent):"")+'</p>'+(c.reason?'<p class="contract-history-reason">'+escapeHtml(c.reason)+'</p>':'')+'<div class="contract-history-actions"><button class="btn btn-ghost" type="button" data-history-reactivate="'+index+'">Reativar</button><button class="btn btn-danger" type="button" data-history-remove="'+index+'">Remover</button></div></article>'}).join('');contractHistoryList.innerHTML=cards?'<div class="contract-timeline">'+cards+'</div>':'<p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p>';contractHistoryList.querySelectorAll("[data-history-reactivate]").forEach(function(button){button.addEventListener("click",function(){var index=Number(button.dataset.historyReactivate),c=pendingContractHistory[index];if(!c)return;tenantName.value=c.tenantName||"";tenantPhone.value=c.tenantPhone||"";tenantEmail.value=c.tenantEmail||"";tenantNotes.value=c.tenantNotes||"";unitRent.value=c.rent===null?"":c.rent;unitDueDay.value=c.dueDay||"";unitStartYm.value=historyDate(c.startDate||c.startYm,false)||"";unitEndYm.value="";pendingContractHistory.splice(index,1);renderContractHistory();tenantName.focus()})});contractHistoryList.querySelectorAll("[data-history-remove]").forEach(function(button){button.addEventListener("click",function(){var index=Number(button.dataset.historyRemove);if(!window.confirm("Remover este contrato do histórico?"))return;pendingContractHistory.splice(index,1);renderContractHistory()})})}
+
+
+    /* Reativação persistente de contratos: evita histórico e contrato ativo coexistindo. */
+    function resolveHistoryDate(contract, prefix, isEnd) {
+        var dateValue = contract[prefix + "Date"], monthValue = contract[prefix + "Ym"];
+        if (isValidDateValue(dateValue)) return dateValue;
+        if (isValidDateValue(monthValue)) return monthValue;
+        return isValidStartYm(monthValue) ? contractDateValue(null, monthValue, isEnd) : null;
+    }
+    function serializeContractHistory(list) {
+        return list.map(function (contract) {
+            var startDate = resolveHistoryDate(contract, "start", false), endDate = resolveHistoryDate(contract, "end", true);
+            return { id: contract.id || newContractHistoryId(), tenantName: typeof contract.tenantName === "string" ? contract.tenantName.trim() : "", tenantPhone: typeof contract.tenantPhone === "string" ? contract.tenantPhone.trim() : "", tenantEmail: typeof contract.tenantEmail === "string" ? contract.tenantEmail.trim() : "", tenantNotes: typeof contract.tenantNotes === "string" ? contract.tenantNotes.trim() : "", startDate: startDate, endDate: endDate, startYm: contractMonthValue(startDate), endYm: contractMonthValue(endDate), rent: Number.isFinite(Number(contract.rent)) ? Number(contract.rent) : null, dueDay: Number.isInteger(contract.dueDay) ? contract.dueDay : null, status: contract.status || "encerrado", reason: typeof contract.reason === "string" ? contract.reason.trim() : "" };
+        });
+    }
+    function formatTimelineDate(value) {
+        if (!isValidDateValue(value)) return "período não informado";
+        var parts = value.split("-");
+        return parts[2] + "/" + parts[1] + "/" + parts[0];
+    }
+    function reactivateHistoricalContract(index) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index], startDate;
+        if (!unit || !contract) return;
+        startDate = resolveHistoryDate(contract, "start", false);
+        if (!startDate) { alert("Não foi possível reativar este contrato porque a data de início não foi encontrada."); return; }
+        unit.tenantName = contract.tenantName || "";
+        unit.tenantPhone = contract.tenantPhone || "";
+        unit.tenantEmail = "";
+        unit.tenantNotes = contract.tenantNotes || "";
+        unit.rent = Number.isFinite(Number(contract.rent)) ? Number(contract.rent) : 0;
+        unit.dueDay = Number.isInteger(contract.dueDay) ? contract.dueDay : null;
+        unit.startDate = startDate;
+        unit.endDate = null;
+        unit.startYm = contractMonthValue(startDate);
+        unit.endYm = null;
+        unit.rentChanges = [];
+        unit.status = unit.status && typeof unit.status === "object" ? unit.status : {};
+        pendingContractHistory.splice(index, 1);
+        unit.contractHistory = serializeContractHistory(pendingContractHistory);
+        saveState();
+        tenantName.value = unit.tenantName;
+        tenantPhone.value = unit.tenantPhone;
+        tenantEmail.value = "";
+        tenantNotes.value = unit.tenantNotes;
+        unitRent.value = unit.rent;
+        unitDueDay.value = unit.dueDay === null ? "" : unit.dueDay;
+        unitStartYm.value = unit.startDate;
+        unitEndYm.value = "";
+        renderContractHistory();
+        render();
+        tenantName.focus();
+    }
+    function renderContractHistory() {
+        var cards = pendingContractHistory.map(function (contract, index) {
+            var startDate = resolveHistoryDate(contract, "start", false), endDate = resolveHistoryDate(contract, "end", true), status = contractHistoryStatusInfo(contract.status);
+            return '<article class="contract-timeline-card ' + status[1] + '"><div class="contract-timeline-heading"><strong>' + escapeHtml(contract.tenantName || "Inquilino não informado") + '</strong><span class="contract-status">' + status[0] + '</span></div><p>' + escapeHtml(formatTimelineDate(startDate) + " até " + formatTimelineDate(endDate)) + (contract.rent !== null ? " · " + money(contract.rent) : "") + '</p>' + (contract.reason ? '<p class="contract-history-reason">' + escapeHtml(contract.reason) + '</p>' : '') + '<div class="contract-history-actions"><button class="btn btn-ghost" type="button" data-history-reactivate="' + index + '">Reativar</button><button class="btn btn-danger" type="button" data-history-remove="' + index + '">Remover</button></div></article>';
+        }).join("");
+        contractHistoryList.innerHTML = cards ? '<div class="contract-timeline">' + cards + '</div>' : '<p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p>';
+        contractHistoryList.querySelectorAll("[data-history-reactivate]").forEach(function (button) {
+            button.addEventListener("click", function () { reactivateHistoricalContract(Number(button.dataset.historyReactivate)); });
+        });
+        contractHistoryList.querySelectorAll("[data-history-remove]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var index = Number(button.dataset.historyRemove);
+                if (!window.confirm("Remover este contrato do histórico?")) return;
+                pendingContractHistory.splice(index, 1);
+                var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+                if (unit) { unit.contractHistory = serializeContractHistory(pendingContractHistory); saveState(); }
+                renderContractHistory();
+            });
+        });
+    }
+
 })();
