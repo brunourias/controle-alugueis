@@ -1174,7 +1174,6 @@ undefined || item.rent === "" ? null : Number(item.rent);
             firebaseAuth = firebase.auth();
 
             firebaseDb = firebase.firestore();
-            firebaseStorage = firebase.storage ? firebase.storage() : null;
 
             firebaseDb
                 .enablePersistence({ synchronizeTabs: true })
@@ -3558,27 +3557,7 @@ document
     }
 
     function uploadContractAttachment() {
-        var file = contractAttachment.files && contractAttachment.files[0];
-        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
-        contractAttachment.value = "";
-        if (!file || !unit) return;
-        if (!firebaseUser || !firebaseStorage) {
-            attachmentStatus.textContent = "Conecte sua conta e habilite o Firebase Storage para enviar documentos.";
-            return;
-        }
-        if (file.size > 10 * 1024 * 1024) { attachmentStatus.textContent = "O arquivo deve ter no máximo 10 MB."; return; }
-        attachmentStatus.textContent = "Enviando documento...";
-        var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        var path = "users/" + firebaseUser.uid + "/units/" + unit.id + "/" + Date.now() + "-" + safeName;
-        firebaseStorage.ref().child(path).put(file).then(function (snapshot) {
-            return snapshot.ref.getDownloadURL();
-        }).then(function (url) {
-            unit.attachments = Array.isArray(unit.attachments) ? unit.attachments : [];
-            unit.attachments.unshift({ name:file.name, url:url, path:path, createdAt:new Date().toISOString() });
-            saveState(); renderAttachmentList(unit); attachmentStatus.textContent = "Documento anexado.";
-        }).catch(function () {
-            attachmentStatus.textContent = "Não foi possível enviar. Verifique se o Firebase Storage está habilitado e protegido.";
-        });
+        attachmentStatus.textContent = "Envio de documentos para a nuvem está desabilitado.";
     }
 
     function openModal(id) {
