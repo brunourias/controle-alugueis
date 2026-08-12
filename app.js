@@ -6229,4 +6229,167 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
+
+
+    /* Parcelas por contrato: fonte individual para baixas de contratos encerrados. */
+    var contractInstallmentsModal = document.getElementById("contractInstallmentsModal");
+    var contractInstallmentsTitle = document.getElementById("contractInstallmentsTitle");
+    var contractInstallmentsSummary = document.getElementById("contractInstallmentsSummary");
+    var contractInstallmentsList = document.getElementById("contractInstallmentsList");
+
+    function contractInstallmentKeys(contract) {
+        var start = contract.startYm || contractMonthValue(contract.startDate);
+        var end = contract.endYm || contractMonthValue(contract.endDate);
+        if (!isValidStartYm(start) || !isValidStartYm(end) || end < start) return [];
+        var keys = [], cursor = start;
+        while (cursor <= end) {
+            keys.push(cursor);
+            var parts = cursor.split("-").map(Number);
+            var date = new Date(parts[0], parts[1], 1);
+            cursor = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+        }
+        return keys;
+    }
+
+    function historicalInstallmentState(unit, key) {
+        var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        if (ledger[key] === true || ledger[key] === "open") return "atrasado";
+        if (ledger[key] === "paid") return "pago-atrasado";
+        var payment = unit.paymentHistory && unit.paymentHistory[key];
+        return payment ? "pago" : "pendente";
+    }
+
+    function openContractInstallments(index) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        if (!unit || !contract) return;
+        var keys = contractInstallmentKeys(contract);
+        var openLate = keys.filter(function (key) {
+            return historicalInstallmentState(unit, key) === "atrasado";
+        }).length;
+        var paidLate = keys.filter(function (key) {
+            return historicalInstallmentState(unit, key) === "pago-atrasado";
+        }).length;
+        contractInstallmentsTitle.textContent = "Parcelas · " + (contract.tenantName || "Contrato encerrado");
+        contractInstallmentsSummary.textContent =
+            (openLate ? openLate + " em atraso" : "Nenhuma em atraso") +
+            (paidLate ? " · " + paidLate + " paga(s) com atraso" : "") +
+            " · " + money(Number(contract.rent) || 0) + " por parcela";
+
+        contractInstallmentsList.innerHTML = keys.length ? keys.map(function (key) {
+            var stateName = historicalInstallmentState(unit, key);
+            var label = stateName === "atrasado" ? "Em atraso" :
+                stateName === "pago-atrasado" ? "Pago (atraso)" :
+                stateName === "pago" ? "Pago" : "Pendente";
+            var klass = stateName === "atrasado" ? " is-late" :
+                (stateName === "pago" || stateName === "pago-atrasado" ? " is-paid" : "");
+            var action = stateName === "atrasado"
+                ? '<button class="btn btn-primary" type="button" data-installment-settle="' + key + '">Dar baixa</button>'
+                : (stateName === "pago" || stateName === "pago-atrasado"
+                    ? '<button class="btn btn-ghost" type="button" data-installment-receipt="' + key + '">Recibo</button>' : "");
+            return '<div class="contract-installment-row' + klass + '"><div><strong>' +
+                escapeHtml(ymLabel(key)) + '</strong><span>Vencimento: ' +
+                String(contract.dueDay || "—") + ' · ' + escapeHtml(label) +
+                ' · ' + money(Number(contract.rent) || 0) +
+                '</span></div><div class="contract-installment-actions">' + action + '</div></div>';
+        }).join("") : '<p class="rent-changes-empty">Não foi possível identificar o período deste contrato.</p>';
+
+        contractInstallmentsList.querySelectorAll("[data-installment-settle]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                settleHistoricInstallment(index, button.dataset.installmentSettle);
+            });
+        });
+        contractInstallmentsList.querySelectorAll("[data-installment-receipt]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                openHistoricInstallmentReceipt(index, button.dataset.installmentReceipt);
+            });
+        });
+        ModalManager.open(contractInstallmentsModal);
+    }
+
+    function settleHistoricInstallment(index, key) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        if (!unit || !contract) return;
+        if (!window.confirm("Dar baixa da parcela de " + ymLabel(key) + "?")) return;
+        unit.lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object" ? unit.paymentHistory : {};
+        unit.lateLedger[key] = "paid";
+        unit.paymentHistory[key] = {
+            rentAmount: Number(contract.rent) || 0,
+            totalAmount: Number(contract.rent) || 0,
+            paidAt: new Date().toISOString(),
+            historicContractId: contract.id,
+            tenantName: contract.tenantName || ""
+        };
+        saveState();
+        openContractInstallments(index);
+        renderContractHistory();
+        render();
+    }
+
+    function openHistoricInstallmentReceipt(index, key) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        if (!unit || !contract) return;
+        var payment = unit.paymentHistory && unit.paymentHistory[key];
+        var parts = key.split("-").map(Number);
+        receiptContext = {
+            unit: { name: unit.name, tenantName: contract.tenantName || "" },
+            month: parts[1] - 1,
+            year: parts[0],
+            monthName: fullMonths[parts[1] - 1],
+            issuedAt: formatDate(new Date()),
+            status: historicalInstallmentState(unit, key) === "pago-atrasado" ? "pago-atrasado" : "pago",
+            amount: Number(contract.rent) || 0,
+            totalAmount: payment && Number(payment.totalAmount) || Number(contract.rent) || 0,
+            paidAt: payment && payment.paidAt || null,
+            tenantName: contract.tenantName || ""
+        };
+        receiptPreview.innerHTML = receiptMarkup(receiptContext);
+        document.getElementById("receiptTitle").textContent = "Recibo · " + unit.name;
+        ModalManager.open(receiptModal);
+    }
+
+    document.getElementById("closeContractInstallments").addEventListener("click", function () {
+        ModalManager.close(contractInstallmentsModal);
+    });
+
+    function renderContractHistory() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var cards = pendingContractHistory.map(function (contract, index) {
+            var startDate = resolveHistoryDate(contract, "start", false);
+            var endDate = resolveHistoryDate(contract, "end", true);
+            var status = contractHistoryStatusInfo(contract.status);
+            var lateCount = unit ? historicLateKeysForContract(unit, contract).length : 0;
+            return '<article class="contract-timeline-card ' + status[1] + '"><div class="contract-timeline-heading"><strong>' +
+                escapeHtml(contract.tenantName || "Inquilino não informado") + '</strong><span class="contract-status">' +
+                status[0] + '</span></div><p>' + escapeHtml(formatTimelineDate(startDate) + " até " +
+                formatTimelineDate(endDate)) + (contract.rent !== null ? " · " + money(contract.rent) : "") + '</p>' +
+                (lateCount ? '<p class="contract-history-reason">' + lateCount + ' parcela' +
+                (lateCount === 1 ? '' : 's') + ' em atraso.</p>' : '') +
+                '<div class="contract-history-actions"><button class="btn btn-ghost" type="button" data-history-installments="' +
+                index + '">Ver parcelas</button><button class="btn btn-ghost" type="button" data-history-reactivate="' +
+                index + '">Reativar</button><button class="btn btn-danger" type="button" data-history-remove="' +
+                index + '">Remover</button></div></article>';
+        }).join("");
+        contractHistoryList.innerHTML = cards ? '<div class="contract-timeline">' + cards + '</div>' :
+            '<p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p>';
+        contractHistoryList.querySelectorAll("[data-history-installments]").forEach(function (button) {
+            button.addEventListener("click", function () { openContractInstallments(Number(button.dataset.historyInstallments)); });
+        });
+        contractHistoryList.querySelectorAll("[data-history-reactivate]").forEach(function (button) {
+            button.addEventListener("click", function () { reactivateHistoricalContract(Number(button.dataset.historyReactivate)); });
+        });
+        contractHistoryList.querySelectorAll("[data-history-remove]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var index = Number(button.dataset.historyRemove);
+                if (!window.confirm("Remover este contrato do histórico?")) return;
+                pendingContractHistory.splice(index, 1);
+                if (unit) { unit.contractHistory = serializeContractHistory(pendingContractHistory); saveState(); }
+                renderContractHistory();
+            });
+        });
+    }
+
 })();
