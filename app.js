@@ -6572,6 +6572,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var paidAt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12).toISOString();
 
         if (historicPaymentAdjustContext) {
+            createVersionedBackup("Baixa de parcela histórica", historicPaymentAdjustContext.key);
+            recordOperation("Baixa de parcela histórica", historicPaymentAdjustContext.key);
             var unit = state.units.find(function (item) { return item.id === historicPaymentAdjustContext.unitId; });
             if (!unit) return;
             unit.lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
@@ -6599,6 +6601,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
 
         if (!paymentAdjustContext) return;
+        createVersionedBackup("Ajuste de pagamento", paymentAdjustContext.key);
+        recordOperation("Ajuste de pagamento", paymentAdjustContext.key);
         var currentUnit = state.units.find(function (item) { return item.id === paymentAdjustContext.unitId; });
         if (!currentUnit) return;
         currentUnit.paymentHistory = currentUnit.paymentHistory && typeof currentUnit.paymentHistory === "object" ? currentUnit.paymentHistory : {};
@@ -6624,5 +6628,123 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("cancelPaymentAdjust").addEventListener("click", function () {
         historicPaymentAdjustContext = null;
     });
+
+
+
+    /* Auditoria local sincronizada: snapshots compactos e trilha de operações. */
+    function cleanStateSnapshot() {
+        var copy = JSON.parse(JSON.stringify(state));
+        delete copy.versionedBackups;
+        delete copy.operationHistory;
+        return copy;
+    }
+
+    function createVersionedBackup(label, detail) {
+        state.versionedBackups = Array.isArray(state.versionedBackups) ? state.versionedBackups : [];
+        state.versionedBackups.unshift({
+            id: "backup-" + Date.now().toString(36),
+            createdAt: new Date().toISOString(),
+            label: label,
+            detail: detail || "",
+            snapshot: cleanStateSnapshot()
+        });
+        state.versionedBackups = state.versionedBackups.slice(0, 12);
+    }
+
+    function recordOperation(action, detail) {
+        state.operationHistory = Array.isArray(state.operationHistory) ? state.operationHistory : [];
+        state.operationHistory.unshift({
+            id: "operation-" + Date.now().toString(36),
+            createdAt: new Date().toISOString(),
+            action: action,
+            detail: detail || ""
+        });
+        state.operationHistory = state.operationHistory.slice(0, 80);
+    }
+
+    function renderBackupHistory() {
+        var list = document.getElementById("backupHistoryList");
+        if (!list) return;
+        var backups = Array.isArray(state.versionedBackups) ? state.versionedBackups : [];
+        var operations = Array.isArray(state.operationHistory) ? state.operationHistory.slice(0, 4) : [];
+        var backupRows = backups.slice(0, 5).map(function (backup) {
+            var date = new Date(backup.createdAt);
+            return '<div class="backup-history-row"><div><strong>' +
+                escapeHtml(backup.label) + '</strong><span>' +
+                escapeHtml(formatDate(date) + " " + String(date.getHours()).padStart(2, "0") + ":" +
+                String(date.getMinutes()).padStart(2, "0")) + '</span></div><button class="btn btn-ghost" type="button" data-restore-backup="' +
+                escapeHtml(backup.id) + '">Restaurar</button></div>';
+        }).join("");
+        var operationRows = operations.map(function (operation) {
+            var date = new Date(operation.createdAt);
+            return '<div class="backup-history-row"><div><strong>' +
+                escapeHtml(operation.action) + '</strong><span>' +
+                escapeHtml((operation.detail ? operation.detail + " · " : "") + formatDate(date)) +
+                '</span></div></div>';
+        }).join("");
+        list.innerHTML = backupRows || operationRows
+            ? backupRows + operationRows
+            : '<p class="rent-changes-empty">Nenhum backup ou operação sensível registrado.</p>';
+        list.querySelectorAll("[data-restore-backup]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var backup = backups.find(function (item) { return item.id === button.dataset.restoreBackup; });
+                if (!backup || !backup.snapshot) return;
+                if (!window.confirm("Restaurar este backup? Os dados atuais serão preservados em um novo backup antes da restauração.")) return;
+                createVersionedBackup("Antes de restaurar backup", backup.label);
+                recordOperation("Restauração de backup", backup.label);
+                var savedBackups = state.versionedBackups;
+                var savedOperations = state.operationHistory;
+                state = normalizeState(backup.snapshot);
+                state.versionedBackups = savedBackups;
+                state.operationHistory = savedOperations;
+                expenseCategories = state.expenseCategories;
+                saveState();
+                renderBackupHistory();
+                render();
+            });
+        });
+    }
+
+    function endCurrentContractOnly() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        if (!unit || !String(tenantName.value || "").trim()) {
+            tenantName.focus();
+            return;
+        }
+        var previousTenant = tenantName.value.trim();
+        if (!window.confirm(
+            "Encerrar o contrato de " + previousTenant +
+            "? As parcelas, pagamentos e pendências serão preservados. A unidade poderá ficar vaga."
+        )) return;
+        createVersionedBackup("Encerramento de contrato", unit.name + " · " + previousTenant);
+        recordOperation("Contrato encerrado", unit.name + " · " + previousTenant);
+        archiveCurrentContract();
+        document.getElementById("modalTitle").textContent = "Unidade vaga · " + unit.name;
+        startNewContractButton.hidden = false;
+    }
+
+    function deleteUnit() {
+        if (!editingId || !window.confirm("Excluir esta unidade e seus registros?")) return;
+        var unit = state.units.find(function (item) { return item.id === editingId; });
+        createVersionedBackup("Exclusão de unidade", unit ? unit.name : "");
+        recordOperation("Unidade excluída", unit ? unit.name : "");
+        state.units = state.units.filter(function (item) { return item.id !== editingId; });
+        saveState();
+        closeModal();
+        render();
+    }
+
+    document.getElementById("createBackupNow").addEventListener("click", function () {
+        createVersionedBackup("Backup manual", "");
+        recordOperation("Backup manual criado", "");
+        saveState();
+        renderBackupHistory();
+    });
+
+    var originalOpenSettings = openSettings;
+    function openSettings() {
+        originalOpenSettings();
+        renderBackupHistory();
+    }
 
 })();
