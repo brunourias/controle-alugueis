@@ -140,6 +140,8 @@ const ModalManager = (() => {
     var lockConfig = loadLockConfig();
     var appUnlocked = false;
     var authMode = "login";
+    var autoLockTimer = null;
+    var AUTO_LOCK_MS = 5 * 60 * 1000;
 
     var grid = document.getElementById("grid");
     var tableWrap = grid.parentElement;
@@ -1412,6 +1414,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function revealApp() {
         scrollPageToTop();
         document.body.classList.remove("app-loading");
+        armAutoLock();
 
         // O teclado virtual pode reajustar a viewport após o login no Android.
         window.setTimeout(scrollPageToTop, 100);
@@ -1478,6 +1481,24 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
         appUnlocked = true;
         revealApp();
+    }
+
+    function armAutoLock() {
+        clearTimeout(autoLockTimer);
+        if (!lockConfig || !appUnlocked) return;
+        autoLockTimer = setTimeout(function () {
+            lockApp();
+        }, AUTO_LOCK_MS);
+    }
+
+    function lockApp() {
+        if (!lockConfig || !appUnlocked) return;
+        appUnlocked = false;
+        openAuthLogin();
+    }
+
+    function registerAppActivity() {
+        if (appUnlocked) armAutoLock();
     }
 
     function exportBackup() {
@@ -5963,6 +5984,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     window.addEventListener("offline", function () {
         if (firebaseUser)
             setSyncStatus("Offline — alterações salvas localmente");
+    });
+
+    ["click", "keydown", "touchstart"].forEach(function (eventName) {
+        document.addEventListener(eventName, registerAppActivity, { passive: eventName === "touchstart" });
+    });
+    document.addEventListener("visibilitychange", function () {
+        if (document.hidden) lockApp();
+        else registerAppActivity();
     });
 
     modal.addEventListener("click", function (event) {
