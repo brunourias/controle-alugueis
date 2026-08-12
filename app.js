@@ -5872,4 +5872,109 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
+
+
+    /* Encerramento persistente e recuperação de registros legados. */
+    function archiveCurrentContract() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var startDate = unitStartYm.value || (unit && unit.startDate) || null;
+        var endDate = unitEndYm.value || localDateValue(new Date());
+        if (!unit || !tenantName.value.trim()) {
+            tenantName.focus();
+            return;
+        }
+
+        months.forEach(function (_, month) {
+            var key = monthKey(month);
+            if (effectiveStatus(unit, month) === "atrasado") unit.status[key] = "atrasado";
+        });
+
+        pendingContractHistory.push({
+            id: newContractHistoryId(),
+            tenantName: tenantName.value.trim(),
+            tenantPhone: tenantPhone.value.trim(),
+            tenantEmail: tenantEmail.value.trim(),
+            tenantNotes: tenantNotes.value.trim(),
+            startDate: startDate,
+            endDate: endDate,
+            startYm: contractMonthValue(startDate),
+            endYm: contractMonthValue(endDate),
+            rent: Number.isFinite(Number(unitRent.value)) ? Number(unitRent.value) : null,
+            dueDay: unitDueDay.value === "" ? null : Number(unitDueDay.value),
+            status: "encerrado",
+            reason: ""
+        });
+
+        unit.contractHistory = serializeContractHistory(pendingContractHistory);
+        unit.tenantName = "";
+        unit.tenantPhone = "";
+        unit.tenantEmail = "";
+        unit.tenantNotes = "";
+        unit.rent = 0;
+        unit.dueDay = null;
+        unit.startDate = null;
+        unit.endDate = null;
+        unit.startYm = null;
+        unit.endYm = null;
+        unit.rentChanges = [];
+        saveState();
+
+        tenantName.value = "";
+        tenantPhone.value = "";
+        tenantEmail.value = "";
+        tenantNotes.value = "";
+        unitRent.value = "";
+        unitDueDay.value = "";
+        unitStartYm.value = "";
+        unitEndYm.value = "";
+        pendingRentChanges = [];
+        renderRentChanges();
+        renderContractHistory();
+        render();
+        tenantName.focus();
+    }
+
+    function reactivateHistoricalContract(index) {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var contract = pendingContractHistory[index];
+        var startDate;
+        if (!unit || !contract) return;
+
+        startDate = resolveHistoryDate(contract, "start", false) ||
+            (isValidDateValue(unit.startDate) ? unit.startDate : null) ||
+            (isValidDateValue(unit.endDate) ? unit.endDate : null);
+        if (!startDate) {
+            alert("Este contrato antigo não possui data de início. Informe a data ao editar o histórico antes de reativá-lo.");
+            return;
+        }
+
+        unit.tenantName = contract.tenantName || "";
+        unit.tenantPhone = contract.tenantPhone || "";
+        unit.tenantEmail = "";
+        unit.tenantNotes = contract.tenantNotes || "";
+        unit.rent = Number.isFinite(Number(contract.rent)) ? Number(contract.rent) : 0;
+        unit.dueDay = Number.isInteger(contract.dueDay) ? contract.dueDay : null;
+        unit.startDate = startDate;
+        unit.endDate = null;
+        unit.startYm = contractMonthValue(startDate);
+        unit.endYm = null;
+        unit.rentChanges = [];
+        unit.status = unit.status && typeof unit.status === "object" ? unit.status : {};
+        pendingContractHistory.splice(index, 1);
+        unit.contractHistory = serializeContractHistory(pendingContractHistory);
+        saveState();
+
+        tenantName.value = unit.tenantName;
+        tenantPhone.value = unit.tenantPhone;
+        tenantEmail.value = "";
+        tenantNotes.value = unit.tenantNotes;
+        unitRent.value = unit.rent;
+        unitDueDay.value = unit.dueDay === null ? "" : unit.dueDay;
+        unitStartYm.value = unit.startDate;
+        unitEndYm.value = "";
+        renderContractHistory();
+        render();
+        tenantName.focus();
+    }
+
 })();
