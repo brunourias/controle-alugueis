@@ -2222,3 +2222,41 @@ tfoot td {
 .backup-history-row strong { display: block; color: var(--ink); }
 .backup-history-row span { color: var(--muted); }
 .backup-history-row .btn { min-height: 32px; padding: 0 9px; font-size: .7rem; }
+
+/* Painel de atenção */
+.action-center { max-width:1180px; margin:0 auto 14px; padding:16px; border:1px solid #d7e8e5; border-radius:18px; background:#fff; box-shadow:0 8px 24px #0f766e0d; }
+.action-center-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.action-center h2 { margin:0; color:#0d5c58; font-size:1rem; }
+.action-center p { margin:3px 0 0; color:var(--muted); font-size:.8rem; }
+.action-count { display:grid; place-items:center; min-width:30px; height:30px; border-radius:50%; color:#0d5c58; background:#e6f5f1; font-weight:800; }
+.action-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:9px; margin-top:13px; }
+.action-item { padding:12px; border-radius:13px; }
+.action-item strong,.action-item span { display:block; }
+.action-item strong { font-size:.86rem; }
+.action-item span { margin-top:4px; font-size:.76rem; color:#556b69; }
+.action-item.is-danger { background:#fff0f1; color:#a52d3b; }
+.action-item.is-warning { background:#fff7df; color:#8a5a00; }
+.action-item.is-info { background:#e8f3fa; color:#1c5c7b; }
+.action-item.is-neutral { background:#f0f4f4; color:#526565; }
+.action-empty { padding-top:7px; }
+@media (max-width:768px) {
+ .app-header { padding:calc(12px + env(safe-area-inset-top)) 16px 10px; }
+ h1 { font-size:1.45rem; text-align:left; }
+ .header-meta { font-size:.9rem; text-align:left; }
+ .header-controls { margin-top:4px; }
+ .enterprise-selector select { height:40px; border-radius:12px; font-size:.9rem; }
+ .year-nav .icon-btn { width:38px; height:38px; }
+ .hint { margin-top:8px; font-size:.76rem; line-height:1.45; }
+ .action-center { margin:0 0 12px; border-radius:15px; padding:13px; }
+ .action-list { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:520px) {
+ .app-header { padding:calc(10px + env(safe-area-inset-top)) 14px 9px; }
+ .header-top { gap:6px; }
+ .header-identity { padding-top:0; }
+ h1 { font-size:1.32rem; }
+ .header-meta { font-size:.82rem; }
+ .hint { font-size:.7rem; margin-top:6px; }
+ .chip { padding:1px 5px; font-size:.64rem; }
+ .action-list { grid-template-columns:1fr; }
+}
