@@ -2545,9 +2545,13 @@ function renderSummary() {
             var openLate = 0;
             var paidLate = 0;
             months.forEach(function (_, i) {
+                var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object"
+                    ? unit.lateLedger
+                    : {};
                 if (
                     effectiveStatus(unit, i) === "atrasado" ||
-                    statusFor(unit, i) === "atrasado"
+                    statusFor(unit, i) === "atrasado" ||
+                    lateLedger[monthKey(i)] === true
                 )
                     openLate += 1;
                 if (isPaidLate(unit, i)) paidLate += 1;
@@ -5900,10 +5904,15 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return;
         }
 
+        var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
         months.forEach(function (_, month) {
             var key = monthKey(month);
-            if (effectiveStatus(unit, month) === "atrasado") unit.status[key] = "atrasado";
+            if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado") {
+                unit.status[key] = "atrasado";
+                lateLedger[key] = true;
+            }
         });
+        unit.lateLedger = lateLedger;
 
         pendingContractHistory.push({
             id: newContractHistoryId(),
