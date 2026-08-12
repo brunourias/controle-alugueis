@@ -2201,7 +2201,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var container = document.getElementById("actionCenter");
         if (!container) return;
         var today = new Date(); today.setHours(0, 0, 0, 0);
-        var overdue = 0, dueSoon = 0, vacant = 0, renewals = [], calendar = [], enterprises = {};
+        var overdue = 0, overdueTotal = 0, dueSoon = 0, vacant = 0, renewals = [], calendar = [], enterprises = {};
         scopedUnits().forEach(function (unit) {
             var enterprise = empreendimentoName(unit.empreendimentoId);
             enterprises[enterprise] = enterprises[enterprise] || { units: 0, expected: 0, received: 0, late: 0 };
@@ -2209,7 +2209,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
             if (!String(unit.tenantName || "").trim()) vacant += 1;
             months.forEach(function (_, month) {
                 var key = monthKey(month), ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") { overdue += 1; enterprises[enterprise].late += 1; }
+                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") {
+                    overdue += 1; enterprises[enterprise].late += 1;
+                    overdueTotal += (ledger[key] === true || ledger[key] === "open")
+                        ? historicLateRent(unit, key)
+                        : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
+                }
             });
             var currentMonth = today.getMonth();
             if (isActive(unit, currentMonth)) {
@@ -2225,7 +2230,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
         var tasks = state.tasks.filter(function (task) { return !task.done; }).sort(function (a,b) { return String(a.dueDate).localeCompare(String(b.dueDate)); });
         var alerts = [];
-        if (overdue) alerts.push('<div class="action-item is-danger"><strong>' + overdue + ' parcela' + (overdue === 1 ? '' : 's') + ' em atraso</strong><span>Prioridade: cobrar e dar baixa</span></div>');
+        if (overdue) alerts.push('<div class="summary-card summary-alert action-overdue-card"><div class="summary-label">⚠️ ' + overdue + ' ' + (overdue === 1 ? 'pagamento' : 'pagamentos') + ' em atraso</div><div class="summary-value">' + money(overdueTotal) + '</div><div class="summary-detail">Total em atraso no ano, com multa e juros</div></div>');
         if (dueSoon) alerts.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Antecedência configurada nas configurações</span></div>');
         if (vacant) alerts.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para nova locação</span></div>');
         var renewalHtml = renewals.map(function (item) {
@@ -3003,7 +3008,6 @@ function renderSummary() {
     var summaryContainer = document.getElementById("summary");
     if (summaryContainer) {
         summaryContainer.innerHTML =
-            overdueAlert +
             '<div id="summaryCards" class="summary-cards">' +
             '<div class="summary-card"><div class="summary-label">Recebido neste mês</div><div class="summary-value">' +
             money(received) +
