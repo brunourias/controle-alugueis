@@ -5986,17 +5986,60 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return unit.paymentHistory[key] || null;
     }
 
+    /*
+     * Um pagamento confirmado não pode depender do contrato que está
+     * ativo hoje. A parcela pertence ao mês/contrato em que foi baixada.
+     * Esta regra é compartilhada pelos totais da grade, painel e relatório.
+     */
+    function paymentIsConfirmedForTotals(unit, key, payment) {
+        if (!payment || !unit) return false;
+        var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        var statuses = unit.status && typeof unit.status === "object" ? unit.status : {};
+        var paidLate = unit.paidLate && typeof unit.paidLate === "object" ? unit.paidLate : {};
+
+        if (
+            payment.historicContractId ||
+            ledger[key] === "paid" ||
+            statuses[key] === "pago" ||
+            paidLate[key] === true
+        ) {
+            return true;
+        }
+
+        // Compatibilidade com pagamentos de contratos encerrados nas
+        // versões anteriores, que não gravavam o identificador do contrato.
+        var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
+        return history.some(function (contract) {
+            if (!contract) return false;
+            var start = contract.startYm || contractMonthValue(contract.startDate);
+            var end = contract.endYm || contractMonthValue(contract.endDate);
+            return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
+        });
+    }
+
     function historicalReceivedAmount(unit, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
-        var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-        if (payment && (payment.historicContractId || ledger[key] === "paid" || statusFor(unit, month) === "pago")) {
+
+        if (paymentIsConfirmedForTotals(unit, key, payment)) {
             return Math.max(0, Number(payment.rentAmount) || 0);
         }
+
+        // Compatibilidade para pagamentos antigos sem histórico financeiro.
         if (year !== selectedYear || statusFor(unit, month) !== "pago") return 0;
         if (isActive(unit, month)) return Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
         var archived = archivedContractForMonth(unit, month);
         return archived && Number.isFinite(Number(archived.rent)) ? Math.max(0, Number(archived.rent)) : 0;
+    }
+
+    function historicalInterestAmount(unit, year, month) {
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        var payment = getPaymentRecord(unit, year, month);
+
+        // Juros só entram quando foram efetivamente registrados numa baixa.
+        // Isso inclui parcelas de contratos ainda ativos e já encerrados.
+        if (!paymentIsConfirmedForTotals(unit, key, payment)) return 0;
+        return Math.max(0, Number(payment.interestAmount) || 0);
     }
 
     function ensureFinancialHistory(unit) {
