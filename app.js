@@ -622,6 +622,18 @@ undefined || item.rent === "" ? null : Number(item.rent);
   }).filter(function (item) { return item !== null; });
 }
 
+    function contractDateValue(value, fallbackYm, isEnd) {
+        if (isValidDateValue(value)) return value;
+        if (!isValidStartYm(fallbackYm)) return null;
+        if (!isEnd) return fallbackYm + "-01";
+        var parts = fallbackYm.split("-").map(Number);
+        return fallbackYm + "-" + String(new Date(parts[0], parts[1], 0).getDate()).padStart(2, "0");
+    }
+
+    function contractMonthValue(dateValue) {
+        return isValidDateValue(dateValue) ? dateValue.slice(0, 7) : null;
+    }
+
     function normalizeUnit(unit) {
         unit.status =
             unit.status &&
@@ -635,8 +647,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             !Array.isArray(unit.paidLate)
                 ? unit.paidLate
                 : {};
-        unit.startYm = isValidStartYm(unit.startYm) ? unit.startYm : null;
-        unit.endYm = isValidStartYm(unit.endYm) ? unit.endYm : null;
+        unit.startDate = contractDateValue(unit.startDate, unit.startYm, false);
+        unit.endDate = contractDateValue(unit.endDate, unit.endYm, true);
+        unit.startYm = contractMonthValue(unit.startDate);
+        unit.endYm = contractMonthValue(unit.endDate);
         unit.rent =
             Number.isFinite(Number(unit.rent)) && Number(unit.rent) >= 0
                 ? Number(unit.rent)
@@ -3179,15 +3193,8 @@ document
 				? unit.dueDay
 				: "";
 
-		unitStartYm.value =
-			hasCurrentContract && isValidStartYm(unit.startYm)
-				? unit.startYm
-				: "";
-
-		unitEndYm.value =
-			hasCurrentContract && isValidStartYm(unit.endYm)
-				? unit.endYm
-				: "";
+		unitStartYm.value = hasCurrentContract && isValidDateValue(unit.startDate) ? unit.startDate : "";
+		unitEndYm.value = hasCurrentContract && isValidDateValue(unit.endDate) ? unit.endDate : "";
 
 		tenantName.value = hasCurrentContract ? unit.tenantName : "";
 		tenantPhone.value = unit ? unit.tenantPhone : "";
@@ -4244,8 +4251,10 @@ function saveExpense() {
         var rent = Number(unitRent.value);
         var dueDayValue = unitDueDay.value.trim();
         var dueDay = dueDayValue === "" ? null : Number(dueDayValue);
-        var startYm = unitStartYm.value || null;
-        var endYm = unitEndYm.value || null;
+        var startDate = unitStartYm.value || null;
+        var endDate = unitEndYm.value || null;
+        var startYm = contractMonthValue(startDate);
+        var endYm = contractMonthValue(endDate);
         if (!name) {
             unitName.focus();
             return;
@@ -4287,20 +4296,20 @@ function saveExpense() {
             return;
         }
         unitDueDay.setCustomValidity("");
-        if (startYm !== null && !isValidStartYm(startYm)) {
-            unitStartYm.setCustomValidity("Informe um mês de início válido.");
+        if (startDate !== null && !isValidDateValue(startDate)) {
+            unitStartYm.setCustomValidity("Informe uma data de início válida.");
             unitStartYm.reportValidity();
             unitStartYm.focus();
             return;
         }
         unitStartYm.setCustomValidity("");
-        if (endYm !== null && !isValidStartYm(endYm)) {
-            unitEndYm.setCustomValidity("Informe um mês de fim válido.");
+        if (endDate !== null && !isValidDateValue(endDate)) {
+            unitEndYm.setCustomValidity("Informe uma data de fim válida.");
             unitEndYm.reportValidity();
             unitEndYm.focus();
             return;
         }
-        if (startYm && endYm && endYm < startYm) {
+        if (startDate && endDate && endDate < startDate) {
             unitEndYm.setCustomValidity(
                 "O fim da locação deve ser igual ou posterior ao início."
             );
@@ -4321,6 +4330,8 @@ function saveExpense() {
                 existing.rentChanges = normalizeRentChanges(pendingRentChanges);
 				existing.contractHistory = normalizeContractHistory(pendingContractHistory); 
                 existing.dueDay = dueDay;
+                existing.startDate = startDate;
+                existing.endDate = endDate;
                 existing.startYm = startYm;
                 existing.endYm = endYm;
                 existing.tenantName = tenantName.value.trim();
@@ -4339,6 +4350,8 @@ function saveExpense() {
                 rentChanges: normalizeRentChanges(pendingRentChanges),
 				contractHistory: normalizeContractHistory(pendingContractHistory),
                 dueDay: dueDay,
+                startDate: startDate,
+                endDate: endDate,
                 startYm: startYm,
                 endYm: endYm,
                 tenantName: tenantName.value.trim(),
