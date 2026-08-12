@@ -1617,7 +1617,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
             : "pendente";
     }
 
+    function firstContractDueDate(unit) {
+        if (!unit || !isValidDateValue(unit.startDate)) return null;
+        var parts = unit.startDate.split("-").map(Number);
+        var year = parts[0];
+        var month = parts[1];
+        var day = parts[2];
+        var lastDay = new Date(year, month + 1, 0).getDate();
+        return new Date(year, month, Math.min(day, lastDay));
+    }
+
     function dueDateFor(unit, month) {
+        var firstDueDate = firstContractDueDate(unit);
+        if (firstDueDate && monthKey(month) === unit.startYm) return firstDueDate;
         if (
             !Number.isInteger(unit.dueDay) ||
             unit.dueDay < 1 ||
@@ -1651,6 +1663,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (!dueDate) return null;
         var today = new Date();
         today.setHours(0, 0, 0, 0);
+        // O primeiro aluguel cobre o primeiro ciclo completo de moradia.
+        // Nenhuma parcela pode virar atraso antes desse primeiro ciclo vencer.
+        var firstDueDate = firstContractDueDate(unit);
+        if (firstDueDate && today < firstDueDate) return null;
         var days = Math.floor((today - dueDate) / 86400000);
         return days > 0 ? days : null;
     }
