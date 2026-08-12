@@ -5951,6 +5951,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         .addEventListener("click", function () {
             runCloudAuth("signup");
         });
+    cloudGoogleSignIn.addEventListener("click", signInWithGoogle);
+    cloudResetPassword.addEventListener("click", resetCloudPassword);
+    cloudResendVerification.addEventListener("click", resendCloudVerification);
 
     document
         .getElementById("cloudSignOut")
