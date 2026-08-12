@@ -4230,6 +4230,7 @@ function saveExpense() {
         setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
+        renderBackupHistory();
         ModalManager.open(settingsModal);
     }
 
@@ -6741,10 +6742,5 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderBackupHistory();
     });
 
-    var originalOpenSettings = openSettings;
-    function openSettings() {
-        originalOpenSettings();
-        renderBackupHistory();
-    }
 
 })();
