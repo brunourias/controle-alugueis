@@ -2494,6 +2494,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
                             " dias") +
                       "</span>";
 
+            var compactActions = tenantActions(unit)
+                ? '<details class="unit-context-menu"><summary aria-label="Mais ações para ' +
+                  escapeHtml(unit.name) +
+                  '">⋯</summary><div class="unit-context-actions">' +
+                  tenantActions(unit) +
+                  '</div></details>'
+                : "";
+
             return (
                 '<tr><th scope="row">' +
                 '<div class="unit-cell" data-edit="' +
@@ -2516,6 +2524,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 '<span class="tenant-actions">' +
                 tenantActions(unit) +
                 "</span>" +
+                compactActions +
 
                 "</div>" +
                 "</th>" +
@@ -5943,6 +5952,9 @@ function saveExpense() {
     });
 
     document.getElementById("addUnit").addEventListener("click", function () {
+        openModal();
+    });
+    document.getElementById("mobileAddUnit").addEventListener("click", function () {
         openModal();
     });
 
