@@ -6670,7 +6670,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
-    function endCurrentContractOnly() {
+    function endCurrentContractOnlyNow() {
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         if (!unit || !String(tenantName.value || "").trim()) { tenantName.focus(); return; }
         var previousTenant = tenantName.value.trim();
@@ -6694,7 +6694,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         tenantName.focus();
     }
 
-    function deleteUnit() {
+    function deleteUnitNow() {
         if (!editingId || !window.confirm("Excluir esta unidade e seus registros?")) return;
         var unit = state.units.find(function (item) { return item.id === editingId; });
         createVersionedBackup("Exclusão de unidade", unit ? unit.name : "");
@@ -6718,6 +6718,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
 
     /* Integrações de interface da auditoria. */
+    function endCurrentContractOnly() {
+        requireSensitiveAccess("encerrar este contrato", endCurrentContractOnlyNow);
+    }
+
+    function deleteUnit() {
+        requireSensitiveAccess("excluir esta unidade", deleteUnitNow);
+    }
+
     document.getElementById("cancelPaymentAdjust").addEventListener("click", function () {
         historicPaymentAdjustContext = null;
     });
