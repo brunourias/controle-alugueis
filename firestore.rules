@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function member(workspaceId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    }
+
+    function owner(workspaceId) {
+      return member(workspaceId) &&
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role == "owner";
+    }
+
+    /*
+     * Formato legado. Mantido apenas para a migração automática e como
+     * cópia de segurança do estado que existia antes dos workspaces.
+     */
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /profiles/{userId} {
+      allow read, create, update: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /workspaces/{workspaceId} {
+      // Cada pessoa pode criar a própria área, mas somente para si.
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read: if member(workspaceId);
+      allow update, delete: if owner(workspaceId);
+
+      match /members/{memberId} {
+        allow read: if member(workspaceId);
+
+        // Permite somente a criação atômica do proprietário junto do workspace.
+        allow create: if owner(workspaceId) ||
+          (signedIn() &&
+            memberId == request.auth.uid &&
+            request.resource.data.role == "owner" &&
+            getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid);
+
+        allow update, delete: if owner(workspaceId);
+      }
+
+      // Nesta etapa apenas o proprietário altera os dados.
+      // As permissões de admin/operador entram na etapa de colaboradores.
+      match /state/{stateId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if owner(workspaceId);
+      }
+    }
+  }
+}
