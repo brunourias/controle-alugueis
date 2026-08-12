@@ -135,6 +135,7 @@ const ModalManager = (() => {
     var editingExpenseId = null;
     var expensesExpanded = false;
     var summaryCardsExpanded = false;
+    var actionCenterExpanded = false;
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -2238,9 +2239,18 @@ undefined || item.rent === "" ? null : Number(item.rent);
             return '<div class="calendar-event"><b>' + String(item.date.getDate()).padStart(2,"0") + '</b><span>' + escapeHtml(item.label) + '</span></div>';
         }).join("") || '<p class="operations-empty">Nenhum evento próximo.</p>';
         var enterpriseHtml = Object.keys(enterprises).map(function (name) { var item=enterprises[name]; return '<div class="enterprise-kpi"><strong>' + escapeHtml(name) + '</strong><span>' + item.units + ' unidades · ' + money(item.received) + ' recebido de ' + money(item.expected) + '</span>' + (item.late ? '<em>' + item.late + ' atraso(s)</em>' : '') + '</div>'; }).join("");
-        container.innerHTML = '<div class="action-center-heading"><div><h2>O que precisa de ação</h2><p>Decisões, cobranças e próximos passos.</p></div><div class="operations-actions"><button class="btn btn-ghost" id="addOperationalTask" type="button">+ Tarefa</button><button class="btn btn-ghost" id="exportOperationalCsv" type="button">Exportar planilha</button></div></div>' +
-            (alerts.length ? '<div class="action-list">' + alerts.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>') +
+        var attentionCount = overdue + dueSoon + renewals.length + tasks.length;
+        var alertBadge = attentionCount
+            ? '<span class="action-alert-badge" aria-label="' + attentionCount + ' avisos">' + attentionCount + '</span>'
+            : '<span class="action-ok-badge" aria-label="Sem avisos">✓</span>';
+        var detail = (alerts.length ? '<div class="action-list">' + alerts.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>') +
             '<div class="operations-grid"><section><h3>Renovações</h3>' + renewalHtml + '</section><section><h3>Tarefas</h3>' + tasksHtml + '</section><section><h3>Próximos eventos</h3>' + calendarHtml + '</section><section><h3>Por empreendimento</h3>' + enterpriseHtml + '</section></div>';
+        container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Decisões, cobranças e próximos passos.</p></div><div class="action-heading-controls">' + alertBadge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? 'Ocultar' : 'Ver') + '</button></div></div>' +
+            (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
+        document.getElementById("toggleActionCenter").addEventListener("click", function () {
+            actionCenterExpanded = !actionCenterExpanded;
+            renderActionCenter();
+        });
         var add = document.getElementById("addOperationalTask");
         if (add) add.addEventListener("click", function () {
             var title = window.prompt("Qual tarefa você quer registrar?");
