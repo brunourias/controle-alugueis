@@ -1539,11 +1539,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
         sensitiveAction = callback;
         authMode = "sensitive";
-        var requiresAccountPassword = !!(firebaseUser && firebaseAuth);
+        var usesGoogle = !!(firebaseUser && firebaseUser.providerData.some(function (provider) {
+            return provider.providerId === "google.com";
+        }));
+        var requiresAccountPassword = !!(firebaseUser && firebaseAuth && !usesGoogle);
         authTitle.textContent = "Confirmar ação";
-        authMessage.textContent = requiresAccountPassword
-            ? "Digite a senha da sua conta para " + action + "."
-            : "Digite seu PIN para " + action + ".";
+        authMessage.textContent = usesGoogle
+            ? "Confirme sua conta Google para " + action + "."
+            : (requiresAccountPassword
+                ? "Digite a senha da sua conta para " + action + "."
+                : "Digite seu PIN para " + action + ".");
         authNewLabel.hidden = true;
         authConfirmLabel.hidden = true;
         authPinLabel.hidden = false;
