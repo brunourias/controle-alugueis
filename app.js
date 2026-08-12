@@ -242,6 +242,10 @@ var historyRent = document.getElementById("historyRent");
     var cloudUserEmail = document.getElementById("cloudUserEmail");
     var cloudEmail = document.getElementById("cloudEmail");
     var cloudPassword = document.getElementById("cloudPassword");
+    var cloudGoogleSignIn = document.getElementById("cloudGoogleSignIn");
+    var cloudResetPassword = document.getElementById("cloudResetPassword");
+    var cloudVerification = document.getElementById("cloudVerification");
+    var cloudResendVerification = document.getElementById("cloudResendVerification");
     var cloudError = document.getElementById("cloudError");
     var syncStatus = document.getElementById("syncStatus");
     var cloudReconcile = document.getElementById("cloudReconcile");
@@ -1082,10 +1086,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
         cloudSignedIn.hidden = !signedIn;
 
         cloudUserEmail.textContent = signedIn ? firebaseUser.email || "" : "";
+        if (cloudVerification) {
+            var needsVerification = signedIn && firebaseUser.providerData.some(function (provider) {
+                return provider.providerId === "password";
+            }) && !firebaseUser.emailVerified;
+            cloudVerification.hidden = !needsVerification;
+            cloudVerification.textContent = needsVerification
+                ? "Confirme seu e-mail para reforçar a segurança da conta."
+                : "";
+            cloudResendVerification.hidden = !needsVerification;
+        }
 
         if (!signedIn) {
             setSyncStatus("Sincronização desativada");
-
             cloudReconcile.hidden = true;
         }
     }
@@ -1188,9 +1201,44 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 ? firebaseAuth.createUserWithEmailAndPassword(email, password)
                 : firebaseAuth.signInWithEmailAndPassword(email, password);
 
-        request.catch(function (error) {
+        request
+            .then(function (credential) {
+                if (action === "signup" && credential.user && !credential.user.emailVerified) {
+                    return credential.user.sendEmailVerification().then(function () {
+                        setCloudError("Enviamos um link de confirmação para seu e-mail.");
+                    });
+                }
+            })
+            .catch(function (error) {
+                setCloudError(cloudErrorMessage(error));
+            });
+    }
+
+    function resetCloudPassword() {
+        var email = cloudEmail.value.trim();
+        if (!email || email.indexOf("@") < 1) {
+            setCloudError("Informe seu e-mail para receber o link de recuperação.");
+            cloudEmail.focus();
+            return;
+        }
+        firebaseAuth.sendPasswordResetEmail(email).then(function () {
+            setCloudError("Enviamos o link para redefinir sua senha.");
+        }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+    }
+
+    function signInWithGoogle() {
+        if (!firebaseAuth || !window.firebase) return;
+        var provider = new firebase.auth.GoogleAuthProvider();
+        firebaseAuth.signInWithPopup(provider).catch(function (error) {
             setCloudError(cloudErrorMessage(error));
         });
+    }
+
+    function resendCloudVerification() {
+        if (!firebaseUser) return;
+        firebaseUser.sendEmailVerification().then(function () {
+            setCloudError("Novo link de confirmação enviado.");
+        }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
     }
 
     function hasSubtleCrypto() {
