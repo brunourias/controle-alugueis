@@ -6031,6 +6031,27 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return archived && Number.isFinite(Number(archived.rent)) ? Math.max(0, Number(archived.rent)) : 0;
     }
 
+    // Valor base de uma parcela histórica ainda em aberto.
+    function historicLateRent(unit, key) {
+        if (!unit || !isValidStartYm(key)) return 0;
+        var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
+        var contract = history.slice().reverse().find(function (item) {
+            if (!item) return false;
+            var start = item.startYm || contractMonthValue(item.startDate);
+            var end = item.endYm || contractMonthValue(item.endDate);
+            return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
+        });
+
+        if (contract && Number.isFinite(Number(contract.rent))) {
+            return Math.max(0, Number(contract.rent));
+        }
+
+        var parts = key.split("-").map(Number);
+        return Number.isFinite(parts[0]) && Number.isFinite(parts[1])
+            ? Math.max(0, Number(rentForMonth(unit, parts[0], parts[1] - 1)) || 0)
+            : 0;
+    }
+
     function recordedInterestAmount(payment) {
         if (!payment || typeof payment !== "object") return 0;
 
