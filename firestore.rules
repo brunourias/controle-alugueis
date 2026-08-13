@@ -102,7 +102,30 @@ service cloud.firestore {
         allow delete: if manager(workspaceId);
       }
 
+      // Documento legado usado somente na migração para o esquema granular.
       match /state/{stateId} {
+        allow read, create, update: if owner(workspaceId);
+        allow delete: if false;
+      }
+
+      // Dados operacionais separados para evitar que a alteração de uma
+      // unidade sobrescreva dados de outra unidade em uma sessão paralela.
+      match /meta/{metaId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if writer(workspaceId);
+      }
+
+      match /units/{unitId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if writer(workspaceId);
+
+        match /contracts/{contractId} {
+          allow read: if member(workspaceId);
+          allow create, update, delete: if writer(workspaceId);
+        }
+      }
+
+      match /expenses/{expenseId} {
         allow read: if member(workspaceId);
         allow create, update, delete: if writer(workspaceId);
       }
