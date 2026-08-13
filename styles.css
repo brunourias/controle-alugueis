@@ -4711,3 +4711,19 @@ textarea:focus-visible {
 .platform-account-actions > label { min-width: 94px; }
 .platform-account-actions input, .platform-account-actions select { min-height: 32px; }
 @media (max-width: 760px) { .platform-plan-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .platform-plan-form .btn { grid-column: span 2; } }
+
+
+/* Guia inicial */
+.onboarding-modal { width: min(calc(100vw - 36px), 620px); padding: 20px; background: #f8fbfb; }
+.onboarding-content { margin-top: 10px; }
+.onboarding-progress { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #cfe4df; border-radius: 11px; background: #eef9f6; color: #416967; font-size: .72rem; }
+.onboarding-progress strong { color: #075f5b; }
+.onboarding-steps { display: grid; gap: 8px; margin: 14px 0; padding: 0; list-style: none; }
+.onboarding-steps li { display: grid; grid-template-columns: 29px minmax(0, 1fr); gap: 10px; padding: 11px; border: 1px solid #dceae7; border-radius: 12px; background: #fff; }
+.onboarding-steps > li > span { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 50%; color: #0c6a65; background: #e3f3f0; font-size: .72rem; font-weight: 900; }
+.onboarding-steps li.is-done { border-color: #bfe3d9; background: #f4fcf9; }
+.onboarding-steps li.is-done > span { color: #fff; background: #128476; font-size: 0; }
+.onboarding-steps li.is-done > span::after { content: "✓"; font-size: .9rem; }
+.onboarding-steps strong, .onboarding-steps small { display: block; }.onboarding-steps strong { color: #075f5b; font-size: .79rem; }.onboarding-steps small { margin: 3px 0 8px; color: #647f7d; font-size: .68rem; }
+.onboarding-enterprise { display: flex; gap: 7px; }.onboarding-enterprise input { min-width: 0; min-height: 36px; padding: 6px 8px; border: 1px solid #c5d9d6; border-radius: 9px; }.onboarding-enterprise .btn, .onboarding-steps .btn { min-height: 35px; padding: 5px 9px; font-size: .67rem; }.onboarding-done { color: #08745f; font-size: .7rem; font-weight: 800; }.onboarding-wait { color: #7d9693; font-size: .68rem; }.onboarding-footer { margin-top: 8px; }
+@media (max-width: 520px) { .onboarding-modal { width: calc(100vw - 20px); padding: 14px; } .onboarding-progress { align-items: flex-start; flex-direction: column; } .onboarding-enterprise { flex-direction: column; } }
