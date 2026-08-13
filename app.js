@@ -1663,9 +1663,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return {
             owner: ["Acesso total", "Gerencia área, equipe e permissões", "Pode remover colaboradores"],
             admin: ["Opera todos os dados", "Gerencia equipe e permissões", "Não altera o proprietário"],
-            operator: ["Unidades, contratos e pagamentos", "Gastos e relatórios", "Não gerencia equipe"],
-            billing: ["Cobranças e atrasos", "Registra contatos e próximas ações", "Consulta dados financeiros"],
-            finance: ["Pagamentos, gastos e relatórios", "Consulta contratos", "Não gerencia equipe"],
+            operator: ["Unidades, contratos, cobranças e pagamentos", "Gastos e relatórios", "Não gerencia equipe"],
+            billing: ["Registra cobranças e baixas de pagamento", "Não edita gastos, contratos ou equipe", "Consulta dados financeiros"],
+            finance: ["Registra pagamentos e gastos", "Consulta unidades e contratos", "Não encerra nem altera contratos"],
             viewer: ["Consulta unidades e relatórios", "Não altera dados", "Não gerencia equipe"]
         }[role] || [];
     }
@@ -1678,8 +1678,69 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return cloudWorkspaceRole === "owner" || cloudWorkspaceRole === "admin";
     }
 
+    function hasWorkspacePermission(capability) {
+        if (isSubscriptionLocked()) return false;
+        // Enquanto estiver no modo local, o proprietário do dispositivo mantém
+        // controle total. Na nuvem, o perfil é a fonte de verdade.
+        if (!firebaseUser || !cloudWorkspaceRole || isPlatformAdmin(firebaseUser)) return true;
+        var permissions = {
+            manageContracts: ["owner", "admin", "operator"],
+            manageExpenses: ["owner", "admin", "operator", "finance"],
+            managePayments: ["owner", "admin", "operator", "billing", "finance"],
+            manageCollections: ["owner", "admin", "operator", "billing"],
+            manageSettings: ["owner", "admin", "operator"]
+        };
+        return (permissions[capability] || []).indexOf(cloudWorkspaceRole) >= 0;
+    }
+
+    function workspacePermissionMessage(capability) {
+        return {
+            manageContracts: "Seu perfil permite consultar contratos, mas não criar, alterar ou encerrar contratos.",
+            manageExpenses: "Seu perfil não tem permissão para alterar gastos.",
+            managePayments: "Seu perfil não tem permissão para registrar ou ajustar pagamentos.",
+            manageCollections: "Seu perfil não tem permissão para registrar cobranças.",
+            manageSettings: "Seu perfil não tem permissão para alterar as configurações da área."
+        }[capability] || "Seu perfil não tem permissão para realizar esta ação.";
+    }
+
+    function requireWorkspacePermission(capability) {
+        if (hasWorkspacePermission(capability)) return true;
+        setCloudError(workspacePermissionMessage(capability));
+        return false;
+    }
+
     function canWriteWorkspace() {
-        return cloudWorkspaceRole !== "viewer" && !isSubscriptionLocked();
+        return hasWorkspacePermission("manageContracts") ||
+            hasWorkspacePermission("manageExpenses") ||
+            hasWorkspacePermission("managePayments") ||
+            hasWorkspacePermission("manageCollections");
+    }
+
+    function renderRolePermissions() {
+        var controls = [
+            ["addUnit", "manageContracts"],
+            ["mobileAddUnit", "manageContracts"],
+            ["addExpense", "manageExpenses"],
+            ["saveUnit", "manageContracts"],
+            ["deleteUnit", "manageContracts"],
+            ["archiveContract", "manageContracts"],
+            ["startNewContract", "manageContracts"],
+            ["saveExpense", "manageExpenses"],
+            ["deleteExpense", "manageExpenses"],
+            ["savePaymentAdjust", "managePayments"],
+            ["saveCharge", "manageCollections"],
+            ["saveChargeAndOpenWhatsapp", "manageCollections"]
+        ];
+        controls.forEach(function (item) {
+            var button = document.getElementById(item[0]);
+            if (button) button.disabled = !hasWorkspacePermission(item[1]);
+        });
+        document.querySelectorAll("[data-charge-unit]").forEach(function (button) {
+            button.disabled = !hasWorkspacePermission("manageCollections");
+        });
+        document.querySelectorAll(".expense-edit").forEach(function (button) {
+            button.disabled = !hasWorkspacePermission("manageExpenses");
+        });
     }
 
     function workspaceSelectElement() {
@@ -3793,6 +3854,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         filterEmpty.hidden = !hasUnits || visibleUnits.length > 0;
         renderActionCenter();
         renderGrid(visibleUnits);
+        renderRolePermissions();
         if (didInitialScroll && visibleUnits.length > 0)
             tableWrap.scrollLeft = lastGridScrollLeft;
         renderSummary();
@@ -3850,6 +3912,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function saveChargeRecord(openWhatsapp) {
+        if (!requireWorkspacePermission("manageCollections")) return;
         var unit = state.units.find(function (item) { return item.id === chargeModalUnitId; });
         if (!unit) return;
         if (!isValidDateValue(chargeDate.value)) {
@@ -5059,6 +5122,7 @@ function renderSummary() {
 	}
 
     function toggleStatus(id, month) {
+    if (!requireWorkspacePermission("managePayments")) return;
     var unit = state.units.find(function (item) {
         return item.id === id;
     });
@@ -5146,6 +5210,7 @@ function renderSummary() {
 	var paymentAdjustContext = null;
 
 function openPaymentAdjust(id, month) {
+    if (!requireWorkspacePermission("managePayments")) return;
     var unit = state.units.find(function (item) {
         return item.id === id;
     });
@@ -5260,6 +5325,7 @@ function updatePaymentAdjustTotal() {
 }
 
 function savePaymentAdjust() {
+    if (!requireWorkspacePermission("managePayments")) return;
     if (!paymentAdjustContext) return;
 
     var unit = state.units.find(function (item) {
@@ -5366,6 +5432,7 @@ document
     }
 
     function openModal(id) {
+        if (!requireWorkspacePermission("manageContracts")) return;
 		editingId = id || null;
 
 		var unit = state.units.find(function (item) {
@@ -5851,6 +5918,7 @@ function addContractHistoryEntry() {
     }
 
     function addCategory() {
+        if (!requireWorkspacePermission("manageSettings")) return;
         var value = newCategory.value.trim();
         if (!value) {
             setCategoryStatus("Digite um nome para a categoria.", true);
@@ -6021,6 +6089,7 @@ function addContractHistoryEntry() {
     }
 
     function addEnterprise() {
+        if (!requireWorkspacePermission("manageSettings")) return;
         var value = newEnterprise.value.trim();
         if (!value) {
             setEnterpriseStatus("Digite um nome para o empreendimento.", true);
@@ -6076,6 +6145,7 @@ function addContractHistoryEntry() {
     }
 
     function removeEnterprise(id) {
+        if (!requireWorkspacePermission("manageSettings")) return;
         if (state.empreendimentos.length <= 1) {
             setEnterpriseStatus(
                 "Não é possível remover o último empreendimento.",
@@ -6112,6 +6182,7 @@ function addContractHistoryEntry() {
     }
 
     function openExpenseModal(id) {
+        if (!requireWorkspacePermission("manageExpenses")) return;
         editingExpenseId = id || null;
         var expense = state.expenses.find(function (item) {
             return item.id === editingExpenseId;
@@ -6185,6 +6256,7 @@ function addContractHistoryEntry() {
     }
 
 function saveExpense() {
+    if (!requireWorkspacePermission("manageExpenses")) return;
     var date = expenseYm.value;
     var ym = date.slice(0, 7);
     var amount = Number(expenseAmount.value);
@@ -6287,6 +6359,7 @@ function saveExpense() {
 }
 
     function deleteExpense() {
+        if (!requireWorkspacePermission("manageExpenses")) return;
         if (!editingExpenseId) return;
         var expense = state.expenses.find(function (item) {
             return item.id === editingExpenseId;
@@ -6403,6 +6476,7 @@ function saveExpense() {
     }
 
     function saveSettings() {
+        if (!requireWorkspacePermission("manageSettings")) return;
         var fine = Number(finePercent.value);
         var interest = Number(dailyInterestPercent.value);
         var reminder = Number(reminderDays.value);
@@ -6552,6 +6626,7 @@ function saveExpense() {
     }
 
     function saveUnit() {
+        if (!requireWorkspacePermission("manageContracts")) return;
         var name = unitName.value.trim();
         var rent = Number(unitRent.value);
         var dueDayValue = unitDueDay.value.trim();
@@ -8384,6 +8459,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function archiveCurrentContract() {
+        if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         if (!unit || !tenantName.value.trim()) { tenantName.focus(); return false; }
         ensureFinancialHistory(unit);
@@ -8576,6 +8652,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function savePaymentAdjust() {
+    if (!requireWorkspacePermission("managePayments")) return;
         var dateValue = document.getElementById("paymentAdjustDate").value;
         var rent = Number(document.getElementById("paymentAdjustRent").value);
         var fine = Number(document.getElementById("paymentAdjustFine").value) || 0;
@@ -8760,6 +8837,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function endCurrentContractOnlyNow() {
+        if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         if (!unit || !String(tenantName.value || "").trim()) { tenantName.focus(); return; }
         var previousTenant = tenantName.value.trim();
@@ -8772,6 +8850,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function prepareNewContractForm() {
+        if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         document.getElementById("modalTitle").textContent = unit ? "Novo contrato · " + unit.name : "Novo contrato";
         tenantName.value = ""; tenantPhone.value = ""; tenantEmail.value = ""; tenantNotes.value = "";
@@ -8784,6 +8863,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function deleteUnitNow() {
+        if (!requireWorkspacePermission("manageContracts")) return;
         if (!editingId || !window.confirm("Excluir esta unidade e seus registros?")) return;
         var unit = state.units.find(function (item) { return item.id === editingId; });
         createVersionedBackup("Exclusão de unidade", unit ? unit.name : "");
