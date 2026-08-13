@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=082" />
+        <link rel="stylesheet" href="styles.css?v=083" />
     
 <style>
     /* Histórico de contratos */
@@ -579,9 +579,10 @@
                                 </section>
                                 <section id="workspaceMembersSection" class="workspace-section" hidden>
                                     <h3>Colaboradores</h3>
-                                    <p class="settings-note">Gere um link e envie à pessoa que deverá acessar esta área.</p>
-                                    <label>Permissão do convite<select id="workspaceInviteRole"><option value="operator">Operador — acesso operacional completo</option><option value="billing">Cobrança — acompanha inadimplência</option><option value="finance">Financeiro — pagamentos e gastos</option><option value="admin">Administrador — também gerencia colaboradores</option><option value="viewer">Consulta — apenas visualiza</option></select></label>
-                                    <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Gerar link de convite</button>
+                                    <p class="settings-note">Convide pelo e-mail da pessoa. O link só poderá ser aceito usando esse mesmo e-mail e expira em 7 dias.</p>
+                                    <label>E-mail do colaborador<input id="workspaceInviteEmail" type="email" autocomplete="email" placeholder="pessoa@exemplo.com" /></label>
+                                    <label>Permissão do convite<select id="workspaceInviteRole"><option value="operator">Operador — acesso operacional completo</option><option value="billing">Cobrança — cobranças e baixas</option><option value="finance">Financeiro — pagamentos e gastos</option><option value="admin">Administrador — também gerencia colaboradores</option><option value="viewer">Consulta — apenas visualiza</option></select></label>
+                                    <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Preparar convite por e-mail</button>
                                     <p id="workspaceInviteResult" class="settings-note" hidden></p>
                                     <div id="workspacePermissions" class="workspace-permissions" aria-live="polite"></div>
                                     <div id="workspaceMembersList" class="workspace-members-list" aria-live="polite"></div>
@@ -972,6 +973,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=082"></script>
+    <script src="app.js?v=083"></script>
     </body>
 </html>
