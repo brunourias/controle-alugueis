@@ -123,6 +123,15 @@ service cloud.firestore {
         allow read: if member(workspaceId);
         allow create, update, delete: if writer(workspaceId);
       }
+
+      /*
+       * Recuperação do primeiro acesso: a exceção vale exclusivamente para
+       * personal-{uid}, portanto não permite ver nem alterar workspaces
+       * compartilhados ou de outros usuários.
+       */
+      match /{document=**} {
+        allow read, write: if personalWorkspace(workspaceId);
+      }
     }
   }
 }
