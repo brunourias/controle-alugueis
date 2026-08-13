@@ -4492,3 +4492,22 @@ textarea:focus-visible {
         font-size: .72rem;
     }
 }
+
+
+/* Grupos mensais mais compactos */
+.expenses-dashboard #expensesList {
+    margin-top: 8px;
+}
+
+.expense-month {
+    margin-top: 4px;
+}
+
+.expense-month-header {
+    min-height: 54px;
+    padding: 8px 4px 8px 22px;
+}
+
+.expense-month + .expense-month {
+    margin-top: 2px;
+}
