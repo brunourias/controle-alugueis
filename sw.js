@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-alugueis-v079";
+const CACHE_NAME = "controle-alugueis-v080";
 
 const APP_SHELL = [
   "./index.html",
@@ -19,8 +19,12 @@ self.addEventListener("install", (event) => {
         if (!response.ok) throw new Error("Falha ao armazenar " + asset);
         return cache.put(asset, response);
       });
-    })).then(() => self.skipWaiting()))
+    })))
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
