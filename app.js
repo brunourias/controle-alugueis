@@ -7690,6 +7690,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     if (platformAdminButton) platformAdminButton.addEventListener("click", openPlatformAdmin);
     var closePlatformAdminButton = document.getElementById("closePlatformAdmin");
     if (closePlatformAdminButton) closePlatformAdminButton.addEventListener("click", closePlatformAdmin);
+    if (platformAdminModal) platformAdminModal.addEventListener("click", function (event) {
+        if (event.target === event.currentTarget) closePlatformAdmin();
+    });
     var skipOnboardingButton = document.getElementById("skipOnboarding");
     var finishOnboardingButton = document.getElementById("finishOnboarding");
     if (skipOnboardingButton) skipOnboardingButton.addEventListener("click", function () { closeOnboarding(false); });
