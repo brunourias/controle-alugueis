@@ -497,10 +497,10 @@ var historyRent = document.getElementById("historyRent");
 		var enterpriseLabel = enterpriseCount === 1 ? "empreendimento" : "empreendimentos";
 		var parts = [];
 		if (selectedEmpreendimentoId === "todos") {
-		  parts.push("<span>🏙 " + enterpriseCount + " " + enterpriseLabel + "</span>");
+		  parts.push('<span class="header-metric header-metric-enterprise">' + enterpriseCount + " " + enterpriseLabel + "</span>");
 		}
-		parts.push("<span>🏢 " + units.length + " " + unitLabel + "</span>");
-		parts.push("<span> -💲 " + money(total) + "/mês</span>");
+		parts.push('<span class="header-metric header-metric-units">' + units.length + " " + unitLabel + "</span>");
+		parts.push('<span class="header-metric header-metric-income">' + money(total) + "/mês</span>");
 		headerMeta.innerHTML = parts.join("");
 	}
 
