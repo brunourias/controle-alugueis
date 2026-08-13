@@ -188,6 +188,7 @@ const ModalManager = (() => {
     var authError = document.getElementById("authError");
     var authSkip = document.getElementById("authSkip");
     var authSubmit = document.getElementById("authSubmit");
+    var authBiometric = document.getElementById("authBiometric");
     var unitName = document.getElementById("unitName");
     var unitRent = document.getElementById("unitRent");
     var unitDueDay = document.getElementById("unitDueDay");
@@ -231,6 +232,9 @@ var historyRent = document.getElementById("historyRent");
     var confirmPin = document.getElementById("confirmPin");
     var savePinButton = document.getElementById("savePin");
     var removePinButton = document.getElementById("removePin");
+    var biometricStatus = document.getElementById("biometricStatus");
+    var enableBiometricButton = document.getElementById("enableBiometric");
+    var removeBiometricButton = document.getElementById("removeBiometric");
     var backupFile = document.getElementById("backupFile");
     var expenseModal = document.getElementById("expenseModal");
     var expenseModalTitle = document.getElementById("expenseModalTitle");
@@ -1800,6 +1804,168 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return bytes;
     }
 
+    async function biometricAvailable() {
+        if (
+            !window.PublicKeyCredential ||
+            !navigator.credentials ||
+            typeof navigator.credentials.create !== "function"
+        ) {
+            return false;
+        }
+
+        try {
+            if (
+                typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable ===
+                "function"
+            ) {
+                return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            }
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function biometricConfigured() {
+        return !!(lockConfig && lockConfig.credentialId);
+    }
+
+    async function updateBiometricUi() {
+        if (!biometricStatus || !enableBiometricButton || !removeBiometricButton)
+            return;
+
+        var supported = await biometricAvailable();
+        var configured = biometricConfigured();
+
+        enableBiometricButton.hidden = !supported || !lockConfig || configured;
+        removeBiometricButton.hidden = !configured;
+
+        if (!supported) {
+            biometricStatus.textContent =
+                "Desbloqueio por digital não está disponível neste aparelho ou navegador.";
+            return;
+        }
+
+        biometricStatus.textContent = configured
+            ? "Desbloqueio por digital ativo neste aparelho."
+            : lockConfig
+            ? "Use a digital ou o bloqueio de tela do aparelho para entrar mais rápido."
+            : "Defina um PIN antes de ativar o desbloqueio por digital.";
+    }
+
+    async function enableBiometric() {
+        if (!lockConfig) return;
+
+        if (!(await verifyPin(currentPin.value, lockConfig))) {
+            securityStatus.textContent =
+                "Informe o PIN atual para ativar a digital.";
+            securityStatus.style.color = "#a52d3b";
+            currentPin.focus();
+            return;
+        }
+
+        if (!(await biometricAvailable())) {
+            biometricStatus.textContent =
+                "A digital não está disponível neste aparelho ou navegador.";
+            return;
+        }
+
+        try {
+            var credential = await navigator.credentials.create({
+                publicKey: {
+                    challenge: randomBytes(32),
+                    rp: { name: "Controle de Aluguéis" },
+                    user: {
+                        id: randomBytes(32),
+                        name: "acesso-local",
+                        displayName: "Acesso local",
+                    },
+                    pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform",
+                        userVerification: "required",
+                        residentKey: "discouraged",
+                    },
+                    timeout: 60000,
+                    attestation: "none",
+                },
+            });
+
+            if (!credential || !credential.rawId) {
+                throw new Error("Credencial não criada.");
+            }
+
+            saveLockConfig(
+                Object.assign({}, lockConfig, {
+                    credentialId: bytesToBase64Url(
+                        new Uint8Array(credential.rawId)
+                    ),
+                })
+            );
+            currentPin.value = "";
+            securityStatus.textContent =
+                "Digital ativada neste aparelho.";
+            securityStatus.style.color = "#0f766e";
+            await updateBiometricUi();
+        } catch (error) {
+            biometricStatus.textContent =
+                "Não foi possível ativar a digital. Confirme o bloqueio de tela do aparelho e tente novamente.";
+        }
+    }
+
+    async function removeBiometric() {
+        if (!biometricConfigured()) return;
+
+        if (!(await verifyPin(currentPin.value, lockConfig))) {
+            securityStatus.textContent =
+                "Informe o PIN atual para remover a digital.";
+            securityStatus.style.color = "#a52d3b";
+            currentPin.focus();
+            return;
+        }
+
+        saveLockConfig(
+            Object.assign({}, lockConfig, { credentialId: null })
+        );
+        currentPin.value = "";
+        securityStatus.textContent =
+            "Desbloqueio por digital removido deste aparelho.";
+        securityStatus.style.color = "#0f766e";
+        await updateBiometricUi();
+    }
+
+    async function unlockWithBiometric() {
+        if (authMode !== "login" || !biometricConfigured()) return;
+
+        try {
+            var assertion = await navigator.credentials.get({
+                publicKey: {
+                    challenge: randomBytes(32),
+                    allowCredentials: [
+                        {
+                            type: "public-key",
+                            id: base64UrlToBytes(lockConfig.credentialId),
+                            transports: ["internal"],
+                        },
+                    ],
+                    userVerification: "required",
+                    timeout: 60000,
+                },
+            });
+
+            if (!assertion) throw new Error("Autenticação não concluída.");
+
+            appUnlocked = true;
+            closeAuth();
+            revealApp();
+            render();
+        } catch (error) {
+            showAuthError(
+                "Não foi possível confirmar a digital. Use o PIN para entrar."
+            );
+        }
+    }
+
     function showLockError(message) {
         lockError.textContent = message;
     }
@@ -1829,6 +1995,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         authConfirmLabel.hidden = false;
         authPinLabel.hidden = true;
         authSkip.hidden = false;
+        authBiometric.hidden = true;
 
         authSubmit.textContent = "Criar PIN";
 
@@ -1849,12 +2016,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         authTitle.textContent = "Entrar";
 
-        authMessage.textContent = "Digite seu PIN para acessar.";
+        authMessage.textContent = biometricConfigured()
+            ? "Use sua digital ou digite o PIN para acessar."
+            : "Digite seu PIN para acessar.";
 
         authNewLabel.hidden = true;
         authConfirmLabel.hidden = true;
         authPinLabel.hidden = false;
         authSkip.hidden = true;
+        authBiometric.hidden = !biometricConfigured();
 
         authSubmit.textContent = "Entrar";
 
@@ -2033,6 +2203,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         authPin.inputMode = requiresAccountPassword ? "text" : "numeric";
         authPin.removeAttribute("pattern");
         authSkip.hidden = true;
+        authBiometric.hidden = true;
         authSubmit.textContent = "Confirmar";
         authPin.value = "";
         showAuthError("");
@@ -5198,6 +5369,7 @@ function saveExpense() {
         securityStatus.textContent = "PIN salvo neste dispositivo.";
 
         securityStatus.style.color = "#0f766e";
+        await updateBiometricUi();
     }
 
     async function removePin() {
@@ -5230,6 +5402,7 @@ function saveExpense() {
         securityStatus.textContent = "PIN removido. O app abrirá sem senha.";
 
         securityStatus.style.color = "#0f766e";
+        await updateBiometricUi();
     }
 
     function saveUnit() {
