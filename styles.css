@@ -3383,3 +3383,50 @@ textarea:focus-visible {
 .biometric-section .security-help {
     margin-top: 2px;
 }
+
+
+/* Painel de atrasos no padrão financeiro */
+.late-dashboard {
+    padding: 17px 18px 14px;
+}
+
+.late-dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.late-eyebrow {
+    margin: 0 0 4px;
+    color: var(--teal);
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.late-dashboard h3 {
+    margin: 0;
+    color: var(--teal-dark);
+    font-size: 1.06rem;
+}
+
+.late-dashboard .summary-report-intro {
+    margin: 5px 0 0;
+}
+
+.late-dashboard .late-list {
+    margin-top: 15px;
+    border-top: 1px solid #e5efed;
+}
+
+.late-dashboard .late-row {
+    padding: 11px 0;
+}
+
+@media (max-width: 620px) {
+    .late-dashboard {
+        padding: 15px;
+    }
+}
