@@ -4833,13 +4833,15 @@ function addContractHistoryEntry() {
         var currentMonth = new Date().getMonth() + 1;
 
         expenseModalTitle.textContent = expense ? "Editar gasto" : "Novo gasto";
+        var defaultExpenseDate = new Date(
+            selectedYear,
+            selectedYear === new Date().getFullYear() ? currentMonth - 1 : 0,
+            1
+        );
+
         expenseYm.value = expense
-            ? expense.ym
-            : selectedYear +
-              "-" +
-              String(
-                  selectedYear === new Date().getFullYear() ? currentMonth : 1
-              ).padStart(2, "0");
+            ? expense.date || expense.ym + "-01"
+            : localDateValue(defaultExpenseDate);
         populateEmpreendimentoSelect(
             expenseEmpreendimento,
             expense
@@ -4893,10 +4895,11 @@ function addContractHistoryEntry() {
     }
 
 function saveExpense() {
-    var ym = expenseYm.value;
+    var date = expenseYm.value;
+    var ym = date.slice(0, 7);
     var amount = Number(expenseAmount.value);
 
-    if (!isValidStartYm(ym)) {
+    if (!isValidDateValue(date)) {
         expenseYm.focus();
         return;
     }
@@ -4936,6 +4939,7 @@ function saveExpense() {
 
     var categoryValue = expenseCategory.value ? expenseCategory.value.trim() : "";
     var expenseData = {
+        date: date,
         ym: ym,
         empreendimentoId: expenseEmpreendimento.value,
         category: categoryValue !== "" ? categoryValue : "Outros",
@@ -4943,9 +4947,8 @@ function saveExpense() {
         amount: amount,
     };
 
-    // Obtém o dia atual no momento do lançamento (ex: dia 15)
-    var today = new Date();
-    var currentDay = today.getDate();
+    // Mantém o dia escolhido ao criar uma repetição mensal.
+    var selectedDay = Number(date.slice(8, 10));
 
     if (editingExpenseId) {
         var existingIndex = state.expenses.findIndex(function (expense) {
@@ -4965,8 +4968,8 @@ function saveExpense() {
         for (var i = 0; i < repeatCount; i += 1) {
             var currentYm = addMonthsYm(expenseData.ym, i);
             
-            // Preserva o dia do lançamento sem criar datas inválidas, como 31/04.
-            var fullDate = expenseDateForMonth(currentYm, currentDay);
+            // Preserva o dia escolhido sem criar datas inválidas, como 31/04.
+            var fullDate = expenseDateForMonth(currentYm, selectedDay);
 
             state.expenses.push({
                 id: newExpenseId(),
