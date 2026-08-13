@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=071" />
+        <link rel="stylesheet" href="styles.css?v=072" />
     
 <style>
     /* Histórico de contratos */
@@ -40,7 +40,31 @@
 
 </head>
 
-    <body class="app-loading">
+    <body class="app-loading app-access-gated">
+        <!-- Acesso à plataforma: nenhuma função é liberada sem conta aprovada. -->
+        <div id="accountGate" class="account-gate" role="dialog" aria-modal="true" aria-labelledby="accountGateTitle">
+            <section class="account-gate-card">
+                <p class="account-gate-eyebrow">Controle de Aluguéis</p>
+                <h1 id="accountGateTitle">Acesse sua conta</h1>
+                <p id="accountGateMessage">Entre ou crie sua conta para solicitar acesso à plataforma.</p>
+                <div id="accountGateAuth">
+                    <label>E-mail<input id="accountGateEmail" type="email" autocomplete="email" placeholder="voce@exemplo.com" /></label>
+                    <label>Senha<input id="accountGatePassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres" /></label>
+                    <div class="account-gate-actions">
+                        <button id="accountGateSignIn" class="btn btn-primary" type="button">Entrar</button>
+                        <button id="accountGateSignUp" class="btn btn-ghost" type="button">Criar conta</button>
+                        <button id="accountGateGoogle" class="btn btn-ghost" type="button">Continuar com Google</button>
+                    </div>
+                    <button id="accountGateReset" class="account-gate-link" type="button">Esqueci minha senha</button>
+                </div>
+                <div id="accountGatePending" hidden>
+                    <p>Seu cadastro foi recebido. Aguarde a aprovação da administração para liberar a área de trabalho.</p>
+                    <button id="accountGateSignOut" class="btn btn-ghost" type="button">Usar outra conta</button>
+                </div>
+                <p id="accountGateError" class="cloud-error" role="alert"></p>
+            </section>
+        </div>
+
         <!-- Tela de Bloqueio / Lock Screen -->
         <div
             id="lockScreen"
@@ -941,6 +965,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=071"></script>
+    <script src="app.js?v=072"></script>
     </body>
 </html>
