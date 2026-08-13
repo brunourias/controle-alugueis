@@ -3248,3 +3248,25 @@ textarea:focus-visible {
         max-width: none;
     }
 }
+
+
+/* Desbloqueio por digital */
+.biometric-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.biometric-section .settings-note {
+    margin: 0 0 9px;
+}
+
+.auth-biometric {
+    width: 100%;
+    min-height: 40px;
+    margin: 8px 0 0;
+    border-color: #c9e2dc;
+    color: var(--teal-dark);
+    background: #eff9f6;
+    font-weight: 750;
+}
