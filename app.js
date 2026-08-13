@@ -149,6 +149,7 @@ const ModalManager = (() => {
     var editingExpenseId = null;
     var expensesExpanded = false;
     var summaryCardsExpanded = false;
+    var taxDashboardExpanded = false;
     var actionCenterExpanded = false;
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
@@ -254,6 +255,9 @@ var historyRent = document.getElementById("historyRent");
     var expenseCategory = document.getElementById("expenseCategory");
     var expenseAmount = document.getElementById("expenseAmount");
     var expenseDescription = document.getElementById("expenseDescription");
+    var expenseTaxTreatment = document.getElementById("expenseTaxTreatment");
+    var expenseTaxProvider = document.getElementById("expenseTaxProvider");
+    var expenseTaxDocument = document.getElementById("expenseTaxDocument");
     var recurrenceArea = document.getElementById("recurrenceArea");
     var expenseRepeat = document.getElementById("expenseRepeat");
     var expenseRepeatCount = document.getElementById("expenseRepeatCount");
@@ -621,6 +625,9 @@ var historyRent = document.getElementById("historyRent");
                     ? expense.description.trim()
                     : "",
             amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
+            taxTreatment: ["dedutivel", "nao_dedutivel", "revisar"].indexOf(expense.taxTreatment) >= 0 ? expense.taxTreatment : "revisar",
+            taxProvider: typeof expense.taxProvider === "string" ? expense.taxProvider.trim().slice(0, 120) : "",
+            taxDocument: typeof expense.taxDocument === "string" ? expense.taxDocument.trim().slice(0, 80) : "",
             recurrenceId:
                 typeof expense.recurrenceId === "string" &&
                 expense.recurrenceId.trim()
@@ -2854,6 +2861,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             tableWrap.scrollLeft = lastGridScrollLeft;
         renderSummary();
         renderExpenses();
+        renderTaxDashboard();
     }
 
 
@@ -3723,6 +3731,62 @@ function renderSummary() {
         if (cards) cards.hidden = !summaryCardsExpanded;
         var btn = document.getElementById("toggleSummaryCards");
         if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar indicadores" : "Ver indicadores";
+    }
+
+
+    function renderTaxDashboard() {
+        var detail = document.getElementById("taxDashboardDetail");
+        var toggle = document.getElementById("toggleTaxDashboard");
+        if (!detail || !toggle) return;
+
+        var yearExpenses = scopedExpenses().filter(function (expense) {
+            return expense.ym.slice(0, 4) === String(selectedYear);
+        });
+        var rentalReceived = scopedUnits().reduce(function (sum, unit) {
+            return sum + months.reduce(function (monthSum, _, month) {
+                return monthSum + historicalReceivedAmount(unit, selectedYear, month);
+            }, 0);
+        }, 0);
+        var possibleDeductions = yearExpenses.filter(function (expense) {
+            return expense.taxTreatment === "dedutivel";
+        });
+        var nonDeductible = yearExpenses.filter(function (expense) {
+            return expense.taxTreatment === "nao_dedutivel";
+        });
+        var review = yearExpenses.filter(function (expense) {
+            return expense.taxTreatment !== "dedutivel" && expense.taxTreatment !== "nao_dedutivel";
+        });
+        var deductibleTotal = possibleDeductions.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
+        var nonDeductibleTotal = nonDeductible.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
+        var reviewTotal = review.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
+        var base = Math.max(0, rentalReceived - deductibleTotal);
+
+        detail.hidden = !taxDashboardExpanded;
+        toggle.textContent = taxDashboardExpanded ? "Ocultar conferência" : "Ver conferência";
+        if (!taxDashboardExpanded) return;
+
+        var reviewRows = review.slice().sort(function (a, b) {
+            return String(b.date).localeCompare(String(a.date));
+        }).slice(0, 6).map(function (expense) {
+            return '<div class="tax-review-row"><div><strong>' + escapeHtml(expense.category || "Gasto") + '</strong><span>' + escapeHtml(formatExpenseDate(expense.date)) + (expense.description ? " · " + escapeHtml(expense.description) : "") + '</span></div><b>' + money(expense.amount) + '</b><button class="btn btn-ghost" type="button" data-tax-expense="' + escapeHtml(expense.id) + '">Classificar</button></div>';
+        }).join("") || '<p class="operations-empty">Nenhum gasto aguardando classificação fiscal.</p>';
+
+        detail.innerHTML =
+            '<div class="tax-disclaimer">Esta é uma base de conferência, não um cálculo de imposto ou DARF. Confirme a classificação e os documentos com seu contador.</div>' +
+            '<div class="tax-summary-grid">' +
+                '<article><span>Aluguéis recebidos</span><strong>' + money(rentalReceived) + '</strong><small>Baixas registradas em ' + selectedYear + '</small></article>' +
+                '<article class="is-deduction"><span>Possíveis deduções</span><strong>' + money(deductibleTotal) + '</strong><small>Classificadas pelo usuário</small></article>' +
+                '<article class="is-base"><span>Base para conferência</span><strong>' + money(base) + '</strong><small>Recebido menos possíveis deduções</small></article>' +
+                '<article><span>Não dedutíveis</span><strong>' + money(nonDeductibleTotal) + '</strong><small>Não reduzem a base</small></article>' +
+                '<article class="' + (review.length ? "is-review" : "") + '"><span>A revisar</span><strong>' + money(reviewTotal) + '</strong><small>' + review.length + ' gasto' + (review.length === 1 ? "" : "s") + ' sem classificação</small></article>' +
+            '</div>' +
+            '<div class="tax-review-list"><div><h3>Gastos que precisam de classificação</h3><p>Marque cada lançamento como possível dedução, não dedutível ou para revisão.</p></div>' + reviewRows + '</div>';
+
+        detail.querySelectorAll("[data-tax-expense]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                openExpenseModal(button.dataset.taxExpense);
+            });
+        });
     }
 
     function renderExpenses() {
@@ -5058,9 +5122,13 @@ function addContractHistoryEntry() {
         );
         expenseAmount.value = expense ? expense.amount : "";
         expenseDescription.value = expense ? expense.description : "";
+        expenseTaxTreatment.value = expense ? expense.taxTreatment || "revisar" : "revisar";
+        expenseTaxProvider.value = expense ? expense.taxProvider || "" : "";
+        expenseTaxDocument.value = expense ? expense.taxDocument || "" : "";
         expenseRepeat.checked = false;
         expenseRepeatCount.value = 1;
         recurrenceArea.hidden = !!expense;
+        document.getElementById("expenseRecurrencePanel").hidden = !!expense;
         deleteExpenseButton.hidden = !expense;
         ModalManager.open(expenseModal);
         setTimeout(function () {
@@ -5145,6 +5213,9 @@ function saveExpense() {
         category: categoryValue !== "" ? categoryValue : "Outros",
         description: expenseDescription.value.trim(),
         amount: amount,
+        taxTreatment: expenseTaxTreatment.value,
+        taxProvider: expenseTaxProvider.value.trim(),
+        taxDocument: expenseTaxDocument.value.trim(),
     };
 
     // Mantém o dia escolhido ao criar uma repetição mensal.
@@ -5180,6 +5251,9 @@ function saveExpense() {
                 category: expenseData.category,
                 description: expenseData.description,
                 amount: expenseData.amount,
+                taxTreatment: expenseData.taxTreatment,
+                taxProvider: expenseData.taxProvider,
+                taxDocument: expenseData.taxDocument,
                 recurrenceId: recurrenceId,
             });
         }
