@@ -3711,7 +3711,7 @@ function renderSummary() {
         var cards = document.getElementById("summaryCards");
         if (cards) cards.hidden = !summaryCardsExpanded;
         var btn = document.getElementById("toggleSummaryCards");
-        if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar resumo" : "Mostrar resumo";
+        if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar indicadores" : "Ver indicadores";
     }
 
     function renderExpenses() {
