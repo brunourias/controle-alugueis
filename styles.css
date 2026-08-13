@@ -4619,3 +4619,8 @@ textarea:focus-visible {
         overflow-wrap: anywhere;
     }
 }
+
+
+/* Foco acessível sem o contorno nativo quadrado na engrenagem */
+.icon-btn:focus-visible { outline: 2px solid #d6f3ed; outline-offset: 3px; box-shadow: 0 0 0 4px rgba(15, 118, 110, .22); }
+.icon-btn:focus:not(:focus-visible) { outline: none; }
