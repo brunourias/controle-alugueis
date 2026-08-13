@@ -254,6 +254,18 @@
                 <div id="expensesList"></div>
             </section>
 
+            <section id="taxDashboard" class="summary-bar tax-dashboard" aria-labelledby="taxDashboardTitle">
+                <header class="tax-dashboard-header">
+                    <div>
+                        <p class="financial-eyebrow">Conferência fiscal</p>
+                        <h2 id="taxDashboardTitle">Imposto de Renda</h2>
+                        <p class="financial-summary-description">Organize os valores para conferir no Carnê-Leão e na declaração anual.</p>
+                    </div>
+                    <button id="toggleTaxDashboard" class="btn btn-ghost" type="button">Ver conferência</button>
+                </header>
+                <div id="taxDashboardDetail" hidden></div>
+            </section>
+
             <div class="backup-toolbar" aria-label="Backup dos dados">
                 <span class="backup-title"
                     >Seus dados ficam salvos na Nuvem.</span
@@ -393,99 +405,53 @@
 
         <!-- Modal de Gasto -->
         <div class="modal-backdrop" id="expenseModal" hidden>
-            <div class="modal">
-                <h2 id="expenseModalTitle">Novo gasto</h2>
+            <div class="modal expense-modal">
+                <div class="settings-heading">
+                    <div>
+                        <h2 id="expenseModalTitle">Novo gasto</h2>
+                        <p>Registre a despesa e organize as informações para a conferência fiscal.</p>
+                    </div>
+                </div>
 
-                <label
-                    >Data
-                    <input type="date" id="expenseYm" />
-                </label>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">💳</span><span><strong>Lançamento</strong><small>Data, empreendimento, categoria e valor</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Data<input type="date" id="expenseYm" required /></label>
+                        <label>Empreendimento<select id="expenseEmpreendimento" required></select></label>
+                        <label>Categoria<select id="expenseCategory"><option>Manutenção</option><option>Mão de obra</option><option>IPTU</option><option>Água</option><option>Luz</option><option>Outros</option></select></label>
+                        <label>Valor (R$)<input type="number" id="expenseAmount" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 350,00" required /></label>
+                        <label>Descrição<input type="text" id="expenseDescription" maxlength="160" placeholder="Ex.: Conserto do portão" autocomplete="off" /></label>
+                    </div>
+                </details>
 
-                <label
-                    >Empreendimento
-                    <select id="expenseEmpreendimento"></select>
-                </label>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">📋</span><span><strong>Classificação fiscal</strong><small>Informe como este gasto deve aparecer na conferência do IR</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Tratamento fiscal<select id="expenseTaxTreatment"><option value="revisar">Revisar com contador</option><option value="dedutivel">Possível dedução do aluguel</option><option value="nao_dedutivel">Não dedutível do aluguel</option></select></label>
+                        <p class="field-help">Somente classifique como possível dedução quando o encargo for do locador e houver documentação. A validação final é do contador.</p>
+                    </div>
+                </details>
 
-                <label
-                    >Categoria
-                    <select id="expenseCategory">
-                        <option>Manutenção</option>
-                        <option>Mão de obra</option>
-                        <option>IPTU</option>
-                        <option>Água</option>
-                        <option>Luz</option>
-                        <option>Outros</option>
-                    </select>
-                </label>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🧾</span><span><strong>Comprovante</strong><small>Fornecedor e identificação do documento</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Fornecedor / favorecido<input type="text" id="expenseTaxProvider" maxlength="120" placeholder="Opcional" autocomplete="organization" /></label>
+                        <label>CPF/CNPJ, recibo ou nota fiscal<input type="text" id="expenseTaxDocument" maxlength="80" placeholder="Opcional" autocomplete="off" /></label>
+                    </div>
+                </details>
 
-                <label
-                    >Valor (R$)
-                    <input
-                        type="number"
-                        id="expenseAmount"
-                        inputmode="decimal"
-                        min="0"
-                        step="0.01"
-                        placeholder="Ex.: 350,00"
-                    />
-                </label>
+                <details id="expenseRecurrencePanel" class="settings-panel">
+                    <summary><span class="settings-panel-icon">🔁</span><span><strong>Repetição</strong><small>Crie lançamentos recorrentes</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label id="recurrenceArea" class="recurrence-field"><span><input type="checkbox" id="expenseRepeat" /> Repetir por N meses</span><input type="number" id="expenseRepeatCount" min="1" max="60" step="1" value="1" inputmode="numeric" aria-label="Quantidade de meses" /><small class="field-help">Cria um gasto independente para cada mês, por até 60 meses.</small></label>
+                    </div>
+                </details>
 
-                <label
-                    >Descrição (opcional)
-                    <input
-                        type="text"
-                        id="expenseDescription"
-                        maxlength="160"
-                        placeholder="Ex.: Conserto do portão"
-                        autocomplete="off"
-                    />
-                </label>
-
-                <label id="recurrenceArea" class="recurrence-field">
-                    <span
-                        ><input type="checkbox" id="expenseRepeat" /> Repetir
-                        por N meses</span
-                    >
-                    <input
-                        type="number"
-                        id="expenseRepeatCount"
-                        min="1"
-                        max="60"
-                        step="1"
-                        value="1"
-                        inputmode="numeric"
-                        aria-label="Quantidade de meses"
-                    />
-                    <small class="field-help"
-                        >Cria um gasto independente para cada mês, por até 60
-                        meses.</small
-                    >
-                </label>
-
-                <div class="modal-actions">
-                    <button
-                        id="deleteExpense"
-                        class="btn btn-danger"
-                        hidden
-                        type="button"
-                    >
-                        Excluir
-                    </button>
+                <div class="modal-actions settings-footer">
+                    <button id="deleteExpense" class="btn btn-danger" hidden type="button">Excluir</button>
                     <span class="spacer"></span>
-                    <button
-                        id="cancelExpense"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        id="saveExpense"
-                        class="btn btn-primary"
-                        type="button"
-                    >
-                        Salvar
-                    </button>
+                    <button id="cancelExpense" class="btn btn-ghost" type="button">Cancelar</button>
+                    <button id="saveExpense" class="btn btn-primary" type="button">Salvar gasto</button>
                 </div>
             </div>
         </div>
