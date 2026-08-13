@@ -3297,3 +3297,38 @@ textarea:focus-visible {
     height: 20px;
     stroke-width: 1.9;
 }
+
+
+/* Correção final dos controles do cabeçalho */
+.app-header .icon-btn {
+    box-sizing: border-box;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    color: #ecfffb !important;
+    line-height: 0 !important;
+}
+
+.app-header .icon-btn svg {
+    display: block !important;
+    width: 19px !important;
+    height: 19px !important;
+    fill: none !important;
+    stroke: #ecfffb !important;
+    transform: none !important;
+}
+
+.app-header #settingsButton svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+@media (max-width: 768px) {
+    .app-header .year-nav .icon-btn,
+    .app-header #settingsButton {
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+    }
+}
