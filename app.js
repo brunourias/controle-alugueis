@@ -14,12 +14,14 @@ const ModalManager = (() => {
     }
 
     function open(modal) {
-        if (!modal) return;
+        if (!modal || !modal.hidden) return;
 
         modal.hidden = false;
         document.body.classList.add("modal-open");
 
-        stack.push(modal);
+        if (!stack.includes(modal)) {
+            stack.push(modal);
+        }
 
         history.pushState({
             modal: true,
@@ -28,12 +30,16 @@ const ModalManager = (() => {
     }
 
     function close(modal = null) {
-
-        const target = modal || stack.pop() || getOpenModal();
+        const target = modal || stack[stack.length - 1] || getOpenModal();
 
         if (!target) return false;
 
         target.hidden = true;
+
+        const index = stack.lastIndexOf(target);
+        if (index !== -1) {
+            stack.splice(index, 1);
+        }
 
         const hasModalOpen =
             document.querySelector(".modal-backdrop:not([hidden])");
@@ -4801,7 +4807,7 @@ function addContractHistoryEntry() {
     }
 
     function closeExpenseModal() {
-        expenseModal.hidden = true;
+        ModalManager.close(expenseModal);
         editingExpenseId = null;
     }
 
@@ -6674,32 +6680,45 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
     });
 
-    modal.addEventListener("click", function (event) {
-        if (event.target === modal) closeModal();
-    });
+    function closePaymentAdjustModal() {
+        paymentAdjustContext = null;
+        historicPaymentAdjustContext = null;
+        ModalManager.close(document.getElementById("paymentAdjustModal"));
+    }
 
-    expenseModal.addEventListener("click", function (event) {
-        if (event.target === expenseModal) closeExpenseModal();
-    });
+    const dismissibleModals = [
+        { element: modal, close: closeModal },
+        { element: expenseModal, close: closeExpenseModal },
+        { element: settingsModal, close: closeSettings },
+        { element: receiptModal, close: closeReceipt },
+        {
+            element: document.getElementById("paymentAdjustModal"),
+            close: closePaymentAdjustModal,
+        },
+        {
+            element: contractInstallmentsModal,
+            close: function () {
+                ModalManager.close(contractInstallmentsModal);
+            },
+        },
+    ];
 
-    settingsModal.addEventListener("click", function (event) {
-        if (event.target === settingsModal) closeSettings();
-    });
-
-    receiptModal.addEventListener("click", function (event) {
-        if (event.target === receiptModal) closeReceipt();
+    dismissibleModals.forEach(function (entry) {
+        entry.element.addEventListener("click", function (event) {
+            if (event.target === entry.element) entry.close();
+        });
     });
 
     document.addEventListener("keydown", function (event) {
         if (event.key !== "Escape") return;
 
-        if (!modal.hidden) closeModal();
-
-        if (!expenseModal.hidden) closeExpenseModal();
-
-        if (!settingsModal.hidden) closeSettings();
-
-        if (!receiptModal.hidden) closeReceipt();
+        for (var index = dismissibleModals.length - 1; index >= 0; index -= 1) {
+            var entry = dismissibleModals[index];
+            if (!entry.element.hidden) {
+                entry.close();
+                break;
+            }
+        }
     });
 
     window.addEventListener("pageshow", function (event) {
