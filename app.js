@@ -3522,7 +3522,7 @@ function renderSummary() {
         var cards = document.getElementById("summaryCards");
         if (cards) cards.hidden = !summaryCardsExpanded;
         var btn = document.getElementById("toggleSummaryCards");
-        if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar" : "Mostrar";
+        if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar resumo" : "Mostrar resumo";
     }
 
     function renderExpenses() {
