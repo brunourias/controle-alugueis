@@ -926,59 +926,52 @@ undefined || item.rent === "" ? null : Number(item.rent);
             email: user.email || "",
             displayName: user.displayName || "",
             personalWorkspaceId: workspaceId,
+            workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
             updatedAt: now
         };
 
         cloudWorkspaceReady = false;
         cloudWorkspaceId = null;
 
-        return workspace.get().then(function (snapshot) {
-            if (snapshot.exists) {
-                cloudWorkspaceId = workspaceId;
-                return profile.set(Object.assign({}, profileData, {
-                    workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId)
-                }), { merge: true });
+        /*
+         * Não fazemos uma leitura do workspace antes de criá-lo: isso evita
+         * depender de uma permissão de leitura em uma área que ainda não existe.
+         * O mesmo lote cria o workspace e o seu único proprietário.
+         */
+        return firebaseDb.collection("users").doc(user.uid).get().then(function (legacySnapshot) {
+            var legacy = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
+            var batch = firebaseDb.batch();
+
+            batch.set(profile, profileData, { merge: true });
+            batch.set(workspace, {
+                name: "Meus imóveis",
+                ownerId: user.uid,
+                type: "personal",
+                createdAt: now,
+                updatedAt: now
+            }, { merge: true });
+            batch.set(member, {
+                role: "owner",
+                email: user.email || "",
+                displayName: user.displayName || "",
+                joinedAt: now
+            }, { merge: true });
+
+            if (legacy && legacy.payload) {
+                batch.set(cloudDocRefFor(workspace), {
+                    payload: legacy.payload,
+                    updatedAt: Number(legacy.updatedAt) || now,
+                    migratedFrom: "users/" + user.uid,
+                    migratedAt: now
+                }, { merge: true });
             }
 
-            // O formato anterior guardava o estado diretamente em users/{uid}.
-            return firebaseDb.collection("users").doc(user.uid).get().then(function (legacySnapshot) {
-                var legacy = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
-                var batch = firebaseDb.batch();
-                batch.set(profile, Object.assign({}, profileData, {
-                    createdAt: now,
-                    workspaceIds: [workspaceId]
-                }), { merge: true });
-                batch.set(workspace, {
-                    name: "Meus imóveis",
-                    ownerId: user.uid,
-                    type: "personal",
-                    createdAt: now,
-                    updatedAt: now
-                });
-                batch.set(member, {
-                    role: "owner",
-                    email: user.email || "",
-                    displayName: user.displayName || "",
-                    joinedAt: now
-                });
-
-                if (legacy && legacy.payload) {
-                    batch.set(cloudDocRefFor(workspace), {
-                        payload: legacy.payload,
-                        updatedAt: Number(legacy.updatedAt) || now,
-                        migratedFrom: "users/" + user.uid,
-                        migratedAt: now
-                    });
-                }
-
-                return batch.commit().then(function () {
-                    if (firebaseUser && firebaseUser.uid === user.uid)
-                        cloudWorkspaceId = workspaceId;
-                });
-            });
+            return batch.commit();
         }).then(function () {
-            if (firebaseUser && firebaseUser.uid === user.uid)
+            if (firebaseUser && firebaseUser.uid === user.uid) {
+                cloudWorkspaceId = workspaceId;
                 cloudWorkspaceReady = true;
+            }
             return workspaceId;
         });
     }
