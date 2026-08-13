@@ -13,9 +13,16 @@ const ModalManager = (() => {
         return document.querySelector(".modal-backdrop:not([hidden])");
     }
 
+    function closeExpandablePanels(modal) {
+        modal.querySelectorAll("details[open]").forEach(function (panel) {
+            panel.open = false;
+        });
+    }
+
     function open(modal) {
         if (!modal || !modal.hidden) return;
 
+        closeExpandablePanels(modal);
         modal.hidden = false;
         document.body.classList.add("modal-open");
 
