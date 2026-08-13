@@ -1054,7 +1054,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
             }));
         }).then(function (workspaces) {
             cloudWorkspaces = workspaces.filter(Boolean);
-            if (!cloudWorkspaces.some(function (item) { return item.id === cloudWorkspaceId; })) {
+            var rememberedWorkspace = localStorage.getItem(
+                WORKSPACE_SELECTION_KEY + "-" + firebaseUser.uid
+            );
+            if (
+                rememberedWorkspace &&
+                cloudWorkspaces.some(function (item) { return item.id === rememberedWorkspace; }) &&
+                (!cloudWorkspaceId || cloudWorkspaceId === personalId)
+            ) {
+                cloudWorkspaceId = rememberedWorkspace;
+            } else if (!cloudWorkspaces.some(function (item) { return item.id === cloudWorkspaceId; })) {
                 cloudWorkspaceId = cloudWorkspaces.length ? cloudWorkspaces[0].id : null;
             }
             if (!cloudWorkspaceId) {
