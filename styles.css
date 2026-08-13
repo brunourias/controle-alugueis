@@ -4038,3 +4038,13 @@ textarea:focus-visible {
         min-height: 0;
     }
 }
+
+
+.enterprise-dashboard-cards .dashboard-card-forecast {
+    border-color: #c8ddd8;
+    background: linear-gradient(135deg, #f1faf8, #fff);
+}
+
+.enterprise-dashboard-cards .dashboard-card-forecast .summary-value {
+    color: #176962;
+}
