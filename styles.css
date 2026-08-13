@@ -4514,6 +4514,10 @@ textarea:focus-visible {
 
 
 /* Central de ação e cobrança */
+.action-count-explainer { display: inline-flex; align-items: center; gap: 8px; text-align: left; }
+.action-count-explainer strong, .action-count-explainer small { display: block; line-height: 1.2; white-space: nowrap; }
+.action-count-explainer strong { color: #7f1d2d; font-size: .82rem; }
+.action-count-explainer small { margin-top: 2px; color: #667f7e; font-size: .72rem; }
 .action-priority-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .action-priority-section, .action-tasks-panel { border: 1px solid var(--line, #d9e6e5); border-radius: 14px; padding: 14px; background: #fff; }
 .action-priority-section h3, .action-tasks-panel h3 { margin: 0 0 10px; color: #075f5b; font-size: .95rem; }
