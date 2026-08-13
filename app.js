@@ -354,6 +354,8 @@ var historyRent = document.getElementById("historyRent");
     var cloudAccountApproved = false;
     var cloudAccessChecking = false;
     var cloudAccountSettings = null;
+    var cloudLastSyncAt = 0;
+    var cloudSessionStartedAt = 0;
     var platformPendingUnsubscribe = null;
     var onboardingResumeRequested = false;
     var platformPlanCatalog = [];
@@ -891,6 +893,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function setSyncStatus(message) {
         syncStatus.textContent = message;
+        if (/^Sincronizado/.test(String(message || ""))) cloudLastSyncAt = Date.now();
+        renderAccountHealth();
     }
 
     function cloudErrorMessage(error) {
@@ -1130,20 +1134,55 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return { kind: days < 0 ? "expired" : days <= 7 ? "soon" : "ok", days: days };
     }
 
+    function isSubscriptionLocked() {
+        if (!firebaseUser || isPlatformAdmin(firebaseUser)) return false;
+        var account = cloudAccountSettings || {};
+        var status = String(account.subscriptionStatus || "");
+        var due = subscriptionDueInfo(account.subscriptionDueDate);
+        return ["overdue", "canceled"].indexOf(status) >= 0 || due.kind === "expired";
+    }
+
+    function subscriptionLockMessage() {
+        var account = cloudAccountSettings || {};
+        var status = String(account.subscriptionStatus || "");
+        if (status === "canceled") return "Sua assinatura está cancelada. Os dados permanecem disponíveis para consulta; renove para voltar a editar.";
+        if (status === "overdue") return "Há uma pendência na assinatura. Os dados estão em modo consulta até a renovação.";
+        return "O período da assinatura venceu. Os dados estão em modo consulta até a renovação.";
+    }
+
+    function renderAccountHealth() {
+        var health = document.getElementById("accountHealth");
+        if (!health) return;
+        if (!firebaseUser || !cloudAccountApproved) {
+            health.hidden = true;
+            return;
+        }
+        var mode = isSubscriptionLocked() ? "Modo consulta" : "Edição liberada";
+        var lastSync = cloudLastSyncAt ? new Date(cloudLastSyncAt).toLocaleString("pt-BR") : "Ainda não concluída";
+        var lastAccess = cloudSessionStartedAt ? new Date(cloudSessionStartedAt).toLocaleString("pt-BR") : "Sessão atual";
+        health.hidden = false;
+        health.classList.toggle("is-readonly", isSubscriptionLocked());
+        health.innerHTML = '<strong>Saúde da conta</strong><span><b>' + escapeHtml(mode) + '</b> · sincronização: ' + escapeHtml(syncStatus.textContent || "Aguardando") + '</span><span>Última sincronização: ' + escapeHtml(lastSync) + ' · acesso atual: ' + escapeHtml(lastAccess) + '</span>';
+    }
+
     function updateSubscriptionNotice() {
         if (!subscriptionNotice) return;
         var account = cloudAccountSettings || {};
         var info = subscriptionDueInfo(account.subscriptionDueDate);
         var status = account.subscriptionStatus;
-        subscriptionNotice.hidden = !firebaseUser || isPlatformAdmin(firebaseUser) || (info.kind !== "expired" && info.kind !== "soon" && status !== "overdue");
-        if (subscriptionNotice.hidden) return;
-        var message = info.kind === "expired"
-            ? "Seu plano venceu em " + Math.abs(info.days) + " dia(s). Fale com a administração para renovar."
+        subscriptionNotice.hidden = !firebaseUser || isPlatformAdmin(firebaseUser) || (info.kind !== "expired" && info.kind !== "soon" && ["overdue", "canceled"].indexOf(status) < 0);
+        if (subscriptionNotice.hidden) {
+            renderAccountHealth();
+            return;
+        }
+        var message = isSubscriptionLocked()
+            ? subscriptionLockMessage()
             : info.kind === "soon"
                 ? "Seu plano vence em " + info.days + " dia(s). Programe a renovação."
                 : "Há uma pendência na sua assinatura. Fale com a administração.";
         subscriptionNotice.textContent = message;
-        subscriptionNotice.classList.toggle("is-expired", info.kind === "expired" || status === "overdue");
+        subscriptionNotice.classList.toggle("is-expired", isSubscriptionLocked());
+        renderAccountHealth();
     }
 
     function platformPlanLabel(plan) {
@@ -1256,7 +1295,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 if (firebaseUser && userId === firebaseUser.uid) cloudAccountSettings = Object.assign({}, cloudAccountSettings || {}, patch);
                 return writePlatformAudit(action || "Conta atualizada", userId, patch);
             }).then(function () {
-                renderPlatformApprovals(); renderPlatformPlans(); renderPlatformAudit(); renderPlanUsage();
+                renderPlatformApprovals(); renderPlatformPlans(); renderPlatformAudit(); renderPlanUsage(); renderAccountHealth();
             }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
     }
 
@@ -1632,7 +1671,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function canWriteWorkspace() {
-        return cloudWorkspaceRole !== "viewer";
+        return cloudWorkspaceRole !== "viewer" && !isSubscriptionLocked();
     }
 
     function workspaceSelectElement() {
@@ -1659,7 +1698,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 escapeHtml(workspace.name || "Área de trabalho") + '</option>';
         }).join("");
         selector.value = cloudWorkspaceId || "";
-        role.textContent = "Sua permissão: " + workspaceRoleLabel(cloudWorkspaceRole);
+        role.textContent = "Sua permissão: " + workspaceRoleLabel(cloudWorkspaceRole) +
+            (isSubscriptionLocked() ? " · assinatura em modo consulta" : "");
 
         if (canManageWorkspace()) renderWorkspaceMembers();
         renderPlanUsage();
@@ -2246,6 +2286,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         return null;
                     }
                     setAccountAccessNotice("");
+                    cloudSessionStartedAt = Date.now();
+                    firebaseDb.collection("profiles").doc(user.uid).set({
+                        lastAccessAt: cloudSessionStartedAt
+                    }, { merge: true }).catch(function () {});
                     return ensurePersonalWorkspace(user)
                         .then(function () { return loadWorkspaceList(); });
                 })
