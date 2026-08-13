@@ -352,6 +352,7 @@ var historyRent = document.getElementById("historyRent");
     var cloudWorkspaceRole = null;
     var workspaceUiBound = false;
     var cloudAccountApproved = false;
+    var cloudAccessChecking = false;
     var cloudAccountSettings = null;
     var platformPendingUnsubscribe = null;
     var onboardingResumeRequested = false;
@@ -2206,10 +2207,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         if (user) {
+            cloudAccessChecking = true;
+            // A conta já autenticada vê primeiro o PIN do dispositivo.
+            // A aprovação continua sendo verificada em segundo plano.
+            if (lockConfig) openAuthLogin();
             setAccountGate(true, {
                 title: "Verificando acesso",
                 message: "Estamos preparando sua área de trabalho.",
-                pending: true
+                pending: true,
+                verifying: true
             });
             setCloudStatus("Conta conectada. Verificando a liberação da conta...");
             cloudAccountApproved = false;
@@ -2224,6 +2230,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     updateCloudUi();
                     renderWorkspaceControls();
                     if (!approved) {
+                        cloudAccessChecking = false;
                         cloudWorkspaceReady = false;
                         cloudWorkspaceId = null;
                         cloudWorkspaces = [];
@@ -2254,14 +2261,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     bindWorkspaceControls();
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
                     if (acceptedWorkspaceId) return activateWorkspace(acceptedWorkspaceId).then(function () {
+                        cloudAccessChecking = false;
                         setAccountGate(false);
-                        initAuth();
+                        if (appUnlocked) revealApp();
+                        else if (authModal.hidden) initAuth();
                     });
                     reconcileCloud();
+                    cloudAccessChecking = false;
                     setAccountGate(false);
-                    initAuth();
+                    if (appUnlocked) revealApp();
+                    else if (authModal.hidden) initAuth();
                 })
                 .catch(function (error) {
+                    cloudAccessChecking = false;
                     cloudWorkspaceReady = false;
                     cloudWorkspaceId = null;
                     setCloudError(cloudErrorMessage(error));
@@ -2273,6 +2285,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     });
                 });
         } else {
+            cloudAccessChecking = false;
             cloudAccountApproved = false;
             setAccountAccessNotice("");
             if (platformApprovalsSection) platformApprovalsSection.hidden = true;
@@ -2818,6 +2831,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function revealApp() {
+        // Não revela os dados locais enquanto a conta ainda está sendo validada.
+        if (cloudAccessChecking) return;
         scrollPageToTop();
         document.body.classList.remove("app-loading");
         appLastActivityAt = Date.now();
