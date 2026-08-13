@@ -164,6 +164,9 @@ const ModalManager = (() => {
     var expensesList = document.getElementById("expensesList");
     var toggleExpensesButton = document.getElementById("toggleExpenses");
     var expensesTotal = document.getElementById("expensesTotal");
+    var expensesCount = document.getElementById("expensesCount");
+    var expensesTopCategory = document.getElementById("expensesTopCategory");
+    var expensesPreview = document.getElementById("expensesPreview");
     var expensesYear = document.getElementById("expensesYear");
     var lockError = document.getElementById("lockError");
     var modal = document.getElementById("modal");
@@ -3535,13 +3538,70 @@ function renderSummary() {
 
         expensesTotal.textContent = money(annualTotal);
 
+        var categoryTotals = yearExpenses.reduce(function (totals, expense) {
+            var category = String(expense.category || "Sem categoria");
+            totals[category] = (totals[category] || 0) + expense.amount;
+            return totals;
+        }, {});
+
+        var topCategory = Object.keys(categoryTotals).sort(function (a, b) {
+            return categoryTotals[b] - categoryTotals[a];
+        })[0];
+
+        expensesCount.textContent =
+            yearExpenses.length +
+            (yearExpenses.length === 1 ? " lançamento" : " lançamentos");
+
+        expensesTopCategory.textContent = topCategory
+            ? "Maior categoria: " + topCategory
+            : "Sem categoria principal";
+
         if (!yearExpenses.length) {
-            expensesList.innerHTML =
+            expensesPreview.innerHTML =
                 '<p class="expenses-empty">Nenhum gasto registrado em ' +
                 selectedYear +
                 ".</p>";
+            expensesList.innerHTML = "";
+            expensesList.hidden = true;
+            toggleExpensesButton.hidden = true;
             return;
         }
+
+        var recentExpenses = yearExpenses
+            .slice()
+            .sort(function (a, b) {
+                return String(b.date || b.ym).localeCompare(String(a.date || a.ym));
+            })
+            .slice(0, 3);
+
+        expensesPreview.innerHTML =
+            '<div class="expenses-preview-heading">Últimos lançamentos</div>' +
+            '<div class="expenses-preview-list">' +
+            recentExpenses
+                .map(function (expense) {
+                    var dateLabel = expense.date
+                        ? formatExpenseDate(expense.date)
+                        : fullMonths[Number(expense.ym.slice(5, 7)) - 1];
+
+                    return (
+                        '<div class="expenses-preview-row">' +
+                        '<div><strong>' +
+                        escapeHtml(expense.category || "Sem categoria") +
+                        "</strong>" +
+                        '<span>' +
+                        escapeHtml(dateLabel) +
+                        (expense.description
+                            ? " · " + escapeHtml(expense.description)
+                            : "") +
+                        "</span></div>" +
+                        "<b>" +
+                        money(expense.amount) +
+                        "</b>" +
+                        "</div>"
+                    );
+                })
+                .join("") +
+            "</div>";
 
         var groups = [];
 
