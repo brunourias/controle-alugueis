@@ -1,4 +1,4 @@
-const CACHE_NAME = "controle-alugueis-v013";
+const CACHE_NAME = "controle-alugueis-v014";
 
 const APP_SHELL = [
   "./index.html",
