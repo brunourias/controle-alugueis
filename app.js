@@ -5257,6 +5257,7 @@ function saveExpense() {
             ? "Um PIN protege o acesso neste dispositivo."
             : "Nenhum PIN configurado neste dispositivo.";
         securityStatus.style.color = "";
+        updateBiometricUi();
         renderCategoryManager();
         renderEnterpriseManager();
         setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
@@ -6812,9 +6813,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         closeAuth();
         render();
     });
+    authBiometric.addEventListener("click", unlockWithBiometric);
     savePinButton.addEventListener("click", savePin);
+    enableBiometricButton.addEventListener("click", enableBiometric);
 
     removePinButton.addEventListener("click", removePin);
+    removeBiometricButton.addEventListener("click", removeBiometric);
 
     document
         .getElementById("cancelReceipt")
