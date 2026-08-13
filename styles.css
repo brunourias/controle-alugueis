@@ -3320,8 +3320,9 @@ textarea:focus-visible {
 }
 
 .app-header #settingsButton svg {
-    width: 20px !important;
-    height: 20px !important;
+    width: 18px !important;
+    height: 18px !important;
+    stroke-width: 2.15 !important;
 }
 
 @media (max-width: 768px) {
