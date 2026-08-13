@@ -4244,3 +4244,172 @@ textarea:focus-visible {
     color: #128c7e;
     background: #e1f6ec;
 }
+
+
+/* Conferência fiscal e modal de gasto */
+.expense-modal {
+    width: min(100%, 620px);
+}
+
+.expense-modal .settings-panel {
+    margin-top: 10px;
+}
+
+.expense-modal .settings-panel-content {
+    display: grid;
+    gap: 11px;
+}
+
+.tax-dashboard {
+    padding: 17px 18px;
+}
+
+.tax-dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.tax-dashboard-header .btn {
+    flex: 0 0 auto;
+}
+
+.tax-dashboard-detail {
+    margin-top: 14px;
+}
+
+.tax-disclaimer {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 1px solid #ead49c;
+    border-radius: 12px;
+    color: #76550c;
+    background: #fff9e9;
+    font-size: .72rem;
+    line-height: 1.45;
+}
+
+.tax-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 13px;
+}
+
+.tax-summary-grid article {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #f9fcfb;
+}
+
+.tax-summary-grid article.is-deduction {
+    border-color: #bde0d7;
+    background: #eff9f6;
+}
+
+.tax-summary-grid article.is-base {
+    border-color: #b5dcd3;
+    background: #eaf8f4;
+}
+
+.tax-summary-grid article.is-review {
+    border-color: #ead49c;
+    background: #fff9e9;
+}
+
+.tax-summary-grid span,
+.tax-summary-grid small {
+    display: block;
+    color: var(--muted);
+    font-size: .65rem;
+    line-height: 1.35;
+}
+
+.tax-summary-grid strong {
+    display: block;
+    margin: 5px 0 3px;
+    color: var(--teal-dark);
+    font-size: .91rem;
+    letter-spacing: -.02em;
+}
+
+.tax-review-list {
+    display: grid;
+    gap: 0;
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fbfdfd;
+}
+
+.tax-review-list h3 {
+    margin: 0;
+    color: var(--teal-dark);
+    font-size: .84rem;
+}
+
+.tax-review-list p {
+    margin: 4px 0 7px;
+    color: var(--muted);
+    font-size: .7rem;
+}
+
+.tax-review-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid #e7f0ee;
+}
+
+.tax-review-row strong,
+.tax-review-row span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tax-review-row strong { font-size: .75rem; }
+.tax-review-row span { margin-top: 2px; color: var(--muted); font-size: .67rem; }
+.tax-review-row b { color: var(--teal-dark); font-size: .76rem; white-space: nowrap; }
+.tax-review-row .btn { min-height: 32px; padding: 0 9px; font-size: .68rem; }
+
+@media (max-width: 760px) {
+    .tax-dashboard {
+        padding: 15px;
+    }
+
+    .tax-dashboard-header {
+        display: grid;
+        gap: 11px;
+    }
+
+    .tax-dashboard-header .btn {
+        width: 100%;
+    }
+
+    .tax-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .tax-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tax-review-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .tax-review-row .btn {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+}
