@@ -3024,7 +3024,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         var attentionCount = urgent.length + week.length + decisions.length;
-        var badge = attentionCount ? '<span class="action-alert-badge" aria-label="' + attentionCount + ' avisos">' + attentionCount + '</span>' : '<span class="action-ok-badge" aria-label="Sem avisos">✓</span>';
+        var chargeCount = urgent.filter(function (item) { return item.action === "charge"; }).length;
+        var taskCount = urgent.filter(function (item) { return item.action && item.action.indexOf("task:") === 0; }).length;
+        var fiscalCount = week.filter(function (item) { return item.action === "tax"; }).length;
+        var dueCount = week.filter(function (item) { return item.action === "open"; }).length;
+        var summaryParts = [];
+        if (chargeCount) summaryParts.push(chargeCount + " " + (chargeCount === 1 ? "cobrança" : "cobranças"));
+        if (dueCount) summaryParts.push(dueCount + " " + (dueCount === 1 ? "vencimento" : "vencimentos"));
+        if (fiscalCount) summaryParts.push(fiscalCount + " revisão fiscal");
+        if (taskCount) summaryParts.push(taskCount + " " + (taskCount === 1 ? "tarefa" : "tarefas"));
+        if (decisions.length) summaryParts.push(decisions.length + " decisão" + (decisions.length === 1 ? "" : "ões"));
+        var badge = attentionCount
+            ? '<div class="action-count-explainer"><span class="action-alert-badge" aria-hidden="true">' + attentionCount + '</span><span><strong>' + attentionCount + ' ' + (attentionCount === 1 ? 'ação pendente' : 'ações pendentes') + '</strong><small>' + escapeHtml(summaryParts.join(" · ")) + '</small></span></div>'
+            : '<span class="action-ok-badge" aria-label="Sem ações pendentes">✓</span>';
         var taskForm = '<form id="operationalTaskForm" class="operational-task-form"><input id="operationalTaskTitle" type="text" maxlength="140" placeholder="Ex.: Cobrar comprovante" required><input id="operationalTaskDue" type="date"><button class="btn btn-primary" type="submit">Adicionar</button></form>';
         var detail = '<div class="action-priority-grid">' +
             '<section class="action-priority-section is-urgent"><h3>Urgente hoje</h3>' + rows(urgent, "Nada urgente no momento.", "is-urgent") + '</section>' +
