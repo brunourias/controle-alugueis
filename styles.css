@@ -4692,3 +4692,22 @@ textarea:focus-visible {
 .platform-admin-modal { width: min(calc(100vw - 36px), 900px); max-height: calc(100dvh - 44px); padding: 18px; overflow-y: auto; background: #f8fbfb; }
 .platform-admin-modal .platform-approvals { margin: 0; padding: 0; border: 0; }
 @media (max-width: 520px) { .platform-admin-modal { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); padding: 14px; } .platform-admin-badge { top: -4px; right: -4px; } }
+
+
+/* Assinaturas, planos e auditoria */
+.platform-catalog, .platform-audit { margin-top: 16px; }
+.platform-plans-list, .platform-audit-list { display: grid; gap: 7px; margin-top: 10px; }
+.platform-plan-row, .platform-audit-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border: 1px solid #dceae7; border-radius: 10px; background: #fbfefd; }
+.platform-plan-row strong, .platform-plan-row span, .platform-audit-row strong, .platform-audit-row span { display: block; }
+.platform-plan-row strong, .platform-audit-row strong { color: #075f5b; font-size: .76rem; }
+.platform-plan-row span, .platform-audit-row span { margin-top: 3px; color: #647f7d; font-size: .66rem; }
+.platform-plan-row small { color: #647f7d; font-size: .64rem; }
+.platform-plan-row .btn { min-height: 30px; padding: 4px 7px; font-size: .65rem; }
+.platform-plan-form { display: grid; grid-template-columns: minmax(140px, 1.5fr) repeat(4, minmax(80px, 1fr)) auto; gap: 8px; align-items: end; margin-top: 11px; padding-top: 11px; border-top: 1px dashed #cfe3df; }
+.platform-plan-form label, .platform-account-actions label { margin: 0; color: #647f7d; font-size: .64rem; }
+.platform-plan-form input { min-height: 34px; margin-top: 3px; padding: 5px 7px; font-size: .72rem; }
+.platform-plan-form .btn { min-height: 34px; padding: 5px 9px; font-size: .67rem; white-space: nowrap; }
+.platform-account-actions { align-items: end; flex-wrap: wrap; }
+.platform-account-actions > label { min-width: 94px; }
+.platform-account-actions input, .platform-account-actions select { min-height: 32px; }
+@media (max-width: 760px) { .platform-plan-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .platform-plan-form .btn { grid-column: span 2; } }
