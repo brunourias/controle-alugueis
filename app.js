@@ -338,6 +338,9 @@ var historyRent = document.getElementById("historyRent");
     var cloudWorkspaceRole = null;
     var workspaceUiBound = false;
     var cloudAccountApproved = false;
+    var cloudAuthInFlight = false;
+    var cloudAuthCooldownUntil = 0;
+    var cloudAuthCooldownTimer = null;
 
     function newEnterpriseId() {
         return (
@@ -866,6 +869,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         if (code === "auth/operation-not-allowed")
             return "O login por e-mail e senha ainda não está habilitado no Firebase.";
+
+        if (code === "auth/too-many-requests")
+            return "Muitas tentativas foram feitas neste aparelho. Aguarde alguns minutos antes de tentar novamente.";
 
         if (
             code === "auth/invalid-credential" ||
@@ -1850,8 +1856,53 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
     }
 
+    function cloudAuthButtons() {
+        return ["cloudSignIn", "cloudSignUp", "cloudGoogleSignIn", "cloudResetPassword"]
+            .map(function (id) { return document.getElementById(id); })
+            .filter(Boolean);
+    }
+
+    function refreshCloudAuthControls() {
+        var coolingDown = Date.now() < cloudAuthCooldownUntil;
+        cloudAuthButtons().forEach(function (button) {
+            button.disabled = cloudAuthInFlight || coolingDown;
+        });
+        if (cloudAuthCooldownTimer) clearTimeout(cloudAuthCooldownTimer);
+        if (coolingDown) {
+            cloudAuthCooldownTimer = setTimeout(function () {
+                cloudAuthCooldownTimer = null;
+                refreshCloudAuthControls();
+            }, Math.max(0, cloudAuthCooldownUntil - Date.now()) + 50);
+        }
+    }
+
+    function startCloudAuthAttempt() {
+        if (cloudAuthInFlight) {
+            setCloudError("Uma tentativa de acesso já está em andamento.");
+            return false;
+        }
+        if (Date.now() < cloudAuthCooldownUntil) {
+            var minutes = Math.max(1, Math.ceil((cloudAuthCooldownUntil - Date.now()) / 60000));
+            setCloudError("Aguarde cerca de " + minutes + " minuto(s) antes de tentar novamente.");
+            return false;
+        }
+        cloudAuthInFlight = true;
+        refreshCloudAuthControls();
+        return true;
+    }
+
+    function finishCloudAuthAttempt(error) {
+        cloudAuthInFlight = false;
+        if (error && error.code === "auth/too-many-requests") {
+            // O tempo exato é definido pelo Firebase; 15 minutos evita insistência.
+            cloudAuthCooldownUntil = Date.now() + 15 * 60 * 1000;
+        }
+        refreshCloudAuthControls();
+    }
+
     function runCloudAuth(action) {
         setCloudError("");
+        if (!startCloudAuthAttempt()) return;
 
         var email = cloudEmail.value.trim();
 
@@ -1859,25 +1910,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         if (!email || email.indexOf("@") < 1) {
             setCloudError("Informe um e-mail válido.");
-
             cloudEmail.focus();
-
+            finishCloudAuthAttempt();
             return;
         }
 
         if (password.length < 6) {
             setCloudError("A senha deve ter pelo menos 6 caracteres.");
-
             cloudPassword.focus();
-
+            finishCloudAuthAttempt();
             return;
         }
 
         if (!firebaseAuth) {
-            setCloudError(
-                "A nuvem ainda não está disponível. Tente novamente em instantes."
-            );
-
+            setCloudError("A nuvem ainda não está disponível. Tente novamente em instantes.");
+            finishCloudAuthAttempt();
             return;
         }
 
@@ -1893,29 +1940,41 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         setCloudError("Enviamos um link de confirmação para seu e-mail.");
                     });
                 }
+                return null;
             })
+            .then(function () { finishCloudAuthAttempt(); })
             .catch(function (error) {
                 setCloudError(cloudErrorMessage(error));
+                finishCloudAuthAttempt(error);
             });
     }
 
     function resetCloudPassword() {
+        if (!startCloudAuthAttempt()) return;
         var email = cloudEmail.value.trim();
         if (!email || email.indexOf("@") < 1) {
             setCloudError("Informe seu e-mail para receber o link de recuperação.");
             cloudEmail.focus();
+            finishCloudAuthAttempt();
             return;
         }
         firebaseAuth.sendPasswordResetEmail(email).then(function () {
             setCloudError("Enviamos o link para redefinir sua senha.");
-        }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+            finishCloudAuthAttempt();
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+            finishCloudAuthAttempt(error);
+        });
     }
 
     function signInWithGoogle() {
-        if (!firebaseAuth || !window.firebase) return;
+        if (!firebaseAuth || !window.firebase || !startCloudAuthAttempt()) return;
         var provider = new firebase.auth.GoogleAuthProvider();
-        firebaseAuth.signInWithPopup(provider).catch(function (error) {
+        firebaseAuth.signInWithPopup(provider).then(function () {
+            finishCloudAuthAttempt();
+        }).catch(function (error) {
             setCloudError(cloudErrorMessage(error));
+            finishCloudAuthAttempt(error);
         });
     }
 
