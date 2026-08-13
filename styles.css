@@ -4934,3 +4934,35 @@ textarea:focus-visible {
         font-size: 1.32rem;
     }
 }
+
+
+.account-health {
+    display: grid;
+    gap: 4px;
+    margin: 10px 0;
+    padding: 10px 11px;
+    border: 1px solid #cfe5e0;
+    border-radius: 10px;
+    color: #315b57;
+    background: #f4fbf9;
+    font-size: .72rem;
+}
+
+.account-health strong {
+    color: var(--teal-dark);
+    font-size: .78rem;
+}
+
+.account-health b {
+    color: #167268;
+}
+
+.account-health.is-readonly {
+    border-color: #f1c9cd;
+    color: #8c3541;
+    background: #fff5f6;
+}
+
+.account-health.is-readonly b {
+    color: var(--late);
+}
