@@ -2,17 +2,35 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Administração global da plataforma. Troque este e-mail se o responsável mudar.
+    function platformAdmin() {
+      return request.auth != null &&
+        request.auth.token.email == "brunourias@gmail.com";
+    }
+
     function signedIn() {
       return request.auth != null;
     }
 
-    // Uma conta só pode inicializar/reparar a área com o seu próprio UID.
+    // Uma conta aprovada pode criar sua área. Contas antigas com perfil
+    // preservado continuam ativas quando o modo de aprovação é habilitado.
+    function approvedAccount() {
+      return signedIn() && (
+        platformAdmin() ||
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) ||
+        (
+          exists(/databases/$(database)/documents/accessRequests/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/accessRequests/$(request.auth.uid)).data.status == "approved"
+        )
+      );
+    }
+
     function personalWorkspace(workspaceId) {
-      return signedIn() && workspaceId == "personal-" + request.auth.uid;
+      return approvedAccount() && workspaceId == "personal-" + request.auth.uid;
     }
 
     function member(workspaceId) {
-      return signedIn() &&
+      return approvedAccount() &&
         exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
     }
 
@@ -30,24 +48,35 @@ service cloud.firestore {
 
     function writer(workspaceId) {
       return member(workspaceId) &&
-        (role(workspaceId) == "owner" || role(workspaceId) == "admin" || role(workspaceId) == "operator");
+        (role(workspaceId) == "owner" || role(workspaceId) == "admin" || role(workspaceId) == "operator" || role(workspaceId) == "billing" || role(workspaceId) == "finance");
     }
 
     function invitedRole(value) {
-      return value == "admin" || value == "operator" || value == "viewer";
+      return value == "admin" || value == "operator" || value == "billing" || value == "finance" || value == "viewer";
+    }
+
+    // Solicitação de acesso: a própria conta cria e lê somente a sua;
+    // apenas a administração global lista, aprova ou recusa.
+    match /accessRequests/{userId} {
+      allow get: if signedIn() && (request.auth.uid == userId || platformAdmin());
+      allow list: if platformAdmin();
+      allow create: if signedIn() && request.auth.uid == userId &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.status == "pending";
+      allow update, delete: if platformAdmin();
     }
 
     match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read, write: if approvedAccount() && request.auth.uid == userId;
     }
 
     match /profiles/{userId} {
-      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create: if approvedAccount() && request.auth.uid == userId;
+      allow update: if approvedAccount() && request.auth.uid == userId;
     }
 
     match /workspaces/{workspaceId} {
-      // A conta pode sempre configurar apenas sua própria área pessoal.
-      // Nenhum outro workspace recebe esta exceção.
       allow create: if personalWorkspace(workspaceId) &&
         request.resource.data.ownerId == request.auth.uid;
       allow update: if owner(workspaceId) ||
@@ -57,19 +86,17 @@ service cloud.firestore {
       allow read: if member(workspaceId) || personalWorkspace(workspaceId);
 
       match /members/{memberId} {
-        // Necessário para o primeiro login e restrito ao próprio vínculo.
         allow get: if member(workspaceId) &&
           (memberId == request.auth.uid || manager(workspaceId)) ||
           (personalWorkspace(workspaceId) && memberId == request.auth.uid);
         allow list: if manager(workspaceId);
 
-        // Primeiro proprietário ou colaborador aceitando um convite.
         allow create, update: if
           (personalWorkspace(workspaceId) &&
             memberId == request.auth.uid &&
             request.resource.data.role == "owner") ||
           manager(workspaceId) ||
-          (signedIn() &&
+          (approvedAccount() &&
             memberId == request.auth.uid &&
             invitedRole(request.resource.data.role) &&
             request.resource.data.inviteId is string &&
@@ -85,9 +112,9 @@ service cloud.firestore {
         allow create, delete: if manager(workspaceId);
         allow list: if manager(workspaceId);
         allow get: if manager(workspaceId) ||
-          (signedIn() && resource.data.status == "pending" && resource.data.expiresAt > request.time);
+          (approvedAccount() && resource.data.status == "pending" && resource.data.expiresAt > request.time);
         allow update: if manager(workspaceId) ||
-          (signedIn() &&
+          (approvedAccount() &&
             resource.data.status == "pending" &&
             resource.data.expiresAt > request.time &&
             request.resource.data.status == "accepted" &&
@@ -98,7 +125,6 @@ service cloud.firestore {
             existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)));
       }
 
-      // Mantém o formato anterior somente como contingência de migração.
       match /state/{stateId} {
         allow read, create, update: if owner(workspaceId);
         allow delete: if false;
@@ -124,11 +150,6 @@ service cloud.firestore {
         allow create, update, delete: if writer(workspaceId);
       }
 
-      /*
-       * Recuperação do primeiro acesso: a exceção vale exclusivamente para
-       * personal-{uid}, portanto não permite ver nem alterar workspaces
-       * compartilhados ou de outros usuários.
-       */
       match /{document=**} {
         allow read, write: if personalWorkspace(workspaceId);
       }
