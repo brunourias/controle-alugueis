@@ -369,6 +369,7 @@ var historyRent = document.getElementById("historyRent");
     var pendingPwaInstall = null;
     var pendingPwaUpdate = null;
     var pwaUpdateAccepted = false;
+    var pendingPwaShortcut = new URLSearchParams(window.location.search).get("action");
 
     function newEnterpriseId() {
         return (
@@ -2889,6 +2890,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         appLastActivityAt = Date.now();
         authUnlockGraceUntil = Date.now() + 2000;
         armAutoLock();
+        window.setTimeout(runPwaShortcut, 0);
 
         // O teclado virtual pode reajustar a viewport após o login no Android.
         window.setTimeout(scrollPageToTop, 100);
@@ -8018,6 +8020,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     bannerUseCloud.addEventListener("click", chooseCloudData);
     bannerUseLocal.addEventListener("click", chooseLocalData);
+
+    function runPwaShortcut() {
+        if (!pendingPwaShortcut || !appUnlocked || ModalManager.getOpenModal()) return;
+        var action = pendingPwaShortcut;
+        pendingPwaShortcut = null;
+        var url = new URL(window.location.href);
+        url.searchParams.delete("action");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+        if (action === "new-unit") openModal();
+        if (action === "new-expense") openExpenseModal();
+    }
 
     function showPwaStatus(message, actionLabel, action) {
         if (!pwaStatus) return;
