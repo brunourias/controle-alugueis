@@ -60,18 +60,76 @@ service cloud.firestore {
       return member(workspaceId) && role(workspaceId) == "owner";
     }
 
-    function manager(workspaceId) {
-      return subscriptionWritable() && member(workspaceId) &&
-        (role(workspaceId) == "owner" || role(workspaceId) == "admin");
+    function hasRole(workspaceId, first, second, third, fourth, fifth) {
+      return member(workspaceId) && (
+        role(workspaceId) == first ||
+        role(workspaceId) == second ||
+        role(workspaceId) == third ||
+        role(workspaceId) == fourth ||
+        role(workspaceId) == fifth
+      );
     }
 
-    function writer(workspaceId) {
-      return subscriptionWritable() && member(workspaceId) &&
-        (role(workspaceId) == "owner" || role(workspaceId) == "admin" || role(workspaceId) == "operator" || role(workspaceId) == "billing" || role(workspaceId) == "finance");
+    function manager(workspaceId) {
+      return subscriptionWritable() &&
+        hasRole(workspaceId, "owner", "admin", "__none__", "__none__", "__none__");
+    }
+
+    // Dono, administrador e operador são os únicos que podem alterar
+    // unidades, contratos e configurações estruturais.
+    function contractManager(workspaceId) {
+      return subscriptionWritable() &&
+        hasRole(workspaceId, "owner", "admin", "operator", "__none__", "__none__");
+    }
+
+    // Financeiro também pode registrar pagamentos; Cobrança pode efetuar baixa
+    // e acompanhar inadimplência, mas nenhum dos dois altera contratos.
+    function paymentOperator(workspaceId) {
+      return subscriptionWritable() &&
+        hasRole(workspaceId, "owner", "admin", "operator", "billing", "finance");
+    }
+
+    function collectionOperator(workspaceId) {
+      return subscriptionWritable() &&
+        hasRole(workspaceId, "owner", "admin", "operator", "billing", "__none__");
+    }
+
+    function expenseOperator(workspaceId) {
+      return subscriptionWritable() &&
+        hasRole(workspaceId, "owner", "admin", "operator", "finance", "__none__");
+    }
+
+    // Cobrança pode gravar o histórico de contato, mas não as demais
+    // configurações da área. Financeiro não escreve configurações.
+    function metadataManager(workspaceId) {
+      return contractManager(workspaceId);
+    }
+
+    function billingMetadataUpdate(workspaceId) {
+      return collectionOperator(workspaceId) &&
+        role(workspaceId) == "billing" &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["operationHistory", "versionedBackups"]);
+    }
+
+    // A parcela está dentro do documento da unidade. Estas listas explicitam
+    // os únicos campos que Financeiro/Cobrança podem mudar, impedindo que uma
+    // baixa de pagamento vire alteração de contrato por SDK ou REST.
+    function paymentFieldsOnly(workspaceId) {
+      return paymentOperator(workspaceId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["status", "paidLate", "lateLedger", "paymentHistory"]);
+    }
+
+    function collectionFieldsOnly(workspaceId) {
+      return collectionOperator(workspaceId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["chargeLog"]);
     }
 
     function invitedRole(value) {
-      return value == "admin" || value == "operator" || value == "billing" || value == "finance" || value == "viewer";
+      return value == "admin" || value == "operator" || value == "billing" ||
+        value == "finance" || value == "viewer";
     }
 
     // Solicitação de acesso: a própria conta cria e lê somente a sua;
@@ -162,22 +220,25 @@ service cloud.firestore {
 
       match /meta/{metaId} {
         allow read: if member(workspaceId);
-        allow create, update, delete: if writer(workspaceId);
+        allow create, delete: if metadataManager(workspaceId);
+        allow update: if metadataManager(workspaceId) || billingMetadataUpdate(workspaceId);
       }
 
       match /units/{unitId} {
         allow read: if member(workspaceId);
-        allow create, update, delete: if writer(workspaceId);
+        allow create, delete: if contractManager(workspaceId);
+        allow update: if contractManager(workspaceId) ||
+          paymentFieldsOnly(workspaceId) || collectionFieldsOnly(workspaceId);
 
         match /contracts/{contractId} {
           allow read: if member(workspaceId);
-          allow create, update, delete: if writer(workspaceId);
+          allow create, update, delete: if contractManager(workspaceId);
         }
       }
 
       match /expenses/{expenseId} {
         allow read: if member(workspaceId);
-        allow create, update, delete: if writer(workspaceId);
+        allow create, update, delete: if expenseOperator(workspaceId);
       }
 
       match /{document=**} {
