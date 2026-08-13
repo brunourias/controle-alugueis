@@ -118,6 +118,14 @@ body.app-access-gated {
     grid-column: 1 / -1;
 }
 
+.action-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .account-gate-link {
     margin-top: 14px;
     padding: 0;
