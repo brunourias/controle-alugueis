@@ -2684,6 +2684,44 @@ textarea:focus-visible {
     margin-top: 13px;
 }
 
+.workspace-invite-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px;
+    border: 1px dashed #b8d7d2;
+    border-radius: 11px;
+    background: #f4faf8;
+}
+
+.workspace-invite-row strong,
+.workspace-invite-row span,
+.workspace-invite-row small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-invite-row strong {
+    color: var(--ink);
+    font-size: .78rem;
+}
+
+.workspace-invite-row span,
+.workspace-invite-row small {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: .7rem;
+}
+
+.workspace-invite-row .btn {
+    min-height: 32px;
+    padding: 0 9px;
+    font-size: .7rem;
+}
+
 .workspace-member-row {
     display: flex;
     align-items: center;
@@ -2731,12 +2769,14 @@ textarea:focus-visible {
 }
 
 @media (max-width: 520px) {
-    .workspace-member-row {
+    .workspace-member-row,
+    .workspace-invite-row {
         align-items: flex-start;
         flex-direction: column;
     }
 
-    .workspace-member-row .btn {
+    .workspace-member-row .btn,
+    .workspace-invite-row .btn {
         width: 100%;
     }
 }
