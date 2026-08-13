@@ -338,6 +338,7 @@ var historyRent = document.getElementById("historyRent");
     var cloudWorkspaceRole = null;
     var workspaceUiBound = false;
     var cloudAccountApproved = false;
+    var cloudAccountSettings = null;
     var cloudAuthInFlight = false;
     var cloudAuthCooldownUntil = 0;
     var cloudAuthCooldownTimer = null;
@@ -1018,10 +1019,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var profile = firebaseDb.collection("profiles").doc(user.uid);
         // Usuários já existentes continuam ativos ao habilitar o modo de aprovação.
         return profile.get().then(function (profileSnapshot) {
-            if (profileSnapshot.exists) return true;
             var request = accessRequestRef(user.uid);
             return request.get().then(function (snapshot) {
                 var data = snapshot.exists ? snapshot.data() || {} : {};
+                cloudAccountSettings = snapshot.exists ? data : null;
+                if (profileSnapshot.exists && data.status !== "suspended") return true;
                 if (data.status === "approved") return true;
                 if (data.status === "rejected") {
                     setAccountAccessNotice("Seu cadastro não foi aprovado. Fale com a administração para solicitar uma revisão.", true);
@@ -1036,6 +1038,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     email: user.email || "",
                     displayName: user.displayName || "",
                     status: "pending",
+                    plan: "trial",
+                    limits: defaultPlatformLimits("trial"),
                     createdAt: Date.now(),
                     updatedAt: Date.now()
                 }).then(function () {
@@ -1061,10 +1065,79 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function defaultPlatformLimits(plan) {
         return {
-            trial: { units: 10, workspaces: 1, users: 2 },
-            starter: { units: 30, workspaces: 3, users: 5 },
-            professional: { units: 9999, workspaces: 999, users: 999 }
-        }[plan] || { units: 10, workspaces: 1, users: 2 };
+            trial: { units: 10, enterprises: 1, workspaces: 1, users: 2 },
+            starter: { units: 30, enterprises: 3, workspaces: 3, users: 5 },
+            professional: { units: 9999, enterprises: 999, workspaces: 999, users: 999 }
+        }[plan] || { units: 10, enterprises: 1, workspaces: 1, users: 2 };
+    }
+
+    function activePlatformPlan() {
+        if (isPlatformAdmin(firebaseUser)) return "professional";
+        return cloudAccountSettings && typeof cloudAccountSettings.plan === "string"
+            ? cloudAccountSettings.plan : "trial";
+    }
+
+    function activePlatformLimits() {
+        var base = defaultPlatformLimits(activePlatformPlan());
+        var custom = cloudAccountSettings && cloudAccountSettings.limits &&
+            typeof cloudAccountSettings.limits === "object"
+            ? cloudAccountSettings.limits : {};
+        ["units", "enterprises", "workspaces", "users"].forEach(function (key) {
+            if (Number.isFinite(Number(custom[key])) && Number(custom[key]) >= 0)
+                base[key] = Number(custom[key]);
+        });
+        return base;
+    }
+
+    function limitMessage(resource, used, limit) {
+        var labels = {
+            units: "unidades",
+            enterprises: "empreendimentos",
+            workspaces: "áreas de trabalho",
+            users: "usuários"
+        };
+        return "Limite do plano " + platformPlanLabel(activePlatformPlan()) +
+            " atingido: " + used + "/" + limit + " " + (labels[resource] || resource) +
+            ". Fale com a administração para ampliar o plano.";
+    }
+
+    function canCreateWithinPlan(resource, used) {
+        if (isPlatformAdmin(firebaseUser) || !firebaseUser) return true;
+        var limit = activePlatformLimits()[resource];
+        if (!Number.isFinite(limit) || limit >= 9999 || used < limit) return true;
+        var message = limitMessage(resource, used, limit);
+        setCloudError(message);
+        setEnterpriseStatus(message, true);
+        return false;
+    }
+
+    function renderPlanUsage() {
+        var usage = document.getElementById("planUsage");
+        if (!usage) return;
+        if (!firebaseUser || !cloudAccountApproved) {
+            usage.hidden = true;
+            return;
+        }
+        var limits = activePlatformLimits();
+        var plan = activePlatformPlan();
+        var unitCount = state.units.length;
+        var enterpriseCount = state.empreendimentos.length;
+        usage.hidden = false;
+        usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong>' +
+            '<span>' + unitCount + '/' + limits.units + ' unidades · ' +
+            enterpriseCount + '/' + limits.enterprises + ' empreendimentos · carregando colaboradores...</span>';
+        if (!firebaseDb || !cloudWorkspaceId) return;
+        workspaceRef(cloudWorkspaceId).collection("members").get().then(function (snapshot) {
+            if (!firebaseUser || usage.hidden) return;
+            usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong>' +
+                '<span>' + unitCount + '/' + limits.units + ' unidades · ' +
+                enterpriseCount + '/' + limits.enterprises + ' empreendimentos · ' +
+                snapshot.size + '/' + limits.users + ' usuários</span>';
+        }).catch(function () {
+            usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong>' +
+                '<span>' + unitCount + '/' + limits.units + ' unidades · ' +
+                enterpriseCount + '/' + limits.enterprises + ' empreendimentos</span>';
+        });
     }
 
     function platformAccountRef(userId) {
@@ -1078,7 +1151,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             updatedAt: Date.now(),
             updatedBy: firebaseUser.uid
         }, patch), { merge: true }).then(function () {
+            if (firebaseUser && userId === firebaseUser.uid)
+                cloudAccountSettings = Object.assign({}, cloudAccountSettings || {}, patch);
             renderPlatformApprovals();
+            renderPlanUsage();
         }).catch(function (error) {
             setCloudError(cloudErrorMessage(error));
         });
@@ -1160,11 +1236,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     '<span>' + escapeHtml(account.email) + ' · desde ' + escapeHtml(date) + '</span>' +
                     '<div class="platform-account-meta"><b class="platform-status platform-status-' + escapeHtml(account.status) + '">' + escapeHtml(platformAccountStatusLabel(account.status)) + '</b>' +
                     '<span>' + account.workspaces + ' área(s)</span>' +
-                    '<span>limite: ' + Number(account.limits.units || 0) + ' unidades · ' + Number(account.limits.users || 0) + ' usuários</span></div></div>' +
+                    '<span>limite: ' + Number(account.limits.units || 0) + ' unidades · ' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + ' empreendimentos · ' + Number(account.limits.users || 0) + ' usuários</span></div></div>' +
                     '<div class="platform-account-actions"><label>Plano<select data-account-plan="' + escapeHtml(account.id) + '">' +
                     ["trial", "starter", "professional"].map(function (plan) {
                         return '<option value="' + plan + '"' + (plan === account.plan ? " selected" : "") + '>' + platformPlanLabel(plan) + '</option>';
-                    }).join("") + '</select></label>' + primaryAction + '</div></article>';
+                    }).join("") + '</select></label><details class="platform-limit-editor"><summary>Limites</summary><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></details>' + primaryAction + '</div></article>';
             }).join("") : '<p class="settings-note">Nenhuma conta cadastrada ainda.</p>');
 
             platformApprovalsList.querySelectorAll("[data-platform-activate]").forEach(function (button) {
@@ -1197,6 +1273,20 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         plan: plan,
                         limits: defaultPlatformLimits(plan)
                     });
+                });
+            });
+            platformApprovalsList.querySelectorAll("[data-account-limit]").forEach(function (input) {
+                input.addEventListener("change", function () {
+                    var accountId = input.dataset.accountLimit;
+                    var limits = {};
+                    Array.prototype.slice.call(platformApprovalsList.querySelectorAll("[data-account-limit]"))
+                        .filter(function (field) { return field.dataset.accountLimit === accountId; })
+                        .forEach(function (field) {
+                            var value = Number(field.value);
+                            if (Number.isInteger(value) && value >= 0) limits[field.dataset.limitKey] = value;
+                        });
+                    if (Object.keys(limits).length !== 3) return;
+                    updatePlatformAccount(accountId, { limits: limits });
                 });
             });
         }).catch(function (error) {
@@ -1349,6 +1439,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         role.textContent = "Sua permissão: " + workspaceRoleLabel(cloudWorkspaceRole);
 
         if (canManageWorkspace()) renderWorkspaceMembers();
+        renderPlanUsage();
         renderPlatformApprovals();
     }
 
@@ -1477,26 +1568,36 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var role = roleInput ? roleInput.value : "operator";
         if (["admin", "operator", "billing", "finance", "viewer"].indexOf(role) < 0) return;
 
-        var token = newInviteToken();
-        var expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-        var link = inviteUrl(cloudWorkspaceId, token);
-        workspaceRef(cloudWorkspaceId).collection("invites").doc(token).set({
+        Promise.all([
+            workspaceRef(cloudWorkspaceId).collection("members").get(),
+            workspaceRef(cloudWorkspaceId).collection("invites").where("status", "==", "pending").get()
+        ]).then(function (snapshots) {
+            var committedMembers = snapshots[0].size;
+            var pendingInvites = snapshots[1].size;
+            if (!canCreateWithinPlan("users", committedMembers + pendingInvites)) return null;
+            var token = newInviteToken();
+            var expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+            var link = inviteUrl(cloudWorkspaceId, token);
+            return workspaceRef(cloudWorkspaceId).collection("invites").doc(token).set({
             role: role,
             status: "pending",
             createdAt: Date.now(),
             expiresAt: expiresAt,
             createdBy: firebaseUser.uid
-        }).then(function () {
-            result.hidden = false;
-            result.innerHTML = 'Convite criado (válido por 7 dias). <button class="btn btn-ghost" type="button" data-copy-invite>Copiar link</button>';
-            result.querySelector("[data-copy-invite]").addEventListener("click", function () {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(link).then(function () {
-                        result.firstChild.textContent = "Link copiado. ";
-                    }).catch(function () { window.prompt("Copie este link:", link); });
-                } else {
-                    window.prompt("Copie este link:", link);
-                }
+            }).then(function () {
+                if (!link) return;
+                result.hidden = false;
+                result.innerHTML = 'Convite criado (válido por 7 dias). <button class="btn btn-ghost" type="button" data-copy-invite>Copiar link</button>';
+                result.querySelector("[data-copy-invite]").addEventListener("click", function () {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(link).then(function () {
+                            result.firstChild.textContent = "Link copiado. ";
+                        }).catch(function () { window.prompt("Copie este link:", link); });
+                    } else {
+                        window.prompt("Copie este link:", link);
+                    }
+                });
+                renderPlanUsage();
             });
         }).catch(function (error) {
             setCloudError(cloudErrorMessage(error));
@@ -3247,6 +3348,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         renderSummary();
         renderExpenses();
         renderTaxDashboard();
+        renderPlanUsage();
     }
 
 
@@ -5443,6 +5545,9 @@ function addContractHistoryEntry() {
             newEnterprise.focus();
             return;
         }
+        if (!canCreateWithinPlan("enterprises", state.empreendimentos.length)) {
+            return;
+        }
         state.empreendimentos.push({ id: newEnterpriseId(), name: value });
         newEnterprise.value = "";
         saveState();
@@ -6091,6 +6196,9 @@ function saveExpense() {
                 existing.tenantNotes = tenantNotes.value.trim();
             }
         } else {
+            if (!canCreateWithinPlan("units", state.units.length)) {
+                return;
+            }
             state.units.push({
                 id:
                     Date.now().toString(36) +
@@ -7221,10 +7329,10 @@ function saveExpense() {
     });
 
     document.getElementById("addUnit").addEventListener("click", function () {
-        openModal();
+        if (canCreateWithinPlan("units", state.units.length)) openModal();
     });
     document.getElementById("mobileAddUnit").addEventListener("click", function () {
-        openModal();
+        if (canCreateWithinPlan("units", state.units.length)) openModal();
     });
     contractAttachment.addEventListener("change", uploadContractAttachment);
 
