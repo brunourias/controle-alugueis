@@ -6289,237 +6289,118 @@ function saveExpense() {
 
     function buildAnnualReportHtml() {
         var units = scopedUnits();
-
         var expenses = scopedExpenses();
-
         var yearText = String(selectedYear);
-
-        var scope =
-            selectedEmpreendimentoId === "todos"
-                ? "Todos os empreendimentos"
-                : empreendimentoName(selectedEmpreendimentoId);
+        var scope = selectedEmpreendimentoId === "todos"
+            ? "Todos os empreendimentos"
+            : empreendimentoName(selectedEmpreendimentoId);
 
         var annualReceived = 0;
-
+        var annualExpected = 0;
         var annualOverdue = 0;
-
-        units.forEach(function (unit) {
-            months.forEach(function (_, i) {
-                annualReceived += historicalReceivedAmount(
-                    unit,
-                    selectedYear,
-                    i
-                );
-
-                // Atrasos em aberto continuam dependendo de contrato ativo.
-                if (
-                    isActive(unit, i) &&
-                    effectiveStatus(unit, i) === "atrasado"
-                ) {
-                    var updated = updatedAmount(unit, i);
-
-                    annualOverdue +=
-                        updated === null
-                            ? rentForMonth(unit, selectedYear, i)
-                            : updated;
-                }
-            });
-        });
-
-        var annualExpenses = expenses.reduce(function (sum, expense) {
-            return (
-                sum + (expense.ym.slice(0, 4) === yearText ? expense.amount : 0)
-            );
-        }, 0);
-
-        var annualNet = annualReceived - annualExpenses;
+        var annualOverdueCount = 0;
+        var currentMonth = new Date().getFullYear() === selectedYear ? new Date().getMonth() : -1;
+        var occupiedNow = currentMonth < 0 ? 0 : units.filter(function (unit) {
+            return isActive(unit, currentMonth) && String(unit.tenantName || "").trim();
+        }).length;
 
         var monthly = months.map(function (_, i) {
-            var received = units.reduce(function (sum, unit) {
-                return (
-                    sum +
-                    historicalReceivedAmount(
-                        unit,
-                        selectedYear,
-                        i
-                    )
-                );
-            }, 0);
+            var received = 0, expected = 0, overdue = 0;
+            units.forEach(function (unit) {
+                received += historicalReceivedAmount(unit, selectedYear, i);
+                if (isActive(unit, i)) expected += Number(rentForMonth(unit, selectedYear, i)) || 0;
 
+                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+                var key = monthKey(i);
+                var recordedOpenLate = ledger[key] === true || ledger[key] === "open";
+                if (effectiveStatus(unit, i) === "atrasado" || statusFor(unit, i) === "atrasado" || recordedOpenLate) {
+                    overdue += recordedOpenLate
+                        ? historicLateRent(unit, key)
+                        : (updatedAmount(unit, i) === null ? rentForMonth(unit, selectedYear, i) : updatedAmount(unit, i));
+                }
+            });
             var spent = expenses.reduce(function (sum, expense) {
                 return sum + (expense.ym === monthKey(i) ? expense.amount : 0);
             }, 0);
-
-            return {
-                received: received,
-                expenses: spent,
-                net: received - spent,
-            };
+            annualReceived += received;
+            annualExpected += expected;
+            annualOverdue += overdue;
+            if (overdue > 0) annualOverdueCount += 1;
+            return { received: received, expected: expected, overdue: overdue, expenses: spent, net: received - spent };
         });
 
-        var unitRows = units
-            .slice()
-            .sort(function (a, b) {
-                return a.name.localeCompare(b.name, "pt-BR");
-            })
-            .map(function (unit) {
-                var paid = 0;
+        var annualExpenses = expenses.reduce(function (sum, expense) {
+            return sum + (expense.ym.slice(0, 4) === yearText ? expense.amount : 0);
+        }, 0);
+        var annualNet = annualReceived - annualExpenses;
 
-                var paidLate = 0;
+        var unitRows = units.slice().sort(function (a, b) {
+            return a.name.localeCompare(b.name, "pt-BR");
+        }).map(function (unit) {
+            var paid = 0, paidLate = 0, overdueMonths = 0;
+            var overdue = 0, received = 0, expected = 0;
 
-                var overdueMonths = 0;
+            months.forEach(function (_, i) {
+                var key = monthKey(i);
+                var receivedForMonth = historicalReceivedAmount(unit, selectedYear, i);
+                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+                var recordedLate = ledger[key];
+                var recordedOpenLate = recordedLate === true || recordedLate === "open";
 
-                var overdue = 0;
+                if (receivedForMonth > 0) {
+                    received += receivedForMonth;
+                    paid += 1;
+                }
+                if ((getPaymentRecord(unit, selectedYear, i) && Number(getPaymentRecord(unit, selectedYear, i).interestAmount) > 0) || isPaidLate(unit, i) || recordedLate === "paid") paidLate += 1;
+                if (isActive(unit, i)) expected += Number(rentForMonth(unit, selectedYear, i)) || 0;
 
-                var received = 0;
+                if (effectiveStatus(unit, i) === "atrasado" || statusFor(unit, i) === "atrasado" || recordedOpenLate) {
+                    overdueMonths += 1;
+                    overdue += recordedOpenLate
+                        ? historicLateRent(unit, key)
+                        : (updatedAmount(unit, i) === null ? rentForMonth(unit, selectedYear, i) : updatedAmount(unit, i));
+                }
+            });
 
-                months.forEach(function (_, i) {
-                    var receivedForMonth =
-                        historicalReceivedAmount(
-                            unit,
-                            selectedYear,
-                            i
-                        );
+            var title = '<strong>' + escapeHtml(unit.name) + '</strong>';
+            if (selectedEmpreendimentoId === "todos") title += '<small>' + escapeHtml(empreendimentoName(unit.empreendimentoId)) + '</small>';
 
-                    if (receivedForMonth > 0) {
-                        received += receivedForMonth;
-                        paid += 1;
-                    }
+            return '<tr><td>' + title + '</td>' +
+                '<td class="num">' + money(expected) + '</td>' +
+                '<td class="num">' + money(received) + '</td>' +
+                '<td class="num">' + paid + '</td>' +
+                '<td class="num">' + paidLate + '</td>' +
+                '<td class="num ' + (overdue ? 'ar-neg' : '') + '">' +
+                    (overdueMonths ? money(overdue) + '<small>' + overdueMonths + ' ' + (overdueMonths === 1 ? 'parcela' : 'parcelas') + '</small>' : '—') +
+                '</td></tr>';
+        }).join("");
 
-                    var paymentRecord = getPaymentRecord(
-                        unit,
-                        selectedYear,
-                        i
-                    );
-
-                    if (
-                        paymentRecord &&
-                        Number(paymentRecord.interestAmount) > 0
-                    ) {
-                        paidLate += 1;
-                    } else if (isPaidLate(unit, i)) {
-                        paidLate += 1;
-                    }
-
-                    if (!isActive(unit, i)) return;
-
-                    if (effectiveStatus(unit, i) === "atrasado") {
-                        overdueMonths += 1;
-
-                        var updated = updatedAmount(unit, i);
-
-                        overdue +=
-                            updated === null
-                                ? rentForMonth(unit, selectedYear, i)
-                                : updated;
-                    }
-                });
-
-                var title = escapeHtml(unit.name);
-
-                if (selectedEmpreendimentoId === "todos")
-                    title +=
-                        " <small>(" +
-                        escapeHtml(empreendimentoName(unit.empreendimentoId)) +
-                        ")</small>";
-
-                if (unit.tenantName)
-                    title +=
-                        "<br><small>Inquilino: " +
-                        escapeHtml(unit.tenantName) +
-                        "</small>";
-
-                return (
-                    "<tr><td>" +
-                    title +
-                    '</td><td class="num">' +
-                    paid +
-                    '</td><td class="num">' +
-                    paidLate +
-                    '</td><td class="num">' +
-                    (overdueMonths
-                        ? money(overdue) +
-                          " (" +
-                          overdueMonths +
-                          " " +
-                          (overdueMonths === 1 ? "mês" : "meses") +
-                          ")"
-                        : "—") +
-                    '</td><td class="num">' +
-                    money(received) +
-                    "</td></tr>"
-                );
-            })
-            .join("");
-
-        var totalCard = function (label, value, negative) {
-            return (
-                '<div class="ar-total"><span>' +
-                label +
-                '</span><strong class="' +
-                (negative ? "ar-neg" : "") +
-                '">' +
-                money(value) +
-                "</strong></div>"
-            );
+        var totalCard = function (label, value, variant, detail) {
+            return '<div class="ar-total ' + (variant || "") + '"><span>' + label + '</span><strong class="' + (variant === "is-negative" ? "ar-neg" : "") + '">' + value + '</strong>' + (detail ? '<small>' + detail + '</small>' : '') + '</div>';
         };
 
-        return (
-            '<div class="annual-report">' +
-            "<h1>Resumo do ano " +
-            selectedYear +
-            "</h1>" +
-            '<p class="ar-meta">' +
-            escapeHtml(scope) +
-            " · Emitido em " +
-            escapeHtml(formatDate(new Date())) +
-            (state.settings.receiverName
-                ? " · Recebedor: " + escapeHtml(state.settings.receiverName)
-                : "") +
-            "</p>" +
+        return '<div class="annual-report">' +
+            '<header class="ar-header"><div><p class="ar-eyebrow">Relatório financeiro</p><h1>Resumo do ano ' + selectedYear + '</h1><p class="ar-meta">' + escapeHtml(scope) + ' · Emitido em ' + escapeHtml(formatDate(new Date())) + '</p></div><div class="ar-mark">CA</div></header>' +
             '<div class="ar-totals">' +
-            totalCard("Recebido", annualReceived, false) +
-            totalCard("Gastos", annualExpenses, false) +
-            totalCard("Líquido", annualNet, annualNet < 0) +
-            totalCard("Em atraso", annualOverdue, annualOverdue > 0) +
-            "</div>" +
-            "<h3>Resumo mensal</h3>" +
-            '<table class="ar-table"><thead><tr><th>Mês</th><th class="num">Recebido</th><th class="num">Gastos</th><th class="num">Líquido</th></tr></thead><tbody>' +
-            monthly
-                .map(function (row, i) {
-                    return (
-                        "<tr><td>" +
-                        fullMonths[i] +
-                        '</td><td class="num">' +
-                        money(row.received) +
-                        '</td><td class="num">' +
-                        money(row.expenses) +
-                        '</td><td class="num ' +
-                        (row.net < 0 ? "ar-neg" : "") +
-                        '">' +
-                        money(row.net) +
-                        "</td></tr>"
-                    );
-                })
-                .join("") +
-            '</tbody><tfoot><tr class="ar-total-row"><td>Total</td><td class="num">' +
-            money(annualReceived) +
-            '</td><td class="num">' +
-            money(annualExpenses) +
-            '</td><td class="num ' +
-            (annualNet < 0 ? "ar-neg" : "") +
-            '">' +
-            money(annualNet) +
-            "</td></tr></tfoot></table>" +
-            "<h3>Resumo por unidade</h3>" +
-            '<table class="ar-table"><thead><tr><th>Unidade</th><th class="num">Pagos</th><th class="num">Pagos c/ atraso</th><th class="num">Em atraso</th><th class="num">Recebido</th></tr></thead><tbody>' +
-            (unitRows ||
-                '<tr><td colspan="5">Nenhuma unidade cadastrada</td></tr>') +
-            "</tbody></table>" +
-            "</div>"
-        );
+                totalCard("Previsto", money(annualExpected), "is-primary", "Contratos ativos no período") +
+                totalCard("Recebido", money(annualReceived), "", "Baixas de contratos ativos e encerrados") +
+                totalCard("Gastos", money(annualExpenses), "", "Despesas do período") +
+                totalCard("Resultado líquido", money(annualNet), annualNet < 0 ? "is-negative" : "is-positive", "Recebido menos gastos") +
+                totalCard("Inadimplência", money(annualOverdue), annualOverdue > 0 ? "is-negative" : "", annualOverdueCount + " mês(es) com atraso") +
+            '</div>' +
+            '<section class="ar-section"><div class="ar-section-heading"><div><p class="ar-eyebrow">Fluxo mensal</p><h3>Receitas, despesas e resultado</h3></div><p>Valores realizados; previsto e atraso ajudam a acompanhar a operação.</p></div>' +
+            '<table class="ar-table ar-monthly-table"><thead><tr><th>Mês</th><th class="num">Previsto</th><th class="num">Recebido</th><th class="num">Em atraso</th><th class="num">Gastos</th><th class="num">Líquido</th></tr></thead><tbody>' +
+            monthly.map(function (row, i) {
+                return '<tr><td>' + fullMonths[i] + '</td><td class="num">' + money(row.expected) + '</td><td class="num">' + money(row.received) + '</td><td class="num ' + (row.overdue ? "ar-neg" : "") + '">' + money(row.overdue) + '</td><td class="num">' + money(row.expenses) + '</td><td class="num ' + (row.net < 0 ? "ar-neg" : "") + '">' + money(row.net) + '</td></tr>';
+            }).join("") +
+            '</tbody><tfoot><tr class="ar-total-row"><td>Total</td><td class="num">' + money(annualExpected) + '</td><td class="num">' + money(annualReceived) + '</td><td class="num ' + (annualOverdue ? "ar-neg" : "") + '">' + money(annualOverdue) + '</td><td class="num">' + money(annualExpenses) + '</td><td class="num ' + (annualNet < 0 ? "ar-neg" : "") + '">' + money(annualNet) + '</td></tr></tfoot></table></section>' +
+            '<section class="ar-section"><div class="ar-section-heading"><div><p class="ar-eyebrow">Unidades</p><h3>Resumo consolidado por unidade</h3></div><p>Uma linha reúne todos os contratos da unidade no ano; não atribui o histórico ao inquilino atual.</p></div>' +
+            '<table class="ar-table"><thead><tr><th>Unidade</th><th class="num">Previsto</th><th class="num">Recebido</th><th class="num">Baixas</th><th class="num">Pagos c/ atraso</th><th class="num">Em atraso</th></tr></thead><tbody>' +
+            (unitRows || '<tr><td colspan="6">Nenhuma unidade cadastrada</td></tr>') +
+            '</tbody></table></section>' +
+            '<footer class="ar-footer"><span>Ocupação no mês de referência: <strong>' + occupiedNow + ' de ' + units.length + ' unidades</strong></span><span>Dados consolidados por unidade</span></footer>' +
+            '</div>';
     }
-
     function printAfter(target) {
         var cleanup = function () {
             target.innerHTML = "";
