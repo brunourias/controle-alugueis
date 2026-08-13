@@ -871,6 +871,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (!accountGate) return;
         options = options || {};
         accountGate.hidden = !visible;
+        accountGate.classList.toggle("is-visible", !!visible && !options.verifying);
         document.body.classList.toggle("app-access-gated", !!visible);
         if (!visible) return;
 
@@ -878,7 +879,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         appUnlocked = false;
         accountGateTitle.textContent = options.title || "Acesse sua conta";
         accountGateMessage.textContent = options.message || "Entre ou crie sua conta para solicitar acesso à plataforma.";
-        accountGateAuth.hidden = !!options.pending;
+        accountGateAuth.hidden = !!options.pending || !!options.verifying;
         accountGatePending.hidden = !options.pending;
     }
 
@@ -2905,10 +2906,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
         // O PIN protege este dispositivo, mas não substitui a autenticação
         // da plataforma. Sem conta liberada, o aplicativo permanece fechado.
         if (!firebaseUser || !cloudAccountApproved) {
+            var restoringSession = !!cloudInitialized && !firebaseUser;
             setAccountGate(true, {
-                title: "Acesse sua conta",
-                message: "Entre ou crie sua conta para solicitar acesso à plataforma.",
-                pending: false
+                title: restoringSession ? "Verificando acesso" : "Acesse sua conta",
+                message: restoringSession
+                    ? "Estamos preparando sua área de trabalho."
+                    : "Entre ou crie sua conta para solicitar acesso à plataforma.",
+                pending: false,
+                verifying: restoringSession
             });
             return;
         }
