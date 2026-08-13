@@ -3622,7 +3622,12 @@ function renderSummary() {
 
     // O resumo detalhado inicia recolhido; o alerta de atrasos fica fora dele.
     var report =
-        '<section class="summary-report"><h3>Atrasos no ano</h3><p class="summary-report-intro">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>' +
+        '<section class="summary-report late-dashboard">' +
+        '<header class="late-dashboard-header"><div>' +
+        '<p class="late-eyebrow">Controle financeiro</p>' +
+        '<h3>Atrasos no ano</h3>' +
+        '<p class="summary-report-intro">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>' +
+        '</div></header>' +
         (reportRows.length
             ? '<div class="late-list">' +
               reportRows
