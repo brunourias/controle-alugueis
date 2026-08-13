@@ -194,28 +194,27 @@
                 <p>Toque em <strong>+ Nova unidade</strong> para começar.</p>
             </div>
 
-            <div class="summary-bar">
-                <h2 class="backup-title">Resumo Financeiro</h2>
+            <section class="summary-bar financial-dashboard" aria-labelledby="financialSummaryTitle">
+                <header class="financial-dashboard-header">
+                    <div>
+                        <p class="financial-eyebrow">Visão do portfólio</p>
+                        <h2 id="financialSummaryTitle">Resumo financeiro</h2>
+                        <p class="financial-summary-description">
+                            Acompanhe recebimentos, pendências e resultado do ano em um só lugar.
+                        </p>
+                    </div>
+                    <div class="financial-dashboard-actions">
+                        <button id="toggleSummaryCards" class="btn btn-ghost" type="button">
+                            Mostrar resumo
+                        </button>
+                        <button id="printAnnual" class="btn btn-ghost" type="button">
+                            Resumo do ano
+                        </button>
+                    </div>
+                </header>
+            </section>
 
-                <div class="summary-bar-actions">
-                    <button
-                        id="toggleSummaryCards"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Mostrar
-                    </button>
-                    <button
-                        id="printAnnual"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Resumo do ano
-                    </button>
-                </div>
-            </div>
-
-            <div class="summary" id="summary"></div>
+            <div class="summary financial-summary-cards" id="summary"></div>
 
             <!-- Seção de Gastos Gerais -->
             <section class="summary-bar expenses-dashboard" aria-labelledby="expensesTitle">
