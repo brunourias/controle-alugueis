@@ -187,6 +187,8 @@ const ModalManager = (() => {
     var lockError = document.getElementById("lockError");
     var modal = document.getElementById("modal");
     var settingsModal = document.getElementById("settingsModal");
+    var onboardingModal = document.getElementById("onboardingModal");
+    var onboardingContent = document.getElementById("onboardingContent");
     var receiptModal = document.getElementById("receiptModal");
     var receiptPreview = document.getElementById("receiptPreview");
     var printReceipt = document.getElementById("printReceipt");
@@ -343,6 +345,7 @@ var historyRent = document.getElementById("historyRent");
     var cloudAccountApproved = false;
     var cloudAccountSettings = null;
     var platformPendingUnsubscribe = null;
+    var onboardingResumeRequested = false;
     var platformPlanCatalog = [];
     var cloudAuthInFlight = false;
     var cloudAuthCooldownUntil = 0;
@@ -3471,6 +3474,122 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return actions;
     }
 
+    function onboardingStorageKey() {
+        return "controle-alugueis-onboarding-" + (firebaseUser ? firebaseUser.uid : "local");
+    }
+
+    function onboardingProgress() {
+        try { return JSON.parse(localStorage.getItem(onboardingStorageKey()) || "{}") || {}; }
+        catch (error) { return {}; }
+    }
+
+    function saveOnboardingProgress(progress) {
+        localStorage.setItem(onboardingStorageKey(), JSON.stringify(progress || {}));
+    }
+
+    function onboardingSteps() {
+        var enterprise = state.empreendimentos[0] || {};
+        var enterpriseReady = state.empreendimentos.some(function (item) {
+            return item.name && item.name !== DEFAULT_ENTERPRISE_NAME;
+        });
+        var unitReady = state.units.length > 0;
+        var contractReady = state.units.some(function (unit) {
+            return String(unit.tenantName || "").trim() && Number.isInteger(Number(unit.dueDay));
+        });
+        var progress = onboardingProgress();
+        return {
+            enterprise: enterprise,
+            enterpriseReady: enterpriseReady,
+            unitReady: unitReady,
+            contractReady: contractReady,
+            chargesReady: progress.chargesReviewed === true,
+            progress: progress
+        };
+    }
+
+    function renderOnboarding() {
+        if (!onboardingContent) return;
+        var steps = onboardingSteps();
+        var completed = [steps.enterpriseReady, steps.unitReady, steps.contractReady, steps.chargesReady]
+            .filter(Boolean).length;
+        var enterpriseAction = steps.enterpriseReady
+            ? '<span class="onboarding-done">Concluído</span>'
+            : '<div class="onboarding-enterprise"><input id="onboardingEnterpriseName" maxlength="80" placeholder="Ex.: Residencial Boa Vista" value="' + escapeHtml(steps.enterprise.name === DEFAULT_ENTERPRISE_NAME ? "" : steps.enterprise.name || "") + '"><button id="onboardingSaveEnterprise" class="btn btn-primary" type="button">Salvar</button></div>';
+        var unitAction = steps.unitReady
+            ? '<span class="onboarding-done">Concluído</span>'
+            : '<button id="onboardingAddUnit" class="btn btn-primary" type="button">Cadastrar unidade</button>';
+        var contractAction = steps.contractReady
+            ? '<span class="onboarding-done">Concluído</span>'
+            : steps.unitReady
+                ? '<button id="onboardingEditContract" class="btn btn-ghost" type="button">Completar contrato</button>'
+                : '<span class="onboarding-wait">Disponível após a unidade</span>';
+        var chargesAction = steps.chargesReady
+            ? '<span class="onboarding-done">Concluído</span>'
+            : '<button id="onboardingReviewCharges" class="btn btn-ghost" type="button">Revisar cobrança</button>';
+        onboardingContent.innerHTML = '<div class="onboarding-progress"><strong>' + completed + '/4 concluídos</strong><span>Você pode concluir agora ou continuar depois.</span></div>' +
+            '<ol class="onboarding-steps">' +
+            '<li class="' + (steps.enterpriseReady ? "is-done" : "") + '"><span>1</span><div><strong>Nomeie seu empreendimento</strong><small>Organize seus imóveis desde o início.</small>' + enterpriseAction + '</div></li>' +
+            '<li class="' + (steps.unitReady ? "is-done" : "") + '"><span>2</span><div><strong>Cadastre a primeira unidade</strong><small>Inclua a identificação do imóvel.</small>' + unitAction + '</div></li>' +
+            '<li class="' + (steps.contractReady ? "is-done" : "") + '"><span>3</span><div><strong>Informe o primeiro contrato</strong><small>Inquilino, valor e dia de vencimento.</small>' + contractAction + '</div></li>' +
+            '<li class="' + (steps.chargesReady ? "is-done" : "") + '"><span>4</span><div><strong>Revise multa e juros</strong><small>Defina suas regras antes da primeira cobrança.</small>' + chargesAction + '</div></li></ol>';
+
+        var saveEnterprise = document.getElementById("onboardingSaveEnterprise");
+        if (saveEnterprise) saveEnterprise.addEventListener("click", function () {
+            var input = document.getElementById("onboardingEnterpriseName");
+            var name = input.value.trim();
+            if (!name) { input.focus(); return; }
+            var target = state.empreendimentos[0];
+            if (target) target.name = name;
+            else state.empreendimentos.push({ id: newEnterpriseId(), name: name });
+            selectedEmpreendimentoId = state.empreendimentos[0].id;
+            saveSelectedEmpreendimento();
+            saveState();
+            renderOnboarding();
+        });
+        var addUnit = document.getElementById("onboardingAddUnit");
+        if (addUnit) addUnit.addEventListener("click", function () {
+            onboardingResumeRequested = true;
+            ModalManager.close(onboardingModal);
+            openModal();
+        });
+        var editContract = document.getElementById("onboardingEditContract");
+        if (editContract) editContract.addEventListener("click", function () {
+            onboardingResumeRequested = true;
+            ModalManager.close(onboardingModal);
+            openModal(state.units[0].id);
+        });
+        var reviewCharges = document.getElementById("onboardingReviewCharges");
+        if (reviewCharges) reviewCharges.addEventListener("click", function () {
+            var progress = onboardingProgress();
+            progress.chargesReviewed = true;
+            saveOnboardingProgress(progress);
+            renderOnboarding();
+            openSettings();
+        });
+    }
+
+    function maybeOpenOnboarding() {
+        if (!onboardingModal || !onboardingContent || !firebaseUser || !cloudAccountApproved ||
+            isPlatformAdmin(firebaseUser) || !appUnlocked) return;
+        var progress = onboardingProgress();
+        var steps = onboardingSteps();
+        if (progress.dismissed || progress.completed || (!onboardingResumeRequested && steps.unitReady)) return;
+        if (ModalManager.getOpenModal()) return;
+        onboardingResumeRequested = false;
+        renderOnboarding();
+        ModalManager.open(onboardingModal);
+    }
+
+    function closeOnboarding(complete) {
+        var progress = onboardingProgress();
+        progress.dismissed = !complete;
+        progress.completed = !!complete;
+        progress.completedAt = complete ? Date.now() : progress.completedAt;
+        saveOnboardingProgress(progress);
+        onboardingResumeRequested = false;
+        if (onboardingModal) ModalManager.close(onboardingModal);
+    }
+
     function render() {
         if (tableWrap.scrollLeft > 0) lastGridScrollLeft = tableWrap.scrollLeft;
         //--------------------------------------------------------------------------------------------
@@ -3490,6 +3609,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         renderExpenses();
         renderTaxDashboard();
         renderPlanUsage();
+        setTimeout(maybeOpenOnboarding, 0);
     }
 
 
@@ -7517,6 +7637,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     if (platformAdminButton) platformAdminButton.addEventListener("click", openPlatformAdmin);
     var closePlatformAdminButton = document.getElementById("closePlatformAdmin");
     if (closePlatformAdminButton) closePlatformAdminButton.addEventListener("click", closePlatformAdmin);
+    var skipOnboardingButton = document.getElementById("skipOnboarding");
+    var finishOnboardingButton = document.getElementById("finishOnboarding");
+    if (skipOnboardingButton) skipOnboardingButton.addEventListener("click", function () { closeOnboarding(false); });
+    if (finishOnboardingButton) finishOnboardingButton.addEventListener("click", function () { closeOnboarding(true); });
     var savePlatformPlanButton = document.getElementById("savePlatformPlan");
     if (savePlatformPlanButton) savePlatformPlanButton.addEventListener("click", savePlatformPlan);
 
