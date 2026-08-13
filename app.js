@@ -1224,35 +1224,26 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 throw new Error("Este convite expirou ou já foi utilizado.");
             }
 
-            return workspaceMemberRef(workspaceId, firebaseUser.uid).get().then(function (memberSnapshot) {
-                if (memberSnapshot.exists) {
-                    return profile.set({
-                        workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
-                        updatedAt: Date.now()
-                    }, { merge: true }).then(function () { return workspaceId; });
-                }
-
-                var batch = firebaseDb.batch();
-                batch.set(profile, {
-                    email: firebaseUser.email || "",
-                    displayName: firebaseUser.displayName || "",
-                    workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
-                    updatedAt: Date.now()
-                }, { merge: true });
-                batch.set(workspaceMemberRef(workspaceId, firebaseUser.uid), {
-                    role: role,
-                    email: firebaseUser.email || "",
-                    displayName: firebaseUser.displayName || "",
-                    inviteId: token,
-                    joinedAt: Date.now()
-                });
-                batch.update(invite, {
-                    status: "accepted",
-                    acceptedBy: firebaseUser.uid,
-                    acceptedAt: Date.now()
-                });
-                return batch.commit().then(function () { return workspaceId; });
+            var batch = firebaseDb.batch();
+            batch.set(profile, {
+                email: firebaseUser.email || "",
+                displayName: firebaseUser.displayName || "",
+                workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
+                updatedAt: Date.now()
+            }, { merge: true });
+            batch.set(workspaceMemberRef(workspaceId, firebaseUser.uid), {
+                role: role,
+                email: firebaseUser.email || "",
+                displayName: firebaseUser.displayName || "",
+                inviteId: token,
+                joinedAt: Date.now()
             });
+            batch.update(invite, {
+                status: "accepted",
+                acceptedBy: firebaseUser.uid,
+                acceptedAt: Date.now()
+            });
+            return batch.commit().then(function () { return workspaceId; });
         }).then(function (acceptedWorkspaceId) {
             params.delete("workspace");
             params.delete("invite");
