@@ -7580,4 +7580,33 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
+    function flushWorkspaceState() {
+        if (!cloudHasPendingWrite) return Promise.resolve();
+        return writeGranularState(false).then(function () {
+            cloudHasPendingWrite = false;
+        });
+    }
+
+    function activateWorkspace(workspaceId) {
+        if (!firebaseUser || !workspaceId) return Promise.resolve();
+        if (!cloudWorkspaces.some(function (item) { return item.id === workspaceId; })) {
+            return Promise.reject(new Error("Você não tem acesso a esta área de trabalho."));
+        }
+        return flushWorkspaceState().then(function () {
+            clearGranularSubscriptions();
+            cloudWorkspaceId = workspaceId;
+            cloudUpdatedAt = 0;
+            return updateWorkspaceRole();
+        }).then(function () {
+            return readGranularState();
+        }).then(function (remote) {
+            if (!remote) throw new Error("Esta área ainda não possui dados sincronizados.");
+            applyRemoteState(remote);
+            saveWorkspaceSelection();
+            subscribeCloud();
+            setSyncStatus("Sincronizado");
+            renderWorkspaceControls();
+        });
+    }
+
 })();
