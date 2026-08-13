@@ -536,6 +536,7 @@
                             </div>
                             <div id="cloudSignedIn" hidden>
                                 <p class="cloud-user">Conectado como <strong id="cloudUserEmail"></strong></p>
+                                <p id="accountAccessNotice" class="account-access-notice" hidden></p>
                                 <section id="workspaceSection" class="workspace-section" hidden>
                                     <h3>Área de trabalho</h3>
                                     <label>Dados que você está acessando<select id="workspaceSelect" aria-label="Área de trabalho"></select></label>
@@ -549,6 +550,11 @@
                                     <p id="workspaceInviteResult" class="settings-note" hidden></p>
                                     <div id="workspacePermissions" class="workspace-permissions" aria-live="polite"></div>
                                     <div id="workspaceMembersList" class="workspace-members-list" aria-live="polite"></div>
+                                </section>
+                                <section id="platformApprovalsSection" class="workspace-section platform-approvals" hidden>
+                                    <h3>Aprovação de novos cadastros</h3>
+                                    <p class="settings-note">Contas novas precisam ser aprovadas antes de criar e acessar a própria área de trabalho.</p>
+                                    <div id="platformApprovalsList" class="platform-approvals-list"></div>
                                 </section>
                                 <p id="syncStatus" class="settings-note">Sincronizando...</p>
                                 <p id="cloudVerification" class="settings-note" hidden></p>
