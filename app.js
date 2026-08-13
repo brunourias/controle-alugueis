@@ -2844,7 +2844,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
 						return (
 							'<td class="' +
 							(i === currentMonth ? "month-current" : "") +
-							'"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div></td>'
+							'"><div class="status-cell"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div></div></td>'
 						);
 					}
 
@@ -2852,7 +2852,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
 						return (
 							'<td class="' +
 							(i === currentMonth ? "month-current" : "") +
-							'"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></td>'
+							'"><div class="status-cell"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></div></td>'
 						);
 					}
 
