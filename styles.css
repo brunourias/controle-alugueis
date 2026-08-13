@@ -4624,3 +4624,18 @@ textarea:focus-visible {
 /* Foco acessível sem o contorno nativo quadrado na engrenagem */
 .icon-btn:focus-visible { outline: 2px solid #d6f3ed; outline-offset: 3px; box-shadow: 0 0 0 4px rgba(15, 118, 110, .22); }
 .icon-btn:focus:not(:focus-visible) { outline: none; }
+
+
+/* Gestão de equipe e perfis */
+.workspace-permissions { margin-top: 16px; }
+.workspace-access-heading h4, .workspace-members-heading { margin: 0; color: var(--teal-dark); font-size: .9rem; }
+.workspace-access-heading p { margin: 4px 0 10px; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+.workspace-role-matrix { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.workspace-role-card { padding: 10px; border: 1px solid #dbeae7; border-radius: 11px; background: #fbfefd; }
+.workspace-role-card > div { display: flex; justify-content: space-between; gap: 8px; }
+.workspace-role-card strong { color: #075f5b; font-size: .8rem; }
+.workspace-role-card span { color: #617c7a; font-size: .7rem; white-space: nowrap; }
+.workspace-role-card ul { margin: 7px 0 0; padding-left: 15px; color: #52706f; font-size: .68rem; line-height: 1.45; }
+.workspace-members-heading { margin: 17px 0 8px; }
+.workspace-member-row small { display: block; max-width: 460px; margin-top: 3px; color: #68817f; font-size: .67rem; line-height: 1.35; }
+@media (max-width: 560px) { .workspace-role-matrix { grid-template-columns: 1fr; } .workspace-member-row { align-items: flex-start; flex-direction: column; } }
