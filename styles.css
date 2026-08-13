@@ -4684,3 +4684,11 @@ textarea:focus-visible {
         max-height: calc(100dvh - 48px);
     }
 }
+
+
+/* Administração da plataforma */
+.platform-admin-trigger { position: relative; }
+.platform-admin-badge { position: absolute; top: -6px; right: -6px; display: grid; min-width: 17px; height: 17px; padding: 0 4px; place-items: center; border: 2px solid #167780; border-radius: 999px; color: #fff; background: #bb3042; font-size: .58rem; font-weight: 900; line-height: 1; box-shadow: 0 2px 5px #002c2b55; }
+.platform-admin-modal { width: min(calc(100vw - 36px), 900px); max-height: calc(100dvh - 44px); padding: 18px; overflow-y: auto; background: #f8fbfb; }
+.platform-admin-modal .platform-approvals { margin: 0; padding: 0; border: 0; }
+@media (max-width: 520px) { .platform-admin-modal { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); padding: 14px; } .platform-admin-badge { top: -4px; right: -4px; } }
