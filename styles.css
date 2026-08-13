@@ -3332,3 +3332,54 @@ textarea:focus-visible {
         height: 38px;
     }
 }
+
+
+/* Fluxo de segurança e digital */
+.pin-current-section {
+    margin-top: 11px;
+}
+
+.security-help {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: .72rem;
+    line-height: 1.4;
+}
+
+.pin-current-section .btn-danger {
+    margin-top: 2px;
+}
+
+.security-subpanel {
+    margin-top: 13px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #fbfdfd;
+    overflow: hidden;
+}
+
+.security-subpanel summary {
+    padding: 10px 11px;
+    color: var(--teal-dark);
+    font-size: .78rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.security-subpanel > div {
+    padding: 0 11px 12px;
+}
+
+.security-subpanel .btn {
+    margin-top: 4px;
+}
+
+.biometric-section > strong {
+    display: block;
+    color: var(--teal-dark);
+    font-size: .82rem;
+}
+
+.biometric-section .security-help {
+    margin-top: 2px;
+}
