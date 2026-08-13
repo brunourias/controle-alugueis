@@ -63,10 +63,11 @@ service cloud.firestore {
 
         // Proprietário inicial, convite aceito ou inclusão por gestor.
         allow create: if manager(workspaceId) ||
-          (signedIn() &&
+          // Criação inicial da área pessoal no primeiro login.
+          (personalWorkspace(workspaceId) &&
             memberId == request.auth.uid &&
-            request.resource.data.role == "owner" &&
-            getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid) ||
+            request.resource.data.role == "owner") ||
+          // Aceite de um convite: o usuário cria somente a própria associação.
           (signedIn() &&
             memberId == request.auth.uid &&
             invitedRole(request.resource.data.role) &&
