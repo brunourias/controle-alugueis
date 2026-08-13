@@ -4648,3 +4648,25 @@ textarea:focus-visible {
 .platform-approval-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid #dceae7; border-radius: 11px; background: #fbfefd; }
 .platform-approval-row strong, .platform-approval-row span { display: block; }.platform-approval-row strong { color: #075f5b; font-size: .82rem; }.platform-approval-row span { margin-top: 3px; color: #647f7d; font-size: .7rem; }.platform-approval-row > div:last-child { display: flex; gap: 6px; }.platform-approval-row .btn { min-height: 31px; padding: 5px 8px; font-size: .68rem; }
 @media (max-width: 560px) { .platform-approval-row { align-items: flex-start; flex-direction: column; }.platform-approval-row > div:last-child { width: 100%; }.platform-approval-row .btn { flex: 1; } }
+
+
+/* Painel do administrador da plataforma */
+.platform-account-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
+.platform-account-metrics span { padding: 9px 7px; border: 1px solid #dceae7; border-radius: 10px; color: #647f7d; background: #f6fbfa; font-size: .66rem; text-align: center; }
+.platform-account-metrics strong { display: block; margin-bottom: 2px; color: #075f5b; font-size: 1rem; }
+.platform-account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #dceae7; border-radius: 12px; background: #fbfefd; }
+.platform-account-main { min-width: 0; }
+.platform-account-main > strong, .platform-account-main > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.platform-account-main > strong { color: #075f5b; font-size: .82rem; }
+.platform-account-main > span { margin-top: 3px; color: #647f7d; font-size: .7rem; }
+.platform-account-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; color: #647f7d; font-size: .66rem; }
+.platform-account-meta > span, .platform-status { padding: 3px 6px; border-radius: 999px; background: #edf5f3; }
+.platform-status { font-size: .64rem; }
+.platform-status-approved { color: #08745f; background: #dcf6ed; }
+.platform-status-pending { color: #8a5a00; background: #fff1ca; }
+.platform-status-suspended, .platform-status-rejected { color: #a23a45; background: #ffe3e7; }
+.platform-account-actions { display: flex; align-items: end; gap: 7px; flex: 0 0 auto; }
+.platform-account-actions label { margin: 0; color: #647f7d; font-size: .64rem; }
+.platform-account-actions select { min-width: 100px; min-height: 32px; margin-top: 3px; padding: 0 6px; font-size: .7rem; }
+.platform-account-actions .btn { min-height: 32px; padding: 5px 8px; font-size: .68rem; }
+@media (max-width: 640px) { .platform-account-metrics { grid-template-columns: repeat(2, 1fr); } .platform-account-row { align-items: stretch; flex-direction: column; } .platform-account-actions { align-items: end; width: 100%; } .platform-account-actions label { flex: 1; } .platform-account-actions select { width: 100%; } }
