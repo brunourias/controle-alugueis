@@ -7367,4 +7367,217 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         setTimeout(renderBackupHistory, 0);
     });
 
+    /* Sincronização granular por workspace. */
+    var cloudGranularUnsubscribes = [];
+    var cloudGranularReloadTimer = null;
+    var cloudGranularBaseline = null;
+
+    function granularMetaRef() {
+        var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return workspace ? workspace.collection("meta").doc("app") : null;
+    }
+    function granularUnitsRef() {
+        var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return workspace ? workspace.collection("units") : null;
+    }
+    function granularExpensesRef() {
+        var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return workspace ? workspace.collection("expenses") : null;
+    }
+    function granularClone(value) { return JSON.parse(JSON.stringify(value)); }
+    function stableContractId(contract, index) {
+        if (contract && typeof contract.id === "string" && contract.id && contract.id.indexOf("/") < 0) return contract.id;
+        var source = String((contract && contract.tenantName) || "") + "|" +
+            String((contract && (contract.startDate || contract.startYm)) || "") + "|" +
+            String((contract && (contract.endDate || contract.endYm)) || "") + "|" + index;
+        var hash = 0;
+        for (var i = 0; i < source.length; i++) hash = ((hash << 5) - hash + source.charCodeAt(i)) | 0;
+        return "legacy-" + index + "-" + Math.abs(hash).toString(36);
+    }
+    function granularSnapshot(value) {
+        var copy = granularClone(normalizeState(value));
+        var snapshot = { meta: granularClone(copy), units: {}, expenses: {}, contracts: {} };
+        delete snapshot.meta.units; delete snapshot.meta.expenses;
+        (copy.units || []).forEach(function (unit) {
+            if (!unit || typeof unit.id !== "string" || !unit.id) return;
+            var unitCopy = granularClone(unit), history = Array.isArray(unitCopy.contractHistory) ? unitCopy.contractHistory : [];
+            delete unitCopy.contractHistory; snapshot.units[unit.id] = unitCopy;
+            history.forEach(function (contract, index) {
+                var data = granularClone(contract), id = stableContractId(data, index);
+                data.id = id; data.order = index;
+                snapshot.contracts[unit.id + "::" + id] = { unitId: unit.id, id: id, data: data };
+            });
+        });
+        (copy.expenses || []).forEach(function (expense) {
+            if (expense && typeof expense.id === "string" && expense.id) snapshot.expenses[expense.id] = granularClone(expense);
+        });
+        return snapshot;
+    }
+    function granularEqual(left, right) {
+        return JSON.stringify(sortObject(left)) === JSON.stringify(sortObject(right));
+    }
+
+    function granularWriteOperations(current, force) {
+        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, contracts: {} };
+        var operations = [];
+        if (force || !granularEqual(current.meta, baseline.meta || {})) {
+            operations.push({ type: "set", ref: granularMetaRef(), data: { payload: current.meta, updatedAt: Date.now(), schemaVersion: 3 } });
+        }
+        ["units", "expenses"].forEach(function (kind) {
+            Object.keys(current[kind]).forEach(function (id) {
+                if (force || !granularEqual(current[kind][id], (baseline[kind] || {})[id])) {
+                    operations.push({ type: "set", ref: kind === "units" ? granularUnitsRef().doc(id) : granularExpensesRef().doc(id), data: current[kind][id] });
+                }
+            });
+            Object.keys(baseline[kind] || {}).forEach(function (id) {
+                if (!current[kind][id]) operations.push({ type: "delete", ref: kind === "units" ? granularUnitsRef().doc(id) : granularExpensesRef().doc(id) });
+            });
+        });
+        Object.keys(current.contracts).forEach(function (key) {
+            var contract = current.contracts[key];
+            if (force || !granularEqual(contract.data, (baseline.contracts || {})[key] && baseline.contracts[key].data)) {
+                operations.push({ type: "set", ref: granularUnitsRef().doc(contract.unitId).collection("contracts").doc(contract.id), data: contract.data });
+            }
+        });
+        Object.keys(baseline.contracts || {}).forEach(function (key) {
+            if (!current.contracts[key]) {
+                var contract = baseline.contracts[key];
+                operations.push({ type: "delete", ref: granularUnitsRef().doc(contract.unitId).collection("contracts").doc(contract.id) });
+            }
+        });
+        return operations;
+    }
+    function commitGranularOperations(operations) {
+        if (!operations.length) return Promise.resolve();
+        var index = 0;
+        function nextBatch() {
+            if (index >= operations.length) return Promise.resolve();
+            var batch = firebaseDb.batch();
+            operations.slice(index, index + 400).forEach(function (operation) {
+                if (operation.type === "delete") batch.delete(operation.ref); else batch.set(operation.ref, operation.data);
+            });
+            index += 400;
+            return batch.commit().then(nextBatch);
+        }
+        return nextBatch();
+    }
+    function writeGranularState(force) {
+        if (!firebaseDb || !firebaseUser || !cloudWorkspaceId) return Promise.resolve();
+        var current = granularSnapshot(state);
+        return commitGranularOperations(granularWriteOperations(current, !!force)).then(function () {
+            cloudGranularBaseline = current;
+        });
+    }
+
+    function readGranularState() {
+        var meta = granularMetaRef(), units = granularUnitsRef(), expenses = granularExpensesRef();
+        if (!meta || !units || !expenses) return Promise.resolve(null);
+        return Promise.all([meta.get(), units.get(), expenses.get()]).then(function (results) {
+            var metaSnapshot = results[0], unitsSnapshot = results[1], expensesSnapshot = results[2];
+            if (!metaSnapshot.exists || !(metaSnapshot.data() || {}).payload) return null;
+            var base = granularClone((metaSnapshot.data() || {}).payload);
+            base.units = []; base.expenses = [];
+            unitsSnapshot.forEach(function (item) {
+                var unit = granularClone(item.data() || {}); unit.id = unit.id || item.id; base.units.push(unit);
+            });
+            expensesSnapshot.forEach(function (item) {
+                var expense = granularClone(item.data() || {}); expense.id = expense.id || item.id; base.expenses.push(expense);
+            });
+            return Promise.all(base.units.map(function (unit) {
+                return units.doc(unit.id).collection("contracts").get().then(function (contracts) {
+                    unit.contractHistory = [];
+                    contracts.forEach(function (item) {
+                        var contract = granularClone(item.data() || {});
+                        contract.id = contract.id || item.id; unit.contractHistory.push(contract);
+                    });
+                    unit.contractHistory.sort(function (a, b) { return Number(a.order) - Number(b.order); });
+                    unit.contractHistory.forEach(function (contract) { delete contract.order; });
+                });
+            })).then(function () { return normalizeState(base); });
+        });
+    }
+    function applyRemoteState(payload) {
+        cloudApplyingRemote = true;
+        state = normalizeState(payload); expenseCategories = state.expenseCategories;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        cloudGranularBaseline = granularSnapshot(state);
+        renderEmpreendimentoFilter(); render();
+        cloudApplyingRemote = false;
+    }
+    function migrateLegacyCloudState() {
+        return granularMetaRef().get().then(function (meta) {
+            if (meta.exists) return false;
+            return cloudDocRef().get().then(function (legacySnapshot) {
+                var legacy = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
+                if (!legacy.payload) return writeGranularState(true).then(function () { return true; });
+                var previous = state; state = normalizeState(legacy.payload);
+                return writeGranularState(true).then(function () { state = previous; return true; });
+            });
+        });
+    }
+
+    function clearGranularSubscriptions() {
+        cloudGranularUnsubscribes.forEach(function (unsubscribe) { unsubscribe(); });
+        cloudGranularUnsubscribes = []; clearTimeout(cloudGranularReloadTimer);
+    }
+    function reloadGranularState() {
+        if (cloudHasPendingWrite) return;
+        readGranularState().then(function (remote) {
+            if (!remote || cloudHasPendingWrite) return;
+            if (!cloudStatesEqual(state, remote)) applyRemoteState(remote);
+            setSyncStatus(navigator.onLine ? "Sincronizado" : "Offline — alterações salvas localmente");
+        }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+    }
+    function subscribeCloud() {
+        if (firebaseUnsubscribe) { firebaseUnsubscribe(); firebaseUnsubscribe = null; }
+        clearGranularSubscriptions();
+        if (!firebaseUser || !cloudWorkspaceId) return;
+        function scheduleReload() {
+            clearTimeout(cloudGranularReloadTimer);
+            cloudGranularReloadTimer = setTimeout(reloadGranularState, 180);
+        }
+        [granularMetaRef(), granularUnitsRef(), granularExpensesRef()].forEach(function (ref) {
+            cloudGranularUnsubscribes.push(ref.onSnapshot(scheduleReload, function (error) { setCloudError(cloudErrorMessage(error)); }));
+        });
+    }
+    function reconcileCloud() {
+        if (!firebaseUser || !cloudWorkspaceId) return;
+        updateConnectionStatus();
+        migrateLegacyCloudState().then(readGranularState).then(function (remote) {
+            if (!remote) return writeGranularState(true).then(function () {
+                cloudHasPendingWrite = false; subscribeCloud(); setSyncStatus("Sincronizado");
+            });
+            if (cloudStatesEqual(state, remote)) {
+                applyRemoteState(remote); finishCloudReconciliation(); updateConnectionStatus(); return;
+            }
+            if (state.units.length === 0 && state.expenses.length === 0) {
+                applyRemoteState(remote); finishCloudReconciliation(); updateConnectionStatus(); return;
+            }
+            cloudPendingRemote = remote; setCloudReconcilePrompt(remote); setSyncStatus("Aguardando escolha");
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error)); setSyncStatus("Não sincronizado — salvo localmente");
+        });
+    }
+    function writeCloudState() {
+        if (!cloudHasPendingWrite || cloudWriteInFlight) return;
+        if (!navigator.onLine) { setSyncStatus("Offline — alterações salvas localmente"); return; }
+        var revision = cloudWriteRevision;
+        cloudWriteInFlight = true; cloudWriteQueued = false;
+        writeGranularState(false).then(function () {
+            cloudHasPendingWrite = revision < cloudWriteRevision;
+            cloudPendingRemote = null; cloudReconcile.hidden = true; cloudBanner.hidden = true;
+            setCloudStatus("Conta conectada. Sincronização automática ativa.");
+            setSyncStatus(cloudHasPendingWrite ? "Sincronizando..." : "Sincronizado");
+        }).catch(function (error) {
+            cloudHasPendingWrite = true; setCloudError(cloudErrorMessage(error));
+            setSyncStatus("Não sincronizado — salvo localmente");
+        }).then(function () {
+            cloudWriteInFlight = false;
+            if (cloudWriteQueued || cloudWriteRevision > revision) {
+                cloudWriteQueued = false; clearTimeout(cloudWriteTimer);
+                cloudWriteTimer = setTimeout(writeCloudState, 0);
+            }
+        });
+    }
+
 })();
