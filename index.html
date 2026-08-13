@@ -279,242 +279,104 @@
 
         <!-- Modal de Unidade -->
         <div class="modal-backdrop" id="modal" hidden>
-            <div class="modal">
-                <h2 id="modalTitle">Nova unidade</h2>
+            <div class="modal unit-modal">
+                <div class="settings-heading unit-modal-heading">
+                    <div>
+                        <h2 id="modalTitle">Nova unidade</h2>
+                        <p>Organize a unidade, o contrato atual e os registros anteriores.</p>
+                    </div>
+                </div>
 
-                <label
-                    >Nome da unidade
-                    <input
-                        type="text"
-                        id="unitName"
-                        placeholder="Ex.: Unidade 01"
-                        autocomplete="off"
-                    />
-                </label>
-
-                <label
-                    >Empreendimento
-                    <select id="unitEmpreendimento"></select>
-                </label>
-
-                <label
-                    >Valor do aluguel (R$)
-                    <input
-						type="number" 
-						id="unitRent" 
-						name="rent" 
-						step="0.01" 
-						min="0" 
-						placeholder="0,00"
-                    />
-                </label>
-
-                <details id="rentChanges" class="rent-changes-section">
-                    <summary>Reajuste de aluguel</summary>
-                    <div class="rent-changes-content">
-                        <p class="field-help">
-                            O valor acima é o aluguel base. Cada reajuste vale a
-                            partir do mês informado.
-                        </p>
-                        <div id="rentChangesList"></div>
-
-                        <label
-                            >Aplicar a partir de
-                            <input type="month" id="rentChangeYm" />
-                        </label>
-
-                        <label
-                            >Percentual de reajuste (%)
-                            <input
-                                type="number"
-                                id="rentChangePercent"
-                                min="-100"
-                                step="0.01"
-                                placeholder="Ex.: 10"
-                                inputmode="decimal"
-                            />
-                        </label>
-
-                        <label
-                            >Novo valor absoluto (R$)
-                            <input
-                                type="number"
-                                id="rentChangeAbsolute"
-                                min="0"
-                                step="0.01"
-                                placeholder="Opcional"
-                                inputmode="decimal"
-                            />
-                        </label>
-
-                        <button
-                            id="addRentChange"
-                            class="btn btn-ghost"
-                            type="button"
-                        >
-                            Adicionar reajuste
-                        </button>
+                <details class="settings-panel" open>
+                    <summary><span class="settings-panel-icon">🏢</span><span><strong>Unidade</strong><small>Identificação e empreendimento</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Nome da unidade<input type="text" id="unitName" placeholder="Ex.: Unidade 01" autocomplete="off" /></label>
+                        <label>Empreendimento<select id="unitEmpreendimento"></select></label>
                     </div>
                 </details>
 
-                <label
-                    >Dia de vencimento
-                    <input
-                        type="number"
-                        id="unitDueDay"
-                        placeholder="Ex.: 5"
-                        inputmode="numeric"
-                        min="1"
-                        max="31"
-                        step="1"
-                    />
-                </label>
-
-                <label
-                    >Início da locação
-                    <input type="date" id="unitStartYm" />
-                    <small class="field-help"
-                        >Deixe em branco para considerar o ano todo. Informe também o dia.</small
-                    >
-                </label>
-
-                <label
-                    >Fim da locação
-                    <input type="date" id="unitEndYm" />
-                    <small class="field-help"
-                        >Deixe em branco para considerar sem fim. Informe também o dia.</small
-                    >
-                </label>
-
-                <label
-                    >Nome do inquilino
-                    <input
-                        type="text"
-                        id="tenantName"
-                        placeholder="Obrigatório"
-                        autocomplete="name"
-                        required
-                    />
-                </label>
-
-                <label
-                    >Telefone do inquilino
-                    <input
-                        type="tel"
-                        id="tenantPhone"
-                        placeholder="Obrigatório"
-                        autocomplete="tel"
-                        required
-                    />
-                </label>
-
-                <label
-                    >E-mail do inquilino
-                    <input
-                        type="email"
-                        id="tenantEmail"
-                        placeholder="Opcional"
-                        autocomplete="off"
-                        name="tenant-contact-email"
-                    />
-                </label>
-
-                <label
-                    >Observações do inquilino
-                    <textarea
-                        id="tenantNotes"
-                        rows="3"
-                        placeholder="Opcional"
-                    ></textarea>
-                </label>
-                <section class="contract-attachments-section">
-                    <h3>Documentos do contrato</h3>
-                    <p class="field-help">Envio de documentos para a nuvem está desabilitado para evitar custos de armazenamento.</p>
-                    <input id="contractAttachment" type="file" disabled aria-disabled="true" />
-                    <p id="attachmentStatus" class="field-help">Anexos novos estão desabilitados.</p>
-                    <div id="attachmentList" class="attachment-list"></div>
-                </section>
-
-                <section class="contract-history-section">
-                    <h3>Histórico de contratos</h3>
-                    <p class="field-help">
-                        Contratos encerrados desta unidade - apenas registro;
-                        não entram nas análises nem nos relatórios.
-                    </p>
-
-                    <div
-                        id="contractHistoryList"
-                        class="contract-history-list"
-                        aria-live="polite"
-                    >
-                        <p class="rent-changes-empty">
-                            Nenhum contrato encerrado registrado.
-                        </p>
+                <details class="settings-panel" open>
+                    <summary><span class="settings-panel-icon">📝</span><span><strong>Contrato atual</strong><small>Aluguel, vencimento e período</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Valor do aluguel (R$)<input type="number" id="unitRent" name="rent" step="0.01" min="0" placeholder="0,00" /></label>
+                        <label>Dia de vencimento<input type="number" id="unitDueDay" placeholder="Ex.: 5" inputmode="numeric" min="1" max="31" step="1" /></label>
+                        <label>Início da locação<input type="date" id="unitStartYm" /><small class="field-help">Deixe em branco para considerar o ano todo. Informe também o dia.</small></label>
+                        <label>Fim da locação<input type="date" id="unitEndYm" /><small class="field-help">Deixe em branco para considerar sem fim. Informe também o dia.</small></label>
                     </div>
+                </details>
 
-                    <button
-                        id="archiveContract"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Encerrar contrato atual
-                    </button>
-                    <button
-                        id="startNewContract"
-                        class="btn btn-primary"
-                        type="button"
-                        hidden
-                    >
-                        Cadastrar novo inquilino
-                    </button>
-                    <p class="field-help contract-transition-help">
-                        O encerramento preserva parcelas e pendências. Você pode fechar o modal e cadastrar um novo inquilino depois.
-                    </p>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">👤</span><span><strong>Inquilino</strong><small>Dados de contato do contrato atual</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Nome do inquilino<input type="text" id="tenantName" placeholder="Obrigatório" autocomplete="name" required /></label>
+                        <label>Telefone do inquilino<input type="tel" id="tenantPhone" placeholder="Obrigatório" autocomplete="tel" required /></label>
+                        <label>E-mail do inquilino<input type="email" id="tenantEmail" placeholder="Opcional" autocomplete="off" name="tenant-contact-email" /></label>
+                        <label>Observações do inquilino<textarea id="tenantNotes" rows="3" placeholder="Opcional"></textarea></label>
+                    </div>
+                </details>
 
-                    <details id="historyManual" class="contract-history-manual">
-                        <summary>Adicionar contrato antigo</summary>
-                        <div class="contract-history-add">
-                        <label>Inquilino
-                            <input type="text" id="historyTenant" placeholder="Nome" autocomplete="off" />
-                        </label>
-                        <label>Início
-                            <input type="month" id="historyStart" />
-                        </label>
-                        <label>Fim
-                            <input type="month" id="historyEnd" />
-                        </label>
-                        <label>Valor do aluguel (R$)
-                            <input type="number" id="historyRent" min="0" step="0.01"
-                                   inputmode="decimal" placeholder="Opcional" />
-                        </label>
-                        <label>Situação do encerramento
-                            <select id="historyStatus">
-                                <option value="encerrado">Encerrado normalmente</option>
-                                <option value="rescisao">Rescisão antecipada</option>
-                                <option value="pendente">Encerrado com pendências</option>
-                            </select>
-                        </label>
-                        <label>Motivo ou observação
-                            <input type="text" id="historyReason" maxlength="180" placeholder="Opcional" />
-                        </label>
-                        <button id="addContractHistory" class="btn btn-ghost"
-                                type="button">Adicionar ao histórico</button>
+                <details id="rentChanges" class="settings-panel">
+                    <summary><span class="settings-panel-icon">📈</span><span><strong>Reajuste de aluguel</strong><small>Alterações de valor ao longo do contrato</small></span></summary>
+                    <div class="settings-panel-content rent-changes-content">
+                        <p class="field-help">O valor acima é o aluguel base. Cada reajuste vale a partir do mês informado.</p>
+                        <div id="rentChangesList"></div>
+                        <label>Aplicar a partir de<input type="month" id="rentChangeYm" /></label>
+                        <label>Percentual de reajuste (%)<input type="number" id="rentChangePercent" min="-100" step="0.01" placeholder="Ex.: 10" inputmode="decimal" /></label>
+                        <label>Novo valor absoluto (R$)<input type="number" id="rentChangeAbsolute" min="0" step="0.01" placeholder="Opcional" inputmode="decimal" /></label>
+                        <button id="addRentChange" class="btn btn-ghost" type="button">Adicionar reajuste</button>
+                    </div>
+                </details>
+
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">📎</span><span><strong>Documentos</strong><small>Anexos e registros do contrato</small></span></summary>
+                    <div class="settings-panel-content">
+                        <section class="contract-attachments-section">
+                            <p class="field-help">Envio de documentos para a nuvem está desabilitado para evitar custos de armazenamento.</p>
+                            <input id="contractAttachment" type="file" disabled aria-disabled="true" />
+                            <p id="attachmentStatus" class="field-help">Anexos novos estão desabilitados.</p>
+                            <div id="attachmentList" class="attachment-list"></div>
+                        </section>
+                    </div>
+                </details>
+
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🗓️</span><span><strong>Histórico de contratos</strong><small>Contratos encerrados e parcelas pendentes</small></span></summary>
+                    <div class="settings-panel-content">
+                        <section class="contract-history-section">
+                            <p class="field-help">Contratos encerrados desta unidade ficam registrados e preservam parcelas e pendências.</p>
+                            <div id="contractHistoryList" class="contract-history-list" aria-live="polite"><p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p></div>
+                            <details id="historyManual" class="contract-history-manual">
+                                <summary>Adicionar contrato antigo</summary>
+                                <div class="contract-history-add">
+                                    <label>Inquilino<input type="text" id="historyTenant" placeholder="Nome" autocomplete="off" /></label>
+                                    <label>Início<input type="month" id="historyStart" /></label>
+                                    <label>Fim<input type="month" id="historyEnd" /></label>
+                                    <label>Valor do aluguel (R$)<input type="number" id="historyRent" min="0" step="0.01" inputmode="decimal" placeholder="Opcional" /></label>
+                                    <label>Situação do encerramento<select id="historyStatus"><option value="encerrado">Encerrado normalmente</option><option value="rescisao">Rescisão antecipada</option><option value="pendente">Encerrado com pendências</option></select></label>
+                                    <label>Motivo ou observação<input type="text" id="historyReason" maxlength="180" placeholder="Opcional" /></label>
+                                    <button id="addContractHistory" class="btn btn-ghost" type="button">Adicionar ao histórico</button>
+                                </div>
+                            </details>
+                        </section>
+                    </div>
+                </details>
+
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">⚠️</span><span><strong>Ações do contrato</strong><small>Encerrar a locação ou iniciar outra</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p class="field-help contract-transition-help">O encerramento preserva parcelas e pendências. Você pode cadastrar um novo inquilino depois.</p>
+                        <div class="unit-contract-actions">
+                            <button id="archiveContract" class="btn btn-ghost" type="button">Encerrar contrato atual</button>
+                            <button id="startNewContract" class="btn btn-primary" type="button" hidden>Cadastrar novo inquilino</button>
                         </div>
-                    </details>
-                </section>
+                    </div>
+                </details>
 
-
-                <div class="modal-actions">
-                    <button id="deleteUnit" class="btn btn-danger" hidden>
-                        Excluir
-                    </button>
+                <div class="modal-actions settings-footer unit-modal-footer">
+                    <button id="deleteUnit" class="btn btn-danger" hidden>Excluir</button>
                     <span class="spacer"></span>
-                    <button id="cancelModal" class="btn btn-ghost">
-                        Cancelar
-                    </button>
-                    <button id="saveUnit" class="btn btn-primary">
-                        Salvar
-                    </button>
+                    <button id="cancelModal" class="btn btn-ghost">Cancelar</button>
+                    <button id="saveUnit" class="btn btn-primary">Salvar alterações</button>
                 </div>
             </div>
         </div>
