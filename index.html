@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=061" />
+        <link rel="stylesheet" href="styles.css?v=062" />
     
 <style>
     /* Histórico de contratos */
@@ -125,7 +125,8 @@
 
       
 	  
-	  <button id="settingsButton" class="icon-btn" type="button" aria-label="Configurações" title="Configurações"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18 6l-1.4 1.4M7.4 16.6 6 18M18 18l-1.4-1.4M7.4 7.4 6 6"></path></svg></button>
+      <button id="platformAdminButton" class="icon-btn platform-admin-trigger" type="button" aria-label="Administração da plataforma" title="Administração da plataforma" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.2c0 4.8-3.3 8.3-8 9.8-4.7-1.5-8-5-8-9.8V6l8-3Z"></path><path d="M9 12h6M12 9v6"></path></svg><span id="platformAdminBadge" class="platform-admin-badge" hidden>0</span></button>
+      	  <button id="settingsButton" class="icon-btn" type="button" aria-label="Configurações" title="Configurações"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18 6l-1.4 1.4M7.4 16.6 6 18M18 18l-1.4-1.4M7.4 7.4 6 6"></path></svg></button>
 </div>
     </div>
     <div class="header-bottom">
@@ -553,11 +554,6 @@
                                     <div id="workspacePermissions" class="workspace-permissions" aria-live="polite"></div>
                                     <div id="workspaceMembersList" class="workspace-members-list" aria-live="polite"></div>
                                 </section>
-                                <section id="platformApprovalsSection" class="workspace-section platform-approvals" hidden>
-                                    <h3>Painel da plataforma</h3>
-                                    <p class="settings-note">Administre as contas do sistema: aprovação, acesso, plano e limites. Apenas o administrador da plataforma vê este painel.</p>
-                                    <div id="platformApprovalsList" class="platform-approvals-list"></div>
-                                </section>
                                 <p id="syncStatus" class="settings-note">Sincronizando...</p>
                                 <p id="cloudVerification" class="settings-note" hidden></p>
                                 <div class="cloud-actions">
@@ -648,6 +644,28 @@
                     <span class="spacer"></span>
                     <button id="cancelSettings" class="btn btn-ghost" type="button">Cancelar</button>
                     <button id="saveSettings" class="btn btn-primary" type="button">Salvar alterações</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Administração da plataforma: restrita ao administrador global -->
+        <div class="modal-backdrop" id="platformAdminModal" hidden>
+            <div class="modal platform-admin-modal">
+                <div class="settings-heading">
+                    <div>
+                        <h2>Administração da plataforma</h2>
+                        <p>Gerencie cadastros, planos, limites e acesso dos clientes.</p>
+                    </div>
+                </div>
+                <section id="platformApprovalsSection" class="workspace-section platform-approvals" hidden>
+                                    <h3>Painel da plataforma</h3>
+                                    <p class="settings-note">Administre as contas do sistema: aprovação, acesso, plano e limites. Apenas o administrador da plataforma vê este painel.</p>
+                                    <div id="platformApprovalsList" class="platform-approvals-list"></div>
+                                </section>
+
+                <div class="modal-actions settings-footer">
+                    <span class="spacer"></span>
+                    <button id="closePlatformAdmin" class="btn btn-primary" type="button">Concluir</button>
                 </div>
             </div>
         </div>
@@ -885,6 +903,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=060"></script>
+    <script src="app.js?v=061"></script>
     </body>
 </html>
