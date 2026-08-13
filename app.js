@@ -6430,36 +6430,55 @@ function saveExpense() {
 						<title>Resumo do Ano - ${selectedYear}</title>
 						<meta name="viewport" content="width=device-width, initial-scale=1.0">
 						<style>
-							/* Estilos focados em centralização e layout limpo */
-							* { box-sizing: border-box; }
-							body { 
-								font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-								margin: 0; 
-								padding: 20px; 
-								color: #173333; 
-								background-color: #fff;
-								display: flex;
-								justify-content: center;
-							}
-							.annual-report { 
-								width: 100%; 
-								max-width: 800px; /* Mantém o relatório centralizado e com largura legível */
-								margin: 0 auto;
-							}
-							.ar-totals { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-							.ar-total { flex: 1; min-width: 140px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
-							.ar-total span { display: block; font-size: 12px; color: #666; }
-							.ar-total strong { font-size: 16px; }
-							.ar-neg { color: #a52d3b; }
-							.ar-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-							.ar-table th, .ar-table td { border: 1px solid #e0e0e0; padding: 10px 8px; text-align: left; font-size: 13px; }
-							.ar-table th.num, .ar-table td.num { text-align: right; }
-							.ar-total-row { font-weight: bold; background: #f0f0f0; }
+							/* Layout do relatório anual */
+                            * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            body { margin: 0; padding: 28px; color: #173333; background: #f1f7f6; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+                            body > .annual-report { display: none; }
+                            .annual-report .annual-report { width: 100%; max-width: 980px; margin: 0 auto; padding: 30px; border: 1px solid #dbe9e7; border-radius: 20px; background: #fff; box-shadow: 0 10px 32px rgba(15, 94, 89, .10); }
+                            .ar-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 20px; border-bottom: 1px solid #dbe9e7; }
+                            .ar-eyebrow { margin: 0 0 5px; color: #0f766e; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+                            h1 { margin: 0; color: #115e59; font-size: 25px; line-height: 1.15; letter-spacing: -.03em; }
+                            .ar-meta { margin: 7px 0 0; color: #647979; font-size: 12px; }
+                            .ar-mark { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 14px; color: #ecfffb; background: #0f766e; font-size: 12px; font-weight: 900; }
+                            .ar-totals { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+                            .ar-total { min-width: 0; padding: 13px; border: 1px solid #dbe9e7; border-radius: 13px; background: #f9fcfb; }
+                            .ar-total.is-primary { border-color: #b7ded5; background: #edf9f6; }
+                            .ar-total.is-positive { border-color: #b7ded5; background: #f1faf7; }
+                            .ar-total.is-negative { border-color: #f0bec5; background: #fff6f6; }
+                            .ar-total span, .ar-total small { display: block; color: #647979; font-size: 10px; line-height: 1.35; }
+                            .ar-total strong { display: block; margin: 5px 0 3px; color: #115e59; font-size: 16px; letter-spacing: -.02em; }
+                            .ar-neg { color: #a52d3b !important; }
+                            .ar-section { margin-top: 24px; }
+                            .ar-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+                            h3 { margin: 0; color: #115e59; font-size: 15px; }
+                            .ar-section-heading > p { max-width: 380px; margin: 0; color: #647979; font-size: 10px; line-height: 1.4; text-align: right; }
+                            .ar-table { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid #dbe9e7; border-radius: 13px; }
+                            .ar-table th, .ar-table td { padding: 10px 9px; border-bottom: 1px solid #e7f0ee; color: #173333; font-size: 11px; text-align: left; vertical-align: middle; }
+                            .ar-table th { color: #526565; background: #f5faf9; font-size: 10px; font-weight: 800; }
+                            .ar-table td strong, .ar-table td small { display: block; }
+                            .ar-table td small { margin-top:2px; color:#647979; font-size:9px; }
+                            .ar-table tbody tr:nth-child(even) td { background: #fbfdfd; }
+                            .ar-table tr:last-child td { border-bottom: 0; }
+                            .ar-table th.num, .ar-table td.num { text-align: right; white-space: nowrap; }
+                            .ar-total-row td { border-top: 1px solid #cce1dd; border-bottom: 0; color: #115e59; background: #eef8f5 !important; font-weight: 800; }
+                            .ar-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; color: #647979; font-size: 10px; }
+                            .ar-footer strong { color: #115e59; }
 
-							@media print {
-								body { padding: 0; display: block; }
-								.annual-report { max-width: 100%; margin: 0; }
-							}
+                            @media (max-width: 760px) {
+                                body { padding: 12px; }
+                                .annual-report .annual-report { padding: 18px; border-radius: 14px; }
+                                .ar-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                                .ar-section-heading { align-items: flex-start; flex-direction: column; }
+                                .ar-section-heading > p { text-align: left; }
+                                .ar-table { display: block; overflow-x: auto; }
+                            }
+                            @media print {
+                                @page { margin: 12mm; }
+                                body { padding: 0; background: #fff; }
+                                .annual-report .annual-report { max-width: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+                                .ar-totals { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+                                .ar-section { break-inside: avoid; }
+                            }
 						</style>
 					</head>
 					<body>
