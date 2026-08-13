@@ -688,6 +688,24 @@
             </div>
         </div>
 
+        <!-- Guia inicial para novas contas -->
+        <div class="modal-backdrop" id="onboardingModal" hidden>
+            <div class="modal onboarding-modal">
+                <div class="settings-heading">
+                    <div>
+                        <h2>Vamos configurar seu controle</h2>
+                        <p>Em poucos passos, você deixa o primeiro imóvel pronto para acompanhar.</p>
+                    </div>
+                </div>
+                <div id="onboardingContent" class="onboarding-content"></div>
+                <div class="modal-actions onboarding-footer">
+                    <button id="skipOnboarding" class="btn btn-ghost" type="button">Pular por enquanto</button>
+                    <span class="spacer"></span>
+                    <button id="finishOnboarding" class="btn btn-primary" type="button">Concluir guia</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de Recibo -->
         <div class="modal-backdrop" id="receiptModal" hidden>
             <div class="modal receipt-modal">
@@ -921,6 +939,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=063"></script>
+    <script src="app.js?v=064"></script>
     </body>
 </html>
