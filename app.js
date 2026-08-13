@@ -6696,9 +6696,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             close: closePaymentAdjustModal,
         },
         {
-            element: contractInstallmentsModal,
+            element: document.getElementById("contractInstallmentsModal"),
             close: function () {
-                ModalManager.close(contractInstallmentsModal);
+                ModalManager.close(document.getElementById("contractInstallmentsModal"));
             },
         },
     ];
