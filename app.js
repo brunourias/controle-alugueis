@@ -921,53 +921,70 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var workspace = workspaceRef(workspaceId);
         var profile = firebaseDb.collection("profiles").doc(user.uid);
         var member = workspaceMemberRef(workspaceId, user.uid);
+        var legacy = firebaseDb.collection("users").doc(user.uid);
         var now = Date.now();
-        var profileData = {
-            email: user.email || "",
-            displayName: user.displayName || "",
-            personalWorkspaceId: workspaceId,
-            workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
-            updatedAt: now
-        };
 
         cloudWorkspaceReady = false;
         cloudWorkspaceId = null;
 
         /*
-         * Não fazemos uma leitura do workspace antes de criá-lo: isso evita
-         * depender de uma permissão de leitura em uma área que ainda não existe.
-         * O mesmo lote cria o workspace e o seu único proprietário.
+         * Criação em etapas: cada operação tem uma permissão simples e
+         * recupera uma inicialização anterior que tenha ficado incompleta.
          */
-        return firebaseDb.collection("users").doc(user.uid).get().then(function (legacySnapshot) {
-            var legacy = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
-            var batch = firebaseDb.batch();
-
-            batch.set(profile, profileData, { merge: true });
-            batch.set(workspace, {
-                name: "Meus imóveis",
-                ownerId: user.uid,
-                type: "personal",
-                createdAt: now,
-                updatedAt: now
-            }, { merge: true });
-            batch.set(member, {
+        return workspace.set({
+            name: "Meus imóveis",
+            ownerId: user.uid,
+            type: "personal",
+            createdAt: now,
+            updatedAt: now
+        }, { merge: true })
+        .catch(function (error) {
+            error.workspaceStep = "criar a área pessoal";
+            throw error;
+        })
+        .then(function () {
+            return member.set({
                 role: "owner",
                 email: user.email || "",
                 displayName: user.displayName || "",
                 joinedAt: now
             }, { merge: true });
-
-            if (legacy && legacy.payload) {
-                batch.set(cloudDocRefFor(workspace), {
-                    payload: legacy.payload,
-                    updatedAt: Number(legacy.updatedAt) || now,
-                    migratedFrom: "users/" + user.uid,
-                    migratedAt: now
-                }, { merge: true });
-            }
-
-            return batch.commit();
-        }).then(function () {
+        })
+        .catch(function (error) {
+            error.workspaceStep = error.workspaceStep || "criar o proprietário da área";
+            throw error;
+        })
+        .then(function () {
+            return profile.set({
+                email: user.email || "",
+                displayName: user.displayName || "",
+                personalWorkspaceId: workspaceId,
+                workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
+                updatedAt: now
+            }, { merge: true });
+        })
+        .catch(function (error) {
+            error.workspaceStep = error.workspaceStep || "atualizar o perfil da conta";
+            throw error;
+        })
+        .then(function () {
+            return legacy.get();
+        })
+        .then(function (legacySnapshot) {
+            var data = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
+            if (!data.payload) return null;
+            return cloudDocRefFor(workspace).set({
+                payload: data.payload,
+                updatedAt: Number(data.updatedAt) || now,
+                migratedFrom: "users/" + user.uid,
+                migratedAt: now
+            }, { merge: true });
+        })
+        .catch(function (error) {
+            error.workspaceStep = error.workspaceStep || "migrar os dados existentes";
+            throw error;
+        })
+        .then(function () {
             if (firebaseUser && firebaseUser.uid === user.uid) {
                 cloudWorkspaceId = workspaceId;
                 cloudWorkspaceReady = true;
