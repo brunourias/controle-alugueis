@@ -3169,3 +3169,82 @@ textarea:focus-visible {
         padding: 0;
     }
 }
+
+
+/* Painel do resumo financeiro */
+.financial-dashboard {
+    padding: 17px 18px;
+}
+
+.financial-dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.financial-eyebrow {
+    margin: 0 0 4px;
+    color: var(--teal);
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.financial-dashboard h2 {
+    margin: 0;
+    color: var(--teal-dark);
+    font-size: 1.06rem;
+}
+
+.financial-summary-description {
+    max-width: 520px;
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: .74rem;
+    line-height: 1.4;
+}
+
+.financial-dashboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.financial-dashboard-actions .btn {
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.financial-dashboard-actions .btn-ghost {
+    border-color: #dbe9e7;
+}
+
+.financial-summary-cards {
+    margin-top: 12px;
+}
+
+@media (max-width: 620px) {
+    .financial-dashboard {
+        padding: 15px;
+    }
+
+    .financial-dashboard-header {
+        display: grid;
+        gap: 12px;
+    }
+
+    .financial-dashboard-actions {
+        justify-content: flex-start;
+    }
+
+    .financial-dashboard-actions .btn {
+        flex: 1;
+    }
+
+    .financial-summary-description {
+        max-width: none;
+    }
+}
