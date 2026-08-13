@@ -11,9 +11,25 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
     }
 
+    function role(workspaceId) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role;
+    }
+
     function owner(workspaceId) {
+      return member(workspaceId) && role(workspaceId) == "owner";
+    }
+
+    function manager(workspaceId) {
+      return member(workspaceId) && (role(workspaceId) == "owner" || role(workspaceId) == "admin");
+    }
+
+    function writer(workspaceId) {
       return member(workspaceId) &&
-        get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role == "owner";
+        (role(workspaceId) == "owner" || role(workspaceId) == "admin" || role(workspaceId) == "operator");
+    }
+
+    function invitedRole(value) {
+      return value == "admin" || value == "operator" || value == "viewer";
     }
 
     /*
@@ -35,23 +51,60 @@ service cloud.firestore {
       allow update, delete: if owner(workspaceId);
 
       match /members/{memberId} {
-        allow read: if member(workspaceId);
+        allow get: if member(workspaceId) &&
+          (memberId == request.auth.uid || manager(workspaceId));
+        allow list: if manager(workspaceId);
 
-        // Permite somente a criação atômica do proprietário junto do workspace.
-        allow create: if owner(workspaceId) ||
+        // Proprietário inicial, convite aceito ou inclusão por gestor.
+        allow create: if manager(workspaceId) ||
           (signedIn() &&
             memberId == request.auth.uid &&
             request.resource.data.role == "owner" &&
-            getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid);
+            getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid) ||
+          (signedIn() &&
+            memberId == request.auth.uid &&
+            invitedRole(request.resource.data.role) &&
+            request.resource.data.inviteId is string &&
+            exists(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)) &&
+            get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.status == "pending" &&
+            get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.expiresAt > request.time &&
+            get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.role == request.resource.data.role);
 
-        allow update, delete: if owner(workspaceId);
+        // Não é permitido remover ou alterar o proprietário pelo cliente.
+        allow update: if owner(workspaceId) && resource.data.role != "owner";
+        allow delete: if manager(workspaceId) && resource.data.role != "owner";
       }
 
-      // Nesta etapa apenas o proprietário altera os dados.
-      // As permissões de admin/operador entram na etapa de colaboradores.
+      match /invites/{inviteId} {
+        allow create: if manager(workspaceId) &&
+          invitedRole(request.resource.data.role) &&
+          request.resource.data.status == "pending";
+
+        // Somente gestores listam convites. Quem recebeu o link pode obter
+        // exclusivamente o documento cujo token já possui.
+        allow list: if manager(workspaceId);
+        allow get: if manager(workspaceId) ||
+          (signedIn() && resource.data.status == "pending" && resource.data.expiresAt > request.time);
+
+        // O aceite só pode marcar o próprio usuário, na mesma operação que
+        // cria a sua associação em members/{uid}.
+        allow update: if manager(workspaceId) ||
+          (signedIn() &&
+            resource.data.status == "pending" &&
+            resource.data.expiresAt > request.time &&
+            request.resource.data.status == "accepted" &&
+            request.resource.data.acceptedBy == request.auth.uid &&
+            request.resource.data.role == resource.data.role &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["status", "acceptedBy", "acceptedAt"]) &&
+            existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)));
+
+        allow delete: if manager(workspaceId);
+      }
+
       match /state/{stateId} {
         allow read: if member(workspaceId);
-        allow create, update, delete: if owner(workspaceId);
+        allow create, update, delete: if writer(workspaceId);
       }
     }
   }
