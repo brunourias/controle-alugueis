@@ -812,29 +812,19 @@
         </div>
 
         <!-- Modal de Visualização do Relatório Anual -->
-        <div id="annualReportModal" class="modal-overlay" style="display: none">
-            <div class="modal-content">
+        <div id="annualReportModal" class="modal-overlay" style="display: none" role="dialog" aria-modal="true" aria-labelledby="annualReportTitle">
+            <div class="modal-content annual-report-modal-content">
                 <div class="modal-header">
-                    <h2>Relatório Anual</h2>
+                    <div>
+                        <p class="annual-modal-eyebrow">Relatório financeiro</p>
+                        <h2 id="annualReportTitle">Resumo do ano</h2>
+                    </div>
                     <div class="modal-actions">
-                        <button
-                            class="btn-export-pdf"
-                            onclick="exportReportToPdf()"
-                        >
-                            📄 Salvar / Imprimir PDF
-                        </button>
-                        <button
-                            class="btn-close-modal"
-                            onclick="closeAnnualReportModal()"
-                        >
-                            ✕
-                        </button>
+                        <button id="printAnnualReportButton" class="btn btn-primary" type="button">Salvar / imprimir PDF</button>
+                        <button id="closeAnnualReport" class="btn btn-ghost" type="button" aria-label="Fechar relatório">Fechar</button>
                     </div>
                 </div>
-
-                <div id="annualReportContainer" class="annual-report-body">
-                    <!-- O HTML gerado dinamicamente entrará aqui -->
-                </div>
+                <div id="annualReportContainer" class="annual-report-body"></div>
             </div>
         </div>
 
