@@ -6,6 +6,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // A única área que alguém pode inicializar sozinho é a sua área pessoal.
+    // Isso permite a checagem inicial antes da criação, sem expor workspaces alheios.
+    function personalWorkspace(workspaceId) {
+      return signedIn() && workspaceId == "personal-" + request.auth.uid;
+    }
+
     function member(workspaceId) {
       return signedIn() &&
         exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
@@ -47,7 +53,7 @@ service cloud.firestore {
     match /workspaces/{workspaceId} {
       // Cada pessoa pode criar a própria área, mas somente para si.
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow read: if member(workspaceId);
+      allow read: if member(workspaceId) || personalWorkspace(workspaceId);
       allow update, delete: if owner(workspaceId);
 
       match /members/{memberId} {
