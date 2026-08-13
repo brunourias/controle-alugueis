@@ -2876,3 +2876,60 @@ textarea:focus-visible {
         flex: 1 0 100%;
     }
 }
+
+
+/* Ajuste de pagamento em painéis */
+.payment-adjust-modal {
+    width: min(100%, 500px);
+    max-height: calc(100dvh - 32px);
+    padding: 18px;
+    background: #f8fbfb;
+}
+
+.payment-adjust-modal .settings-panel {
+    margin: 9px 0;
+}
+
+.payment-adjust-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 14px 0 2px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--teal) 7%, white);
+    color: var(--teal-dark);
+    font-weight: 800;
+}
+
+.payment-adjust-total input {
+    width: min(48%, 180px);
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: var(--teal-dark);
+    font-weight: 800;
+    text-align: right;
+}
+
+.payment-adjust-total input:focus {
+    outline: 0;
+    box-shadow: none;
+}
+
+.payment-adjust-footer {
+    bottom: -18px;
+}
+
+@media (max-width: 520px) {
+    .payment-adjust-modal {
+        max-height: calc(100dvh - 16px);
+        padding: 14px;
+    }
+
+    .payment-adjust-footer {
+        bottom: -14px;
+    }
+}
