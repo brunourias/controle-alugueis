@@ -68,6 +68,7 @@ const ModalManager = (() => {
     var SETUP_FLAG_KEY = "controle-alugueis-lock-setup";
 
     var ENTERPRISE_SELECTION_KEY = "controle-alugueis-empreendimento";
+    var WORKSPACE_SELECTION_KEY = "controle-alugueis-workspace";
 
     var FIREBASE_CONFIG = {
         apiKey: "AIzaSyC9G72amaYJ4CiBgNcyMcNyi1MDva_8J1I",
@@ -282,6 +283,9 @@ var historyRent = document.getElementById("historyRent");
     var cloudInitialized = false;
     var cloudWorkspaceId = null;
     var cloudWorkspaceReady = false;
+    var cloudWorkspaces = [];
+    var cloudWorkspaceRole = null;
+    var workspaceUiBound = false;
 
     function newEnterpriseId() {
         return (
@@ -758,6 +762,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function saveState() {
+        if (firebaseUser && cloudWorkspaceReady && !canWriteWorkspace()) {
+            setCloudError("Esta área está em modo consulta. Nenhuma alteração foi salva.");
+            setSyncStatus("Modo consulta");
+            activateWorkspace(cloudWorkspaceId).catch(function () {});
+            return;
+        }
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
         if (!cloudApplyingRemote) scheduleCloudWrite();
@@ -924,14 +935,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return workspace.get().then(function (snapshot) {
             if (snapshot.exists) {
                 cloudWorkspaceId = workspaceId;
-                return profile.set(profileData, { merge: true });
+                return profile.set(Object.assign({}, profileData, {
+                    workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId)
+                }), { merge: true });
             }
 
             // O formato anterior guardava o estado diretamente em users/{uid}.
             return firebaseDb.collection("users").doc(user.uid).get().then(function (legacySnapshot) {
                 var legacy = legacySnapshot.exists ? legacySnapshot.data() || {} : {};
                 var batch = firebaseDb.batch();
-                batch.set(profile, Object.assign({}, profileData, { createdAt: now }), { merge: true });
+                batch.set(profile, Object.assign({}, profileData, {
+                    createdAt: now,
+                    workspaceIds: [workspaceId]
+                }), { merge: true });
                 batch.set(workspace, {
                     name: "Meus imóveis",
                     ownerId: user.uid,
@@ -969,6 +985,295 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function cloudDocRefFor(workspace) {
         return workspace.collection("state").doc("current");
+    }
+
+    function workspaceRoleLabel(role) {
+        return {
+            owner: "Proprietário",
+            admin: "Administrador",
+            operator: "Operador",
+            viewer: "Consulta"
+        }[role] || "Sem permissão";
+    }
+
+    function canManageWorkspace() {
+        return cloudWorkspaceRole === "owner" || cloudWorkspaceRole === "admin";
+    }
+
+    function canWriteWorkspace() {
+        return cloudWorkspaceRole !== "viewer";
+    }
+
+    function workspaceSelectElement() {
+        return document.getElementById("workspaceSelect");
+    }
+
+    function workspaceSectionElement() {
+        return document.getElementById("workspaceSection");
+    }
+
+    function renderWorkspaceControls() {
+        var section = workspaceSectionElement();
+        var selector = workspaceSelectElement();
+        var role = document.getElementById("workspaceRole");
+        var membersSection = document.getElementById("workspaceMembersSection");
+        if (!section || !selector || !role || !membersSection) return;
+
+        section.hidden = !firebaseUser;
+        membersSection.hidden = !firebaseUser || !canManageWorkspace();
+        if (!firebaseUser) return;
+
+        selector.innerHTML = cloudWorkspaces.map(function (workspace) {
+            return '<option value="' + escapeHtml(workspace.id) + '">' +
+                escapeHtml(workspace.name || "Área de trabalho") + '</option>';
+        }).join("");
+        selector.value = cloudWorkspaceId || "";
+        role.textContent = "Sua permissão: " + workspaceRoleLabel(cloudWorkspaceRole);
+
+        if (canManageWorkspace()) renderWorkspaceMembers();
+    }
+
+    function loadWorkspaceList() {
+        if (!firebaseDb || !firebaseUser) return Promise.resolve([]);
+
+        var profile = firebaseDb.collection("profiles").doc(firebaseUser.uid);
+        var personalId = personalWorkspaceId(firebaseUser);
+        return profile.get().then(function (snapshot) {
+            var profileData = snapshot.exists ? snapshot.data() || {} : {};
+            var ids = Array.isArray(profileData.workspaceIds)
+                ? profileData.workspaceIds.filter(function (id) { return typeof id === "string" && id; })
+                : [];
+            if (ids.indexOf(personalId) < 0) ids.unshift(personalId);
+
+            return Promise.all(ids.map(function (id) {
+                return workspaceRef(id).get().then(function (workspaceSnapshot) {
+                    if (!workspaceSnapshot.exists) return null;
+                    var data = workspaceSnapshot.data() || {};
+                    return { id: id, name: typeof data.name === "string" ? data.name : "Área de trabalho" };
+                }).catch(function () { return null; });
+            }));
+        }).then(function (workspaces) {
+            cloudWorkspaces = workspaces.filter(Boolean);
+            if (!cloudWorkspaces.some(function (item) { return item.id === cloudWorkspaceId; })) {
+                cloudWorkspaceId = cloudWorkspaces.length ? cloudWorkspaces[0].id : null;
+            }
+            if (!cloudWorkspaceId) {
+                cloudWorkspaceRole = null;
+                renderWorkspaceControls();
+                return cloudWorkspaces;
+            }
+            return workspaceMemberRef(cloudWorkspaceId, firebaseUser.uid).get().then(function (memberSnapshot) {
+                var member = memberSnapshot.exists ? memberSnapshot.data() || {} : {};
+                cloudWorkspaceRole = member.role || null;
+                renderWorkspaceControls();
+                return cloudWorkspaces;
+            });
+        });
+    }
+
+    function saveWorkspaceSelection() {
+        if (!firebaseUser || !cloudWorkspaceId) return;
+        localStorage.setItem(WORKSPACE_SELECTION_KEY + "-" + firebaseUser.uid, cloudWorkspaceId);
+    }
+
+    function updateWorkspaceRole() {
+        if (!firebaseUser || !cloudWorkspaceId) return Promise.resolve(null);
+        return workspaceMemberRef(cloudWorkspaceId, firebaseUser.uid).get().then(function (snapshot) {
+            var member = snapshot.exists ? snapshot.data() || {} : {};
+            cloudWorkspaceRole = member.role || null;
+            renderWorkspaceControls();
+            return cloudWorkspaceRole;
+        });
+    }
+
+    function flushWorkspaceState() {
+        if (!cloudHasPendingWrite || !cloudDocRef()) return Promise.resolve();
+        var updatedAt = Date.now();
+        return cloudDocRef().set({ payload: JSON.parse(JSON.stringify(state)), updatedAt: updatedAt })
+            .then(function () {
+                cloudHasPendingWrite = false;
+                cloudUpdatedAt = updatedAt;
+            });
+    }
+
+    function activateWorkspace(workspaceId) {
+        if (!firebaseUser || !workspaceId) return Promise.resolve();
+        if (!cloudWorkspaces.some(function (item) { return item.id === workspaceId; })) {
+            return Promise.reject(new Error("Você não tem acesso a esta área de trabalho."));
+        }
+
+        return flushWorkspaceState().then(function () {
+            if (firebaseUnsubscribe) {
+                firebaseUnsubscribe();
+                firebaseUnsubscribe = null;
+            }
+            cloudWorkspaceId = workspaceId;
+            cloudUpdatedAt = 0;
+            return updateWorkspaceRole();
+        }).then(function () {
+            return cloudDocRef().get();
+        }).then(function (snapshot) {
+            var remote = snapshot.exists ? snapshot.data() || {} : {};
+            if (!remote.payload) throw new Error("Esta área ainda não possui dados sincronizados.");
+            cloudUpdatedAt = Number(remote.updatedAt) || 0;
+            applyRemoteState(remote.payload);
+            saveWorkspaceSelection();
+            subscribeCloud();
+            setSyncStatus("Sincronizado");
+            renderWorkspaceControls();
+        });
+    }
+
+    function newInviteToken() {
+        if (window.crypto && window.crypto.getRandomValues) {
+            var bytes = new Uint8Array(24);
+            window.crypto.getRandomValues(bytes);
+            return Array.prototype.map.call(bytes, function (byte) {
+                return byte.toString(16).padStart(2, "0");
+            }).join("");
+        }
+        return Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    }
+
+    function inviteUrl(workspaceId, token) {
+        var url = new URL(window.location.href);
+        url.searchParams.set("workspace", workspaceId);
+        url.searchParams.set("invite", token);
+        return url.toString();
+    }
+
+    function createWorkspaceInvite() {
+        if (!firebaseDb || !firebaseUser || !cloudWorkspaceId || !canManageWorkspace()) return;
+        var roleInput = document.getElementById("workspaceInviteRole");
+        var result = document.getElementById("workspaceInviteResult");
+        var role = roleInput ? roleInput.value : "operator";
+        if (["admin", "operator", "viewer"].indexOf(role) < 0) return;
+
+        var token = newInviteToken();
+        var expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+        var link = inviteUrl(cloudWorkspaceId, token);
+        workspaceRef(cloudWorkspaceId).collection("invites").doc(token).set({
+            role: role,
+            status: "pending",
+            createdAt: Date.now(),
+            expiresAt: expiresAt,
+            createdBy: firebaseUser.uid
+        }).then(function () {
+            result.hidden = false;
+            result.innerHTML = 'Convite criado (válido por 7 dias). <button class="btn btn-ghost" type="button" data-copy-invite>Copiar link</button>';
+            result.querySelector("[data-copy-invite]").addEventListener("click", function () {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link).then(function () {
+                        result.firstChild.textContent = "Link copiado. ";
+                    }).catch(function () { window.prompt("Copie este link:", link); });
+                } else {
+                    window.prompt("Copie este link:", link);
+                }
+            });
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+        });
+    }
+
+    function renderWorkspaceMembers() {
+        var list = document.getElementById("workspaceMembersList");
+        if (!list || !canManageWorkspace() || !cloudWorkspaceId) return;
+        list.innerHTML = '<p class="settings-note">Carregando colaboradores...</p>';
+        workspaceRef(cloudWorkspaceId).collection("members").get().then(function (snapshot) {
+            var members = [];
+            snapshot.forEach(function (item) {
+                var member = item.data() || {};
+                members.push({ id: item.id, email: member.email || item.id, role: member.role || "viewer" });
+            });
+            list.innerHTML = members.map(function (member) {
+                var removable = member.role !== "owner";
+                return '<div class="workspace-member-row"><div><strong>' + escapeHtml(member.email) +
+                    '</strong><span>' + escapeHtml(workspaceRoleLabel(member.role)) +
+                    '</span></div>' + (removable ? '<button class="btn btn-danger" type="button" data-remove-member="' +
+                    escapeHtml(member.id) + '">Remover</button>' : '<span class="workspace-owner">Proprietário</span>') + '</div>';
+            }).join("") || '<p class="settings-note">Nenhum colaborador cadastrado.</p>';
+            list.querySelectorAll("[data-remove-member]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (!window.confirm("Remover o acesso deste colaborador?")) return;
+                    workspaceMemberRef(cloudWorkspaceId, button.dataset.removeMember).delete()
+                        .then(renderWorkspaceMembers)
+                        .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                });
+            });
+        }).catch(function (error) {
+            list.innerHTML = '<p class="cloud-error">Não foi possível carregar os colaboradores.</p>';
+            setCloudError(cloudErrorMessage(error));
+        });
+    }
+
+    function acceptInviteFromUrl() {
+        if (!firebaseDb || !firebaseUser) return Promise.resolve(null);
+        var params = new URLSearchParams(window.location.search);
+        var workspaceId = params.get("workspace");
+        var token = params.get("invite");
+        if (!workspaceId || !token || !/^[a-zA-Z0-9_-]{20,}$/.test(token)) return Promise.resolve(null);
+
+        var invite = workspaceRef(workspaceId).collection("invites").doc(token);
+        var profile = firebaseDb.collection("profiles").doc(firebaseUser.uid);
+        return invite.get().then(function (snapshot) {
+            if (!snapshot.exists) throw new Error("Convite não encontrado.");
+            var data = snapshot.data() || {};
+            var role = data.role;
+            var expired = !data.expiresAt || data.expiresAt.toDate() <= new Date();
+            if (data.status !== "pending" || expired || ["admin", "operator", "viewer"].indexOf(role) < 0) {
+                throw new Error("Este convite expirou ou já foi utilizado.");
+            }
+
+            return workspaceMemberRef(workspaceId, firebaseUser.uid).get().then(function (memberSnapshot) {
+                if (memberSnapshot.exists) {
+                    return profile.set({
+                        workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
+                        updatedAt: Date.now()
+                    }, { merge: true }).then(function () { return workspaceId; });
+                }
+
+                var batch = firebaseDb.batch();
+                batch.set(profile, {
+                    email: firebaseUser.email || "",
+                    displayName: firebaseUser.displayName || "",
+                    workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
+                    updatedAt: Date.now()
+                }, { merge: true });
+                batch.set(workspaceMemberRef(workspaceId, firebaseUser.uid), {
+                    role: role,
+                    email: firebaseUser.email || "",
+                    displayName: firebaseUser.displayName || "",
+                    inviteId: token,
+                    joinedAt: Date.now()
+                });
+                batch.update(invite, {
+                    status: "accepted",
+                    acceptedBy: firebaseUser.uid,
+                    acceptedAt: Date.now()
+                });
+                return batch.commit().then(function () { return workspaceId; });
+            });
+        }).then(function (acceptedWorkspaceId) {
+            params.delete("workspace");
+            params.delete("invite");
+            var url = window.location.pathname + (params.toString() ? "?" + params.toString() : "") + window.location.hash;
+            window.history.replaceState({}, "", url);
+            return acceptedWorkspaceId;
+        });
+    }
+
+    function bindWorkspaceControls() {
+        if (workspaceUiBound) return;
+        workspaceUiBound = true;
+        var selector = workspaceSelectElement();
+        var inviteButton = document.getElementById("createWorkspaceInvite");
+        if (selector) selector.addEventListener("change", function () {
+            activateWorkspace(selector.value).catch(function (error) {
+                setCloudError(cloudErrorMessage(error));
+                renderWorkspaceControls();
+            });
+        });
+        if (inviteButton) inviteButton.addEventListener("click", createWorkspaceInvite);
     }
 
     function scheduleCloudWrite() {
@@ -1239,9 +1544,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
             setCloudStatus("Conta conectada. Preparando sua área de trabalho...");
 
             ensurePersonalWorkspace(user)
-                .then(function () {
+                .then(function () { return loadWorkspaceList(); })
+                .then(function () { return acceptInviteFromUrl(); })
+                .then(function (acceptedWorkspaceId) {
+                    return loadWorkspaceList().then(function () { return acceptedWorkspaceId; });
+                })
+                .then(function (acceptedWorkspaceId) {
                     if (!firebaseUser || firebaseUser.uid !== user.uid) return;
+                    bindWorkspaceControls();
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
+                    if (acceptedWorkspaceId) return activateWorkspace(acceptedWorkspaceId);
                     reconcileCloud();
                 })
                 .catch(function (error) {
@@ -1253,6 +1565,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
         } else {
             cloudWorkspaceId = null;
             cloudWorkspaceReady = false;
+            cloudWorkspaces = [];
+            cloudWorkspaceRole = null;
+            renderWorkspaceControls();
             setCloudStatus(
                 "Sincronização opcional com Firebase. Seus dados locais permanecem disponíveis."
             );
