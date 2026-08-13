@@ -3661,6 +3661,48 @@ textarea:focus-visible {
     background: #fff;
 }
 
+/* Um único campo visual para o seletor de empreendimento. */
+.app-header .enterprise-selector {
+    position: relative;
+}
+
+.app-header .enterprise-selector select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.app-header .enterprise-selector::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    pointer-events: none;
+    transform: translateY(-65%) rotate(45deg);
+}
+
+.app-header .enterprise-selector:focus-within {
+    border-color: #8ee4d5;
+    box-shadow: 0 0 0 3px rgba(142, 228, 213, .2);
+}
+
+@media (max-width: 520px) {
+    .app-header .enterprise-selector::after {
+        display: none;
+    }
+
+    .app-header .enterprise-selector:focus-within {
+        box-shadow: 0 0 0 3px rgba(142, 228, 213, .2);
+    }
+}
+
 .app-header .year-nav {
     gap: 4px;
     padding: 3px;
