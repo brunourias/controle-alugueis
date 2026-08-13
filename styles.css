@@ -4675,3 +4675,12 @@ textarea:focus-visible {
 /* Uso do plano */
 .plan-usage { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 10px 0; padding: 9px 11px; border: 1px solid #cfe4df; border-radius: 10px; color: #416967; background: #f3faf8; font-size: .72rem; line-height: 1.4; }
 .plan-usage strong { color: #075f5b; }
+
+
+/* Configurações: mais espaço para painéis administrativos no desktop */
+@media (min-width: 700px) {
+    .settings-modal {
+        width: min(calc(100vw - 64px), 840px);
+        max-height: calc(100dvh - 48px);
+    }
+}
