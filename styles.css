@@ -4733,3 +4733,35 @@ textarea:focus-visible {
 .subscription-notice { margin: 10px 0; padding: 10px 12px; border: 1px solid #e8c88d; border-radius: 10px; color: #805400; background: #fff9eb; font-size: .74rem; line-height: 1.4; }.subscription-notice.is-expired { border-color: #f0b9c1; color: #a23a45; background: #fff1f3; }
 .platform-filter { display: flex; align-items: center; gap: 7px; margin: 9px 0 2px; color: #647f7d; font-size: .7rem; font-weight: 700; }.platform-filter select { width: auto; min-height: 32px; margin: 0; padding: 0 7px; font-size: .7rem; }
 .subscription-status { padding: 3px 6px; border-radius: 999px; color: #416967; background: #edf5f3; font-size: .64rem; }.subscription-status.subscription-soon { color: #8a5a00; background: #fff1ca; }.subscription-status.subscription-expired { color: #a23a45; background: #ffe3e7; }
+
+
+/* Linha de conta: limites expandidos sem comprimir o resumo */
+@media (min-width: 801px) {
+    .platform-account-row {
+        display: grid;
+        grid-template-columns: minmax(220px, .8fr) minmax(0, 1.7fr);
+        align-items: start;
+    }
+    .platform-account-main { min-width: 220px; }
+    .platform-account-actions {
+        display: grid;
+        grid-template-columns: minmax(88px, 1fr) minmax(106px, 1fr) minmax(116px, 1fr) auto auto;
+        align-items: end;
+        min-width: 0;
+    }
+}
+.platform-limit-editor { grid-column: 1 / -1; min-width: 0; margin: 2px 0 0; padding: 7px 0 0; border-top: 1px dashed #cfe3df; }
+.platform-limit-editor summary { color: #075f5b; cursor: pointer; font-size: .72rem; font-weight: 800; }
+.platform-limit-editor > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 7px; }
+.platform-limit-editor label { min-width: 0; }
+.platform-limit-editor input { width: 100%; min-height: 32px; }
+@media (min-width: 641px) and (max-width: 800px) {
+    .platform-account-row { align-items: stretch; flex-direction: column; }
+    .platform-account-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; width: 100%; }
+}
+@media (max-width: 640px) {
+    .platform-account-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; width: 100%; }
+    .platform-account-actions > label { min-width: 0; }
+    .platform-account-actions .btn { width: 100%; }
+    .platform-limit-editor > div { grid-template-columns: 1fr; }
+}
