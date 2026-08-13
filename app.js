@@ -234,6 +234,8 @@ var historyRent = document.getElementById("historyRent");
     var reminderDays = document.getElementById("reminderDays");
     var securityStatus = document.getElementById("securityStatus");
     var currentPinLabel = document.getElementById("currentPinLabel");
+    var pinCurrentSection = document.getElementById("pinCurrentSection");
+    var pinChangePanel = document.getElementById("pinChangePanel");
     var currentPin = document.getElementById("currentPin");
     var newPin = document.getElementById("newPin");
     var confirmPin = document.getElementById("confirmPin");
@@ -1881,7 +1883,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             var credential = await navigator.credentials.create({
                 publicKey: {
                     challenge: randomBytes(32),
-                    rp: { name: "Controle de Aluguéis" },
+                    rp: {
+                        name: "Controle de Aluguéis",
+                        id: window.location.hostname,
+                    },
                     user: {
                         id: randomBytes(32),
                         name: "acesso-local",
@@ -1916,7 +1921,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
             await updateBiometricUi();
         } catch (error) {
             biometricStatus.textContent =
-                "Não foi possível ativar a digital. Confirme o bloqueio de tela do aparelho e tente novamente.";
+                error && error.name === "NotAllowedError"
+                    ? "A confirmação foi cancelada ou o aparelho não tem bloqueio de tela configurado."
+                    : "Não foi possível ativar a digital neste navegador. Confirme o bloqueio de tela e tente novamente.";
         }
     }
 
@@ -5259,6 +5266,8 @@ function saveExpense() {
         newPin.value = "";
         confirmPin.value = "";
         currentPinLabel.hidden = !lockConfig;
+        pinCurrentSection.hidden = !lockConfig;
+        pinChangePanel.open = false;
         removePinButton.hidden = !lockConfig;
         securityStatus.textContent = lockConfig
             ? "Um PIN protege o acesso neste dispositivo."
@@ -5371,6 +5380,8 @@ function saveExpense() {
         confirmPin.value = "";
 
         currentPinLabel.hidden = false;
+        pinCurrentSection.hidden = false;
+        pinChangePanel.open = false;
 
         removePinButton.hidden = false;
 
@@ -5404,6 +5415,8 @@ function saveExpense() {
         confirmPin.value = "";
 
         currentPinLabel.hidden = true;
+        pinCurrentSection.hidden = true;
+        pinChangePanel.open = false;
 
         removePinButton.hidden = true;
 
