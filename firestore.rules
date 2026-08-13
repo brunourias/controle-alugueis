@@ -19,7 +19,8 @@ service cloud.firestore {
         platformAdmin() ||
         (
           !exists(/databases/$(database)/documents/accessRequests/$(request.auth.uid)) &&
-          exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+          exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.invitedOnly != true
         ) ||
         (
           exists(/databases/$(database)/documents/accessRequests/$(request.auth.uid)) &&
@@ -47,9 +48,23 @@ service cloud.firestore {
       return approvedAccount() && workspaceId == "personal-" + request.auth.uid;
     }
 
+    // Um colaborador convidado não precisa de assinatura própria: basta ter
+    // autenticação e ser membro da área. Ele não ganha, com isso, uma área pessoal.
     function member(workspaceId) {
-      return approvedAccount() &&
+      return signedIn() &&
         exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    }
+
+    function workspaceSubscriptionWritable(workspaceId) {
+      return platformAdmin() || (
+        member(workspaceId) && (
+          !exists(/databases/$(database)/documents/accessRequests/$(get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId)) ||
+          (
+            get(/databases/$(database)/documents/accessRequests/$(get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId)).data.subscriptionStatus != "overdue" &&
+            get(/databases/$(database)/documents/accessRequests/$(get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId)).data.subscriptionStatus != "canceled"
+          )
+        )
+      );
     }
 
     function role(workspaceId) {
@@ -71,31 +86,31 @@ service cloud.firestore {
     }
 
     function manager(workspaceId) {
-      return subscriptionWritable() &&
+      return workspaceSubscriptionWritable(workspaceId) &&
         hasRole(workspaceId, "owner", "admin", "__none__", "__none__", "__none__");
     }
 
     // Dono, administrador e operador são os únicos que podem alterar
     // unidades, contratos e configurações estruturais.
     function contractManager(workspaceId) {
-      return subscriptionWritable() &&
+      return workspaceSubscriptionWritable(workspaceId) &&
         hasRole(workspaceId, "owner", "admin", "operator", "__none__", "__none__");
     }
 
     // Financeiro também pode registrar pagamentos; Cobrança pode efetuar baixa
     // e acompanhar inadimplência, mas nenhum dos dois altera contratos.
     function paymentOperator(workspaceId) {
-      return subscriptionWritable() &&
+      return workspaceSubscriptionWritable(workspaceId) &&
         hasRole(workspaceId, "owner", "admin", "operator", "billing", "finance");
     }
 
     function collectionOperator(workspaceId) {
-      return subscriptionWritable() &&
+      return workspaceSubscriptionWritable(workspaceId) &&
         hasRole(workspaceId, "owner", "admin", "operator", "billing", "__none__");
     }
 
     function expenseOperator(workspaceId) {
-      return subscriptionWritable() &&
+      return workspaceSubscriptionWritable(workspaceId) &&
         hasRole(workspaceId, "owner", "admin", "operator", "finance", "__none__");
     }
 
@@ -159,7 +174,17 @@ service cloud.firestore {
 
     match /profiles/{userId} {
       allow read: if (signedIn() && request.auth.uid == userId) || platformAdmin();
-      allow create: if approvedAccount() && request.auth.uid == userId;
+      // O perfil de um convidado só pode nascer no mesmo lote que aceita
+      // um convite válido para o seu próprio e-mail.
+      allow create: if (approvedAccount() && request.auth.uid == userId) ||
+        (signedIn() && request.auth.uid == userId &&
+          request.resource.data.invitedOnly == true &&
+          request.resource.data.acceptedWorkspaceId is string &&
+          request.resource.data.acceptedInviteId is string &&
+          existsAfter(/databases/$(database)/documents/workspaces/$(request.resource.data.acceptedWorkspaceId)/members/$(userId)) &&
+          getAfter(/databases/$(database)/documents/workspaces/$(request.resource.data.acceptedWorkspaceId)/invites/$(request.resource.data.acceptedInviteId)).data.status == "accepted" &&
+          getAfter(/databases/$(database)/documents/workspaces/$(request.resource.data.acceptedWorkspaceId)/invites/$(request.resource.data.acceptedInviteId)).data.acceptedBy == userId &&
+          get(/databases/$(database)/documents/workspaces/$(request.resource.data.acceptedWorkspaceId)/invites/$(request.resource.data.acceptedInviteId)).data.email == request.auth.token.email);
       allow update: if (approvedAccount() && request.auth.uid == userId) || platformAdmin();
     }
 
@@ -183,14 +208,15 @@ service cloud.firestore {
             memberId == request.auth.uid &&
             request.resource.data.role == "owner") ||
           manager(workspaceId) ||
-          (approvedAccount() &&
+          (signedIn() &&
             memberId == request.auth.uid &&
             invitedRole(request.resource.data.role) &&
             request.resource.data.inviteId is string &&
             exists(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)) &&
             get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.status == "pending" &&
             get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.expiresAt > request.time &&
-            get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.role == request.resource.data.role);
+            get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.role == request.resource.data.role &&
+            get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.email == request.auth.token.email);
 
         allow delete: if manager(workspaceId) && resource.data.role != "owner";
       }
@@ -198,15 +224,21 @@ service cloud.firestore {
       match /invites/{inviteId} {
         allow create, delete: if manager(workspaceId);
         allow list: if manager(workspaceId);
+        // O convidado só lê o documento se estiver autenticado com o e-mail
+        // exato do convite. O token, sozinho, nunca libera dados.
         allow get: if manager(workspaceId) ||
-          (approvedAccount() && resource.data.status == "pending" && resource.data.expiresAt > request.time);
+          (signedIn() && resource.data.status == "pending" &&
+            resource.data.expiresAt > request.time &&
+            resource.data.email == request.auth.token.email);
         allow update: if manager(workspaceId) ||
-          (approvedAccount() &&
+          (signedIn() &&
             resource.data.status == "pending" &&
             resource.data.expiresAt > request.time &&
+            resource.data.email == request.auth.token.email &&
             request.resource.data.status == "accepted" &&
             request.resource.data.acceptedBy == request.auth.uid &&
             request.resource.data.role == resource.data.role &&
+            request.resource.data.email == resource.data.email &&
             request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(["status", "acceptedBy", "acceptedAt"]) &&
             existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)));
