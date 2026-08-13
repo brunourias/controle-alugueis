@@ -60,6 +60,16 @@ service cloud.firestore {
 
     // Solicitação de acesso: a própria conta cria e lê somente a sua;
     // apenas a administração global lista, aprova ou recusa.
+    // Catálogo, assinaturas e auditoria são exclusivos da administração global.
+    match /platformPlans/{planId} {
+      allow read, write: if platformAdmin();
+    }
+
+    match /platformAudit/{entryId} {
+      allow read, create: if platformAdmin();
+      allow update, delete: if false;
+    }
+
     match /accessRequests/{userId} {
       allow get: if signedIn() && (request.auth.uid == userId || platformAdmin());
       allow list: if platformAdmin();
