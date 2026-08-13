@@ -2993,3 +2993,179 @@ textarea:focus-visible {
         min-height: 50px;
     }
 }
+
+
+/* Painel de gastos gerais */
+.expenses-dashboard {
+    padding: 17px 18px 18px;
+}
+
+.expenses-dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.expenses-eyebrow {
+    margin: 0 0 4px;
+    color: var(--teal);
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.expenses-dashboard .summary-report-intro {
+    margin: 5px 0 0;
+}
+
+.expenses-dashboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.expenses-dashboard-actions .btn {
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.expenses-overview {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.expenses-total-card {
+    display: grid;
+    gap: 3px;
+    min-width: 190px;
+    padding: 13px 15px;
+    border: 1px solid #b9ded6;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #edf9f6, #f9fdfc);
+}
+
+.expenses-total-card span {
+    color: var(--muted);
+    font-size: .7rem;
+    font-weight: 650;
+}
+
+.expenses-total-card strong {
+    color: var(--teal-dark);
+    font-size: 1.1rem;
+    letter-spacing: -.02em;
+}
+
+.expenses-metrics {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 8px;
+    padding: 10px 0;
+}
+
+.expenses-metrics span {
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: #3f6662;
+    background: #eff6f5;
+    font-size: .7rem;
+    font-weight: 650;
+}
+
+.expenses-preview {
+    margin-top: 16px;
+    border-top: 1px solid #e5efed;
+}
+
+.expenses-preview-heading {
+    margin: 12px 0 2px;
+    color: var(--teal-dark);
+    font-size: .75rem;
+    font-weight: 800;
+}
+
+.expenses-preview-list {
+    display: grid;
+}
+
+.expenses-preview-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid #edf3f2;
+}
+
+.expenses-preview-row > div {
+    min-width: 0;
+}
+
+.expenses-preview-row strong,
+.expenses-preview-row span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.expenses-preview-row strong {
+    color: var(--ink);
+    font-size: .76rem;
+}
+
+.expenses-preview-row span {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: .68rem;
+}
+
+.expenses-preview-row b {
+    color: var(--teal-dark);
+    font-size: .78rem;
+    white-space: nowrap;
+}
+
+.expenses-dashboard #expensesList {
+    margin-top: 12px;
+}
+
+@media (max-width: 620px) {
+    .expenses-dashboard {
+        padding: 15px;
+    }
+
+    .expenses-dashboard-header {
+        display: grid;
+        gap: 12px;
+    }
+
+    .expenses-dashboard-actions {
+        justify-content: flex-start;
+    }
+
+    .expenses-dashboard-actions .btn {
+        flex: 1;
+    }
+
+    .expenses-overview {
+        display: grid;
+        gap: 9px;
+        margin-top: 13px;
+    }
+
+    .expenses-total-card {
+        min-width: 0;
+    }
+
+    .expenses-metrics {
+        padding: 0;
+    }
+}
