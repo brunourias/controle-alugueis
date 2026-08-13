@@ -3945,10 +3945,10 @@ function renderSummary() {
 
                         return (
                             '<div class="expense-row">' +
-                            "<div>" +
-                            enterprise +
                             dateLabel +
-                            " <strong>" +
+                            '<div class="expense-row-main">' +
+                            enterprise +
+                            "<strong>" +
                             escapeHtml(expense.category) +
                             "</strong>" +
                             description +
