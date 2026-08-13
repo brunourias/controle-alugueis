@@ -1838,9 +1838,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
             firebaseDb = firebase.firestore();
 
-            firebaseDb
-                .enablePersistence({ synchronizeTabs: true })
-                .catch(function () {});
+            // O aplicativo preserva o seu estado localmente. Não habilitamos a
+            // persistência legada do Firestore, que foi descontinuada pelo SDK.
 
             firebaseAuth.onAuthStateChanged(handleCloudAuthState);
 
