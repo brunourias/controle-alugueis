@@ -217,6 +217,7 @@
             </section>
 
             <div class="summary financial-summary-cards" id="summary"></div>
+            <section class="cash-forecast-dashboard"><div><p class="expenses-eyebrow">Planejamento</p><h2>Receita projetada</h2><p>Previsão contratada dos próximos vencimentos.</p></div><div id="cashForecast" aria-live="polite"></div></section>
 
             <!-- Seção de Gastos Gerais -->
             <section class="summary-bar expenses-dashboard" aria-labelledby="expensesTitle">
@@ -309,6 +310,8 @@
                     </div>
                 </div>
 
+                <details class="settings-panel"><summary><span class="settings-panel-icon">🔎</span><span><strong>Visão da unidade</strong><small>Contrato, situação e próxima ação</small></span></summary><div class="settings-panel-content"><div id="unitOverview" class="unit-overview"></div></div></details>
+
                 <details class="settings-panel">
                     <summary><span class="settings-panel-icon">🏢</span><span><strong>Unidade</strong><small>Identificação e empreendimento</small></span></summary>
                     <div class="settings-panel-content">
@@ -341,7 +344,7 @@
                     <summary><span class="settings-panel-icon">📈</span><span><strong>Reajuste de aluguel</strong><small>Alterações de valor ao longo do contrato</small></span></summary>
                     <div class="settings-panel-content rent-changes-content">
                         <p class="field-help">O valor acima é o aluguel base. Cada reajuste vale a partir do mês informado.</p>
-                        <div id="rentChangesList"></div>
+                        <div id="rentChangesList"></div><div class="adjustment-suggestion"><p id="suggestedRentAdjustment" class="field-help">Use o percentual padrão das Configurações para preencher uma sugestão.</p><button id="applySuggestedRentAdjustment" class="btn btn-ghost" type="button">Sugerir reajuste</button></div>
                         <label>Aplicar a partir de<input type="month" id="rentChangeYm" /></label>
                         <label>Percentual de reajuste (%)<input type="number" id="rentChangePercent" min="-100" step="0.01" placeholder="Ex.: 10" inputmode="decimal" /></label>
                         <label>Novo valor absoluto (R$)<input type="number" id="rentChangeAbsolute" min="0" step="0.01" placeholder="Opcional" inputmode="decimal" /></label>
@@ -542,7 +545,7 @@
                                 <section id="workspaceMembersSection" class="workspace-section" hidden>
                                     <h3>Colaboradores</h3>
                                     <p class="settings-note">Gere um link e envie à pessoa que deverá acessar esta área.</p>
-                                    <label>Permissão do convite<select id="workspaceInviteRole"><option value="operator">Operador — pode trabalhar nos dados</option><option value="admin">Administrador — também gerencia colaboradores</option><option value="viewer">Consulta — apenas visualiza</option></select></label>
+                                    <label>Permissão do convite<select id="workspaceInviteRole"><option value="operator">Operador — acesso operacional completo</option><option value="billing">Cobrança — acompanha inadimplência</option><option value="finance">Financeiro — pagamentos e gastos</option><option value="admin">Administrador — também gerencia colaboradores</option><option value="viewer">Consulta — apenas visualiza</option></select></label>
                                     <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Gerar link de convite</button>
                                     <p id="workspaceInviteResult" class="settings-note" hidden></p>
                                     <div id="workspaceMembersList" class="workspace-members-list"></div>
@@ -570,6 +573,7 @@
                         <label>Multa (%)<input type="number" id="finePercent" inputmode="decimal" min="0" step="0.01" /></label>
                         <label>Juros (% ao dia)<input type="number" id="dailyInterestPercent" inputmode="decimal" min="0" step="0.01" /></label>
                         <label>Antecedência do lembrete (dias)<input type="number" id="reminderDays" inputmode="numeric" min="0" max="30" step="1" /><small class="field-help">Quando avisar sobre vencimentos próximos.</small></label>
+                        <label>Retorno de cobrança em (dias)<input type="number" id="overdueFollowUpDays" inputmode="numeric" min="1" max="30" step="1" /><small class="field-help">Prazo sugerido para acompanhar cobrança em atraso.</small></label><label>Percentual padrão de reajuste (%)<input type="number" id="defaultAdjustmentPercent" inputmode="decimal" min="-100" max="1000" step="0.01" /><small class="field-help">Só sugere; você confirma cada reajuste.</small></label>
                         <label>Nome do recebedor<input type="text" id="receiverName" placeholder="Opcional" autocomplete="name" /><small class="field-help">Será exibido nos recibos.</small></label>
                     </div>
                 </details>
