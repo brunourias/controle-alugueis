@@ -384,6 +384,15 @@
                 </details>
 
                 <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">📌</span><span><strong>Cobranças e acompanhamento</strong><small>Mensagens, promessas e próximos passos</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p class="field-help">Registre cada contato para não perder uma cobrança ou uma promessa de pagamento.</p>
+                        <div id="chargeHistoryList" class="charge-history-list" aria-live="polite"></div>
+                        <button id="openChargeModal" class="btn btn-ghost" type="button">Registrar cobrança</button>
+                    </div>
+                </details>
+
+                <details class="settings-panel">
                     <summary><span class="settings-panel-icon">⚠️</span><span><strong>Ações do contrato</strong><small>Encerrar a locação ou iniciar outra</small></span></summary>
                     <div class="settings-panel-content">
                         <p class="field-help contract-transition-help">O encerramento preserva parcelas e pendências. Você pode cadastrar um novo inquilino depois.</p>
@@ -399,6 +408,45 @@
                     <span class="spacer"></span>
                     <button id="cancelModal" class="btn btn-ghost">Cancelar</button>
                     <button id="saveUnit" class="btn btn-primary">Salvar alterações</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Modal de cobrança -->
+        <div class="modal-backdrop" id="chargeModal" hidden>
+            <div class="modal charge-modal">
+                <div class="settings-heading">
+                    <div>
+                        <h2>Registrar cobrança</h2>
+                        <p id="chargeModalContext">Acompanhe cada contato e defina o próximo passo.</p>
+                    </div>
+                </div>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">💬</span><span><strong>Contato</strong><small>Canal, data e registro da tentativa</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Tipo de registro<select id="chargeType"><option value="whatsapp">Mensagem por WhatsApp</option><option value="ligacao">Ligação</option><option value="contato">Contato realizado</option><option value="promessa">Promessa de pagamento</option><option value="nota">Observação</option></select></label>
+                        <label>Data do registro<input id="chargeDate" type="date" required /></label>
+                    </div>
+                </details>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🗓️</span><span><strong>Acompanhamento</strong><small>Promessa de pagamento e próxima ação</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Data prometida para pagamento<input id="chargePromisedDate" type="date" /></label>
+                        <label>Próxima ação<input id="chargeNextActionDate" type="date" /></label>
+                    </div>
+                </details>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">📝</span><span><strong>Observação</strong><small>Opcional</small></span></summary>
+                    <div class="settings-panel-content">
+                        <label>Detalhes<input id="chargeNote" type="text" maxlength="220" placeholder="Ex.: informou que paga após receber o salário" autocomplete="off" /></label>
+                    </div>
+                </details>
+                <div class="modal-actions settings-footer">
+                    <button id="cancelCharge" class="btn btn-ghost" type="button">Cancelar</button>
+                    <span class="spacer"></span>
+                    <button id="saveCharge" class="btn btn-primary" type="button">Salvar registro</button>
+                    <button id="saveChargeAndOpenWhatsapp" class="btn btn-ghost" type="button">Salvar e abrir WhatsApp</button>
                 </div>
             </div>
         </div>
