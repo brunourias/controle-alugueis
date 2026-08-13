@@ -765,13 +765,20 @@
             <div class="modal auth-modal">
                 <h2 id="authTitle">Entrar</h2>
                 <p id="authMessage" class="settings-note"></p>
-                <form id="authForm">
+                <form id="authForm" autocomplete="off" data-1p-ignore="true" data-lpignore="true">
                     <label id="authNewLabel" hidden
                         >Criar PIN
                         <input
                             type="password"
                             id="authNewPin"
+                            name="local-access-code-authNewPin"
                             inputmode="numeric"
+                            autocomplete="one-time-code"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                            data-1p-ignore="true"
+                            data-lpignore="true"
                             pattern="[0-9]*"
                             autocomplete="off"
                             minlength="4"
@@ -783,7 +790,14 @@
                         <input
                             type="password"
                             id="authConfirmPin"
+                            name="local-access-code-authConfirmPin"
                             inputmode="numeric"
+                            autocomplete="one-time-code"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                            data-1p-ignore="true"
+                            data-lpignore="true"
                             pattern="[0-9]*"
                             autocomplete="off"
                             minlength="4"
@@ -795,7 +809,14 @@
                         <input
                             type="password"
                             id="authPin"
+                            name="local-access-code-authPin"
                             inputmode="numeric"
+                            autocomplete="one-time-code"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                            data-1p-ignore="true"
+                            data-lpignore="true"
                             pattern="[0-9]*"
                             autocomplete="off"
                             maxlength="32"
