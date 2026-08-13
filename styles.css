@@ -3270,3 +3270,30 @@ textarea:focus-visible {
     background: #eff9f6;
     font-weight: 750;
 }
+
+
+/* Ícones do cabeçalho */
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 0;
+}
+
+.icon-btn svg {
+    display: block;
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+#settingsButton svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.9;
+}
