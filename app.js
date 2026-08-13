@@ -1070,6 +1070,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }[role] || "Sem permissão";
     }
 
+    function workspaceRoleCapabilities(role) {
+        return {
+            owner: ["Acesso total", "Gerencia área, equipe e permissões", "Pode remover colaboradores"],
+            admin: ["Opera todos os dados", "Gerencia equipe e permissões", "Não altera o proprietário"],
+            operator: ["Unidades, contratos e pagamentos", "Gastos e relatórios", "Não gerencia equipe"],
+            billing: ["Cobranças e atrasos", "Registra contatos e próximas ações", "Consulta dados financeiros"],
+            finance: ["Pagamentos, gastos e relatórios", "Consulta contratos", "Não gerencia equipe"],
+            viewer: ["Consulta unidades e relatórios", "Não altera dados", "Não gerencia equipe"]
+        }[role] || [];
+    }
+
+    function workspaceRoleDescription(role) {
+        return workspaceRoleCapabilities(role).join(" · ");
+    }
+
     function canManageWorkspace() {
         return cloudWorkspaceRole === "owner" || cloudWorkspaceRole === "admin";
     }
@@ -1260,21 +1275,38 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function renderWorkspaceMembers() {
         var list = document.getElementById("workspaceMembersList");
+        var overview = document.getElementById("workspacePermissions");
         if (!list || !canManageWorkspace() || !cloudWorkspaceId) return;
         list.innerHTML = '<p class="settings-note">Carregando colaboradores...</p>';
         workspaceRef(cloudWorkspaceId).collection("members").get().then(function (snapshot) {
             var members = [];
             snapshot.forEach(function (item) {
                 var member = item.data() || {};
-                members.push({ id: item.id, email: member.email || item.id, role: member.role || "viewer" });
+                members.push({ id: item.id, email: member.email || item.id, role: member.role || "viewer", displayName: member.displayName || "" });
             });
-            list.innerHTML = members.map(function (member) {
+            var order = ["owner", "admin", "operator", "billing", "finance", "viewer"];
+            members.sort(function (left, right) {
+                return order.indexOf(left.role) - order.indexOf(right.role) || left.email.localeCompare(right.email);
+            });
+            if (overview) {
+                overview.innerHTML = '<div class="workspace-access-heading"><h4>Perfis e funcionalidades</h4><p>Veja quem tem cada perfil e qual é o escopo de acesso correspondente.</p></div>' +
+                    '<div class="workspace-role-matrix">' + order.map(function (role) {
+                        var assigned = members.filter(function (member) { return member.role === role; });
+                        var capabilities = workspaceRoleCapabilities(role);
+                        return '<article class="workspace-role-card"><div><strong>' + escapeHtml(workspaceRoleLabel(role)) + '</strong><span>' + assigned.length + ' ' + (assigned.length === 1 ? 'usuário' : 'usuários') + '</span></div><ul>' + capabilities.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join("") + '</ul></article>';
+                    }).join("") + '</div>';
+            }
+            list.innerHTML = '<h4 class="workspace-members-heading">Usuários desta área (' + members.length + ')</h4>' + (members.length ? members.map(function (member) {
                 var removable = member.role !== "owner";
-                return '<div class="workspace-member-row"><div><strong>' + escapeHtml(member.email) +
-                    '</strong><span>' + escapeHtml(workspaceRoleLabel(member.role)) +
-                    '</span></div>' + (removable ? '<div class="workspace-member-actions"><select data-member-role="' + escapeHtml(member.id) + '">' + ["admin","operator","billing","finance","viewer"].map(function(role){return '<option value="'+role+'"'+(member.role===role?' selected':'')+'>'+workspaceRoleLabel(role)+'</option>';}).join("") + '</select><button class="btn btn-danger" type="button" data-remove-member="' + escapeHtml(member.id) + '">Remover</button></div>' : '<span class="workspace-owner">Proprietário</span>') + '</div>';
-            }).join("") || '<p class="settings-note">Nenhum colaborador cadastrado.</p>';
-            list.querySelectorAll("[data-member-role]").forEach(function (select) { select.addEventListener("change", function () { workspaceMemberRef(cloudWorkspaceId, select.dataset.memberRole).set({ role: select.value }, { merge: true }).then(renderWorkspaceMembers).catch(function(error){ setCloudError(cloudErrorMessage(error)); }); }); });
+                return '<div class="workspace-member-row"><div><strong>' + escapeHtml(member.displayName || member.email) + '</strong><span>' + escapeHtml(member.email) + ' · ' + escapeHtml(workspaceRoleLabel(member.role)) + '</span><small>' + escapeHtml(workspaceRoleDescription(member.role)) + '</small></div>' + (removable ? '<div class="workspace-member-actions"><select data-member-role="' + escapeHtml(member.id) + '">' + ["admin","operator","billing","finance","viewer"].map(function(role){return '<option value="'+role+'"'+(member.role===role?' selected':'')+'>'+workspaceRoleLabel(role)+'</option>';}).join("") + '</select><button class="btn btn-danger" type="button" data-remove-member="' + escapeHtml(member.id) + '">Remover</button></div>' : '<span class="workspace-owner">Proprietário</span>') + '</div>';
+            }).join("") : '<p class="settings-note">Nenhum colaborador cadastrado.</p>');
+            list.querySelectorAll("[data-member-role]").forEach(function (select) {
+                select.addEventListener("change", function () {
+                    workspaceMemberRef(cloudWorkspaceId, select.dataset.memberRole).set({ role: select.value }, { merge: true })
+                        .then(renderWorkspaceMembers)
+                        .catch(function(error){ setCloudError(cloudErrorMessage(error)); });
+                });
+            });
             list.querySelectorAll("[data-remove-member]").forEach(function (button) {
                 button.addEventListener("click", function () {
                     if (!window.confirm("Remover o acesso deste colaborador?")) return;
@@ -1285,6 +1317,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             });
         }).catch(function (error) {
             list.innerHTML = '<p class="cloud-error">Não foi possível carregar os colaboradores.</p>';
+            if (overview) overview.innerHTML = "";
             setCloudError(cloudErrorMessage(error));
         });
     }
