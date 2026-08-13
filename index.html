@@ -218,29 +218,38 @@
             <div class="summary" id="summary"></div>
 
             <!-- Seção de Gastos Gerais -->
-            <section class="summary-bar">
-                <h2 id="expensesTitle">Gastos gerais</h2>
-                <p class="summary-report-intro">
-                    Despesas do portfólio em
-                    <span id="expensesYear">2026</span>.
-                </p>
+            <section class="summary-bar expenses-dashboard" aria-labelledby="expensesTitle">
+                <header class="expenses-dashboard-header">
+                    <div>
+                        <p class="expenses-eyebrow">Controle financeiro</p>
+                        <h2 id="expensesTitle">Gastos gerais</h2>
+                        <p class="summary-report-intro">
+                            Despesas do portfólio em
+                            <span id="expensesYear">2026</span>.
+                        </p>
+                    </div>
+                    <div class="expenses-dashboard-actions">
+                        <button id="toggleExpenses" class="btn btn-ghost" type="button" hidden>
+                            Mostrar meses
+                        </button>
+                        <button id="addExpense" class="btn btn-primary" type="button">
+                            + Novo gasto
+                        </button>
+                    </div>
+                </header>
 
-                <span class="summary-report-intro">Gastos no ano: </span>
-                <strong id="expensesTotal">R$ 0,00</strong>
-                <p></p>
+                <div class="expenses-overview">
+                    <div class="expenses-total-card">
+                        <span>Gastos no ano</span>
+                        <strong id="expensesTotal">R$ 0,00</strong>
+                    </div>
+                    <div class="expenses-metrics" aria-label="Resumo dos gastos">
+                        <span id="expensesCount">0 lançamentos</span>
+                        <span id="expensesTopCategory">Sem categoria principal</span>
+                    </div>
+                </div>
 
-                <button
-                    id="toggleExpenses"
-                    class="btn btn-ghost"
-                    type="button"
-                    hidden
-                >
-                    Mostrar meses
-                </button>
-                <button id="addExpense" class="btn btn-primary" type="button">
-                    + Novo gasto
-                </button>
-
+                <div id="expensesPreview" class="expenses-preview" aria-live="polite"></div>
                 <div id="expensesList"></div>
             </section>
 
