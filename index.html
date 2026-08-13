@@ -621,274 +621,115 @@
         <!-- Modal de Configurações -->
         <div class="modal-backdrop" id="settingsModal" hidden>
             <div class="modal settings-modal">
-                <h2>Configurações</h2>
-
-                <p class="settings-note">
-                    Defina os encargos aplicados aos pagamentos em atraso.
-                </p>
-
-                <label
-                    >Multa (%)
-                    <input
-                        type="number"
-                        id="finePercent"
-                        inputmode="decimal"
-                        min="0"
-                        step="0.01"
-                    />
-                </label>
-
-                <label
-                    >Juros (% ao dia)
-                    <input
-                        type="number"
-                        id="dailyInterestPercent"
-                        inputmode="decimal"
-                        min="0"
-                        step="0.01"
-                    />
-                </label>
-
-                <label>Antecedência do lembrete (dias)
-                    <input type="number" id="reminderDays" inputmode="numeric" min="0" max="30" step="1" />
-                    <small class="field-help">Quando avisar sobre vencimentos próximos.</small>
-                </label>
-
-                <label
-                    >Nome do recebedor
-                    <input
-                        type="text"
-                        id="receiverName"
-                        placeholder="Opcional"
-                        autocomplete="name"
-                    />
-                    <small class="field-help">Será exibido nos recibos.</small>
-                </label>
-
-                <section class="category-section">
-                    <h3>Categorias de gasto</h3>
-                    <p id="categoryStatus" class="settings-note">
-                        Edite as opções disponíveis para os gastos.
-                    </p>
-                    <div id="categoryList"></div>
-                    <div class="category-add">
-                        <input
-                            id="newCategory"
-                            type="text"
-                            maxlength="60"
-                            placeholder="Nova categoria"
-                            autocomplete="off"
-                        />
-                        <button
-                            id="addCategory"
-                            class="btn btn-ghost"
-                            type="button"
-                        >
-                            Adicionar
-                        </button>
+                <div class="settings-heading">
+                    <div>
+                        <h2>Configurações</h2>
+                        <p>Organize sua conta, cobranças e proteção dos dados.</p>
                     </div>
-                </section>
+                </div>
 
-                <section class="enterprise-section">
-                    <h3>Empreendimentos</h3>
-                    <p id="enterpriseStatus" class="settings-note">
-                        Organize unidades e gastos por empreendimento.
-                    </p>
-                    <div id="enterpriseList"></div>
-                    <div class="category-add">
-                        <input
-                            id="newEnterprise"
-                            type="text"
-                            maxlength="80"
-                            placeholder="Novo empreendimento"
-                            autocomplete="off"
-                        />
-                        <button
-                            id="addEnterprise"
-                            class="btn btn-ghost"
-                            type="button"
-                        >
-                            Adicionar
-                        </button>
-                    </div>
-                </section>
-
-                <section class="cloud-section">
-                    <h3>Conta / Nuvem</h3>
-                    <p id="cloudStatus" class="settings-note">
-                        A sincronização é opcional. Seus dados continuam
-                        disponíveis neste dispositivo.
-                    </p>
-                    <div id="cloudSignedOut">
-                        <label
-                            >E-mail
-                            <input
-                                type="email"
-                                id="cloudEmail"
-                                autocomplete="email"
-                                placeholder="voce@exemplo.com"
-                            />
-                        </label>
-                        <label
-                            >Senha
-                            <input
-                                type="password"
-                                id="cloudPassword"
-                                autocomplete="current-password"
-                                minlength="6"
-                                placeholder="Mínimo de 6 caracteres"
-                            />
-                        </label>
-                        <div class="cloud-actions">
-                            <button
-                                id="cloudSignIn"
-                                class="btn btn-primary"
-                                type="button"
-                            >
-                                Entrar
-                            </button>
-                            <button id="cloudSignUp" class="btn btn-ghost" type="button">Criar conta</button>
-                            <button id="cloudGoogleSignIn" class="btn btn-ghost" type="button">Entrar com Google</button>
-                            <button id="cloudResetPassword" class="btn btn-ghost" type="button">Esqueci minha senha</button>
-                        </div>
-                    </div>
-                    <div id="cloudSignedIn" hidden>
-                        <p class="cloud-user">
-                            Conectado como <strong id="cloudUserEmail"></strong>
-                        </p>
-                        <section id="workspaceSection" class="workspace-section" hidden>
-                            <h3>Área de trabalho</h3>
-                            <label>Dados que você está acessando
-                                <select id="workspaceSelect" aria-label="Área de trabalho"></select>
-                            </label>
-                            <p id="workspaceRole" class="settings-note"></p>
+                <details class="settings-panel" open>
+                    <summary>
+                        <span class="settings-panel-icon">👥</span>
+                        <span><strong>Conta e área de trabalho</strong><small>Conta, sincronização e colaboradores</small></span>
+                    </summary>
+                    <div class="settings-panel-content">
+                        <section class="cloud-section">
+                            <p id="cloudStatus" class="settings-note">A sincronização é opcional. Seus dados continuam disponíveis neste dispositivo.</p>
+                            <div id="cloudSignedOut">
+                                <label>E-mail<input type="email" id="cloudEmail" autocomplete="email" placeholder="voce@exemplo.com" /></label>
+                                <label>Senha<input type="password" id="cloudPassword" autocomplete="current-password" minlength="6" placeholder="Mínimo de 6 caracteres" /></label>
+                                <div class="cloud-actions">
+                                    <button id="cloudSignIn" class="btn btn-primary" type="button">Entrar</button>
+                                    <button id="cloudSignUp" class="btn btn-ghost" type="button">Criar conta</button>
+                                    <button id="cloudGoogleSignIn" class="btn btn-ghost" type="button">Entrar com Google</button>
+                                    <button id="cloudResetPassword" class="btn btn-ghost" type="button">Esqueci minha senha</button>
+                                </div>
+                            </div>
+                            <div id="cloudSignedIn" hidden>
+                                <p class="cloud-user">Conectado como <strong id="cloudUserEmail"></strong></p>
+                                <section id="workspaceSection" class="workspace-section" hidden>
+                                    <h3>Área de trabalho</h3>
+                                    <label>Dados que você está acessando<select id="workspaceSelect" aria-label="Área de trabalho"></select></label>
+                                    <p id="workspaceRole" class="settings-note"></p>
+                                </section>
+                                <section id="workspaceMembersSection" class="workspace-section" hidden>
+                                    <h3>Colaboradores</h3>
+                                    <p class="settings-note">Gere um link e envie à pessoa que deverá acessar esta área.</p>
+                                    <label>Permissão do convite<select id="workspaceInviteRole"><option value="operator">Operador — pode trabalhar nos dados</option><option value="admin">Administrador — também gerencia colaboradores</option><option value="viewer">Consulta — apenas visualiza</option></select></label>
+                                    <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Gerar link de convite</button>
+                                    <p id="workspaceInviteResult" class="settings-note" hidden></p>
+                                    <div id="workspaceMembersList" class="workspace-members-list"></div>
+                                </section>
+                                <p id="syncStatus" class="settings-note">Sincronizando...</p>
+                                <p id="cloudVerification" class="settings-note" hidden></p>
+                                <div class="cloud-actions">
+                                    <button id="cloudResendVerification" class="btn btn-ghost" type="button" hidden>Reenviar confirmação de e-mail</button>
+                                    <button id="cloudSignOut" class="btn btn-danger" type="button">Sair</button>
+                                </div>
+                            </div>
+                            <p id="cloudError" class="cloud-error" role="alert"></p>
+                            <div id="cloudReconcile" class="cloud-reconcile" hidden>
+                                <p id="cloudReconcileText"></p>
+                                <div class="cloud-actions"><button id="useCloudData" class="btn btn-primary" type="button">Usar dados da nuvem</button><button id="useLocalData" class="btn btn-ghost" type="button">Enviar dados deste aparelho</button></div>
+                            </div>
                         </section>
-                        <section id="workspaceMembersSection" class="workspace-section" hidden>
-                            <h3>Colaboradores</h3>
-                            <p class="settings-note">Gere um link e envie à pessoa que deverá acessar esta área.</p>
-                            <label>Permissão do convite
-                                <select id="workspaceInviteRole">
-                                    <option value="operator">Operador — pode trabalhar nos dados</option>
-                                    <option value="admin">Administrador — também gerencia colaboradores</option>
-                                    <option value="viewer">Consulta — apenas visualiza</option>
-                                </select>
-                            </label>
-                            <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Gerar link de convite</button>
-                            <p id="workspaceInviteResult" class="settings-note" hidden></p>
-                            <div id="workspaceMembersList" class="workspace-members-list"></div>
-                        </section>
-                        <p id="syncStatus" class="settings-note">Sincronizando...</p>
-                        <p id="cloudVerification" class="settings-note" hidden></p>
-                        <button id="cloudResendVerification" class="btn btn-ghost" type="button" hidden>Reenviar confirmação de e-mail</button>
-                        <button
-                            id="cloudSignOut"
-                            class="btn btn-ghost"
-                            type="button"
-                        >
-                            Sair
-                        </button>
                     </div>
-                    <p id="cloudError" class="cloud-error" role="alert"></p>
-                    <div id="cloudReconcile" class="cloud-reconcile" hidden>
-                        <p id="cloudReconcileText"></p>
-                        <div class="cloud-actions">
-                            <button
-                                id="useCloudData"
-                                class="btn btn-primary"
-                                type="button"
-                            >
-                                Usar dados da nuvem
-                            </button>
-                            <button
-                                id="useLocalData"
-                                class="btn btn-ghost"
-                                type="button"
-                            >
-                                Enviar dados deste aparelho
-                            </button>
-                        </div>
+                </details>
+
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">💲</span><span><strong>Cobrança</strong><small>Multa, juros, lembretes e recibos</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p class="settings-note">Defina os encargos aplicados aos pagamentos em atraso.</p>
+                        <label>Multa (%)<input type="number" id="finePercent" inputmode="decimal" min="0" step="0.01" /></label>
+                        <label>Juros (% ao dia)<input type="number" id="dailyInterestPercent" inputmode="decimal" min="0" step="0.01" /></label>
+                        <label>Antecedência do lembrete (dias)<input type="number" id="reminderDays" inputmode="numeric" min="0" max="30" step="1" /><small class="field-help">Quando avisar sobre vencimentos próximos.</small></label>
+                        <label>Nome do recebedor<input type="text" id="receiverName" placeholder="Opcional" autocomplete="name" /><small class="field-help">Será exibido nos recibos.</small></label>
                     </div>
-                </section>
+                </details>
 
-                <section class="backup-section">
-                    <h3>Proteção dos dados</h3>
-                    <p class="settings-note">Backups automáticos são criados antes de encerramentos, exclusões e baixas.</p>
-                    <div id="backupHistoryList" class="backup-history-list"></div>
-                    <button id="createBackupNow" class="btn btn-ghost" type="button">Criar backup agora</button>
-                </section>
-
-                <section class="security-section">
-                    <h3>Segurança</h3>
-                    <p id="securityStatus" class="settings-note"></p>
-                    <label id="currentPinLabel"
-                        >PIN atual
-                        <input
-                            type="password"
-                            id="currentPin"
-                            inputmode="numeric"
-                            pattern="[0-9]*"
-                            autocomplete="current-password"
-                            maxlength="32"
-                        />
-                    </label>
-                    <label
-                        >Novo PIN
-                        <input
-                            type="password"
-                            id="newPin"
-                            inputmode="numeric"
-                            pattern="[0-9]*"
-                            autocomplete="new-password"
-                            minlength="4"
-                            maxlength="32"
-                        />
-                    </label>
-                    <label
-                        >Confirmar novo PIN
-                        <input
-                            type="password"
-                            id="confirmPin"
-                            inputmode="numeric"
-                            pattern="[0-9]*"
-                            autocomplete="new-password"
-                            minlength="4"
-                            maxlength="32"
-                        />
-                    </label>
-                    <div class="security-actions">
-                        <button
-                            id="savePin"
-                            class="btn btn-primary"
-                            type="button"
-                        >
-                            Salvar PIN
-                        </button>
-                        <button
-                            id="removePin"
-                            class="btn btn-danger"
-                            type="button"
-                        >
-                            Remover PIN
-                        </button>
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🏢</span><span><strong>Empreendimentos</strong><small>Organize unidades e gastos por local</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p id="enterpriseStatus" class="settings-note">Organize unidades e gastos por empreendimento.</p>
+                        <div id="enterpriseList"></div>
+                        <div class="category-add"><input id="newEnterprise" type="text" maxlength="80" placeholder="Novo empreendimento" autocomplete="off" /><button id="addEnterprise" class="btn btn-ghost" type="button">Adicionar</button></div>
                     </div>
-                </section>
+                </details>
 
-                <div class="modal-actions">
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🏷️</span><span><strong>Gastos</strong><small>Personalize as categorias disponíveis</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p id="categoryStatus" class="settings-note">Edite as opções disponíveis para os gastos.</p>
+                        <div id="categoryList"></div>
+                        <div class="category-add"><input id="newCategory" type="text" maxlength="60" placeholder="Nova categoria" autocomplete="off" /><button id="addCategory" class="btn btn-ghost" type="button">Adicionar</button></div>
+                    </div>
+                </details>
+
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🔒</span><span><strong>Segurança</strong><small>PIN e proteção deste dispositivo</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p id="securityStatus" class="settings-note"></p>
+                        <label id="currentPinLabel">PIN atual<input type="password" id="currentPin" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" /></label>
+                        <label>Novo PIN<input type="password" id="newPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
+                        <label>Confirmar novo PIN<input type="password" id="confirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
+                        <div class="security-actions"><button id="savePin" class="btn btn-primary" type="button">Salvar PIN</button><button id="removePin" class="btn btn-danger" type="button">Remover PIN</button></div>
+                    </div>
+                </details>
+
+                <details class="settings-panel">
+                    <summary><span class="settings-panel-icon">🗂️</span><span><strong>Dados e backup</strong><small>Histórico e cópias de segurança</small></span></summary>
+                    <div class="settings-panel-content">
+                        <p class="settings-note">Backups automáticos são criados antes de encerramentos, exclusões e baixas.</p>
+                        <div id="backupHistoryList" class="backup-history-list"></div>
+                        <button id="createBackupNow" class="btn btn-ghost" type="button">Criar backup agora</button>
+                    </div>
+                </details>
+
+                <div class="modal-actions settings-footer">
                     <span class="spacer"></span>
-                    <button
-                        id="cancelSettings"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        id="saveSettings"
-                        class="btn btn-primary"
-                        type="button"
-                    >
-                        Salvar
-                    </button>
+                    <button id="cancelSettings" class="btn btn-ghost" type="button">Cancelar</button>
+                    <button id="saveSettings" class="btn btn-primary" type="button">Salvar alterações</button>
                 </div>
             </div>
         </div>
