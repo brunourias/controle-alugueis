@@ -3819,8 +3819,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var urgent = [], week = [], decisions = [];
         var currentMonth = today.getMonth();
 
-        function add(list, title, description, unitId, action) {
-            list.push({ title: title, description: description, unitId: unitId || "", action: action || "" });
+        function add(list, title, description, unitId, action, recordId, recordType) {
+            list.push({
+                title: title,
+                description: description,
+                unitId: unitId || "",
+                action: action || "",
+                recordId: recordId || "",
+                recordType: recordType || ""
+            });
         }
 
         scopedUnits().forEach(function (unit) {
@@ -3837,8 +3844,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 if (!date) return;
                 var label = unit.name + " · retorno de cobrança";
                 var detail = (unit.tenantName || "Inquilino") + " · " + chargeKindLabel(entry.kind);
-                if (date <= today) add(urgent, label, detail + " · ação prevista para " + formatTimelineDate(entry.nextActionDate), unit.id, "charge");
-                else if (date <= weekEnd) add(week, label, detail + " · em " + formatTimelineDate(entry.nextActionDate), unit.id, "charge");
+                if (date <= today) add(urgent, label, detail + " · ação prevista para " + formatTimelineDate(entry.nextActionDate), unit.id, "charge", entry.id, "charge");
+                else if (date <= weekEnd) add(week, label, detail + " · em " + formatTimelineDate(entry.nextActionDate), unit.id, "charge", entry.id, "charge");
             });
             if (selectedYear === today.getFullYear() && isActive(unit, currentMonth)) {
                 var reminder = dueReminder(unit);
@@ -3861,7 +3868,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         state.tasks.filter(function (task) { return !task.done; }).forEach(function (task) {
             var date = chargeLogDate(task.dueDate);
             var target = !date || date <= today ? urgent : date <= weekEnd ? week : null;
-            if (target) add(target, "Tarefa · " + task.title, date ? "Prazo: " + formatTimelineDate(task.dueDate) : "Sem prazo definido", task.unitId, "task:" + task.id);
+            if (target) add(target, "Tarefa · " + task.title, date ? "Prazo: " + formatTimelineDate(task.dueDate) : "Sem prazo definido", task.unitId, "task:" + task.id, task.id, "task");
         });
 
         var taxReviewCount = scopedExpenses().filter(function (expense) {
@@ -3877,7 +3884,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     item.action === "tax" ? '<button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button>' :
                     item.action && item.action.indexOf("task:") === 0 ? '<button class="btn btn-ghost" type="button" data-task-done="' + escapeHtml(item.action.slice(5)) + '">Concluir</button>' :
                     item.unitId ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Ver</button>' : "";
-                return '<div class="operations-row action-priority-row ' + tone + '"><div><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.description) + '</span></div>' + button + '</div>';
+                var removeButton = item.recordType === "charge"
+                    ? '<button class="btn btn-danger" type="button" data-delete-charge-record="' + escapeHtml(item.unitId) + '" data-charge-record-id="' + escapeHtml(item.recordId) + '">Excluir</button>'
+                    : item.recordType === "task"
+                        ? '<button class="btn btn-danger" type="button" data-delete-task="' + escapeHtml(item.recordId) + '">Excluir</button>'
+                        : "";
+                return '<div class="operations-row action-priority-row ' + tone + '"><div><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.description) + '</span></div><div class="action-row-actions">' + button + removeButton + '</div></div>';
             }).join("");
         }
 
@@ -3919,6 +3931,26 @@ undefined || item.rent === "" ? null : Number(item.rent);
         container.querySelectorAll("[data-task-done]").forEach(function (button) { button.addEventListener("click", function () {
             var task = state.tasks.find(function (item) { return item.id === button.dataset.taskDone; });
             if (task) { task.done = true; saveState(); render(); }
+        }); });
+        container.querySelectorAll("[data-delete-charge-record]").forEach(function (button) { button.addEventListener("click", function () {
+            var unit = state.units.find(function (item) { return item.id === button.dataset.deleteChargeRecord; });
+            if (!unit || !window.confirm("Excluir este registro de cobrança?")) return;
+            unit.chargeLog = (unit.chargeLog || []).filter(function (entry) {
+                return entry.id !== button.dataset.chargeRecordId;
+            });
+            createVersionedBackup("Remoção de registro de cobrança", unit.name);
+            recordOperation("Registro de cobrança removido", unit.name);
+            saveState();
+            render();
+        }); });
+        container.querySelectorAll("[data-delete-task]").forEach(function (button) { button.addEventListener("click", function () {
+            var task = state.tasks.find(function (item) { return item.id === button.dataset.deleteTask; });
+            if (!task || !window.confirm("Excluir esta tarefa?")) return;
+            createVersionedBackup("Remoção de tarefa", task.title);
+            recordOperation("Tarefa removida", task.title);
+            state.tasks = state.tasks.filter(function (item) { return item.id !== task.id; });
+            saveState();
+            render();
         }); });
         container.querySelectorAll("[data-open-tax-dashboard]").forEach(function (button) { button.addEventListener("click", function () { taxDashboardExpanded = true; renderTaxDashboard(); var dashboard = document.getElementById("taxDashboard"); if (dashboard) dashboard.scrollIntoView({ behavior: "smooth", block: "start" }); }); });
     }
