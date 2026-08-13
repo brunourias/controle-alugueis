@@ -3971,3 +3971,70 @@ textarea:focus-visible {
         grid-column: 1 / -1;
     }
 }
+
+
+/* Dashboard financeiro por empreendimento */
+.enterprise-dashboard-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.enterprise-dashboard-cards .dashboard-card {
+    position: relative;
+    min-height: 126px;
+    padding: 15px;
+    overflow: hidden;
+}
+
+.enterprise-dashboard-cards .dashboard-card::after {
+    content: "";
+    position: absolute;
+    right: -24px;
+    bottom: -32px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(15, 118, 110, .045);
+}
+
+.enterprise-dashboard-cards .dashboard-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.enterprise-dashboard-cards .dashboard-card-primary {
+    border-color: #a9dcd2;
+    background: linear-gradient(135deg, #eaf8f5, #fff);
+}
+
+.enterprise-dashboard-cards .dashboard-card-primary .summary-value {
+    color: var(--teal);
+}
+
+.enterprise-dashboard-cards .dashboard-card-occupancy {
+    border-color: #c5dfda;
+    background: #f7fcfb;
+}
+
+.enterprise-dashboard-cards .summary-year {
+    min-height: 116px;
+    background: #f7fbfa;
+}
+
+@media (max-width: 760px) {
+    .enterprise-dashboard-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .enterprise-dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 9px;
+    }
+
+    .enterprise-dashboard-cards .dashboard-card,
+    .enterprise-dashboard-cards .summary-year {
+        min-height: 0;
+    }
+}
