@@ -677,6 +677,11 @@ var historyRent = document.getElementById("historyRent");
             taxTreatment: ["dedutivel", "nao_dedutivel", "revisar"].indexOf(expense.taxTreatment) >= 0 ? expense.taxTreatment : "revisar",
             taxProvider: typeof expense.taxProvider === "string" ? expense.taxProvider.trim().slice(0, 120) : "",
             taxDocument: typeof expense.taxDocument === "string" ? expense.taxDocument.trim().slice(0, 80) : "",
+            // Usado para mostrar os últimos lançamentos pela ordem de inclusão,
+            // independentemente da data contábil escolhida.
+            createdAt: typeof expense.createdAt === "string" && !Number.isNaN(Date.parse(expense.createdAt))
+                ? expense.createdAt
+                : date + "T00:00:00.000Z",
             recurrenceId:
                 typeof expense.recurrenceId === "string" &&
                 expense.recurrenceId.trim()
@@ -4743,6 +4748,8 @@ function renderSummary() {
         var recentExpenses = yearExpenses
             .slice()
             .sort(function (a, b) {
+                var byCreation = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+                if (byCreation) return byCreation;
                 return String(b.date || b.ym).localeCompare(String(a.date || a.ym));
             })
             .slice(0, 3);
