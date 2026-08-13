@@ -4639,3 +4639,12 @@ textarea:focus-visible {
 .workspace-members-heading { margin: 17px 0 8px; }
 .workspace-member-row small { display: block; max-width: 460px; margin-top: 3px; color: #68817f; font-size: .67rem; line-height: 1.35; }
 @media (max-width: 560px) { .workspace-role-matrix { grid-template-columns: 1fr; } .workspace-member-row { align-items: flex-start; flex-direction: column; } }
+
+
+/* Aprovação manual de novos cadastros */
+.account-access-notice { margin: 10px 0; padding: 10px 12px; border: 1px solid #e8c88d; border-radius: 10px; color: #805400; background: #fff9eb; font-size: .78rem; line-height: 1.45; }
+.platform-approvals { margin-top: 14px; padding-top: 14px; border-top: 1px solid #dceae7; }
+.platform-approvals-list { display: grid; gap: 8px; margin-top: 10px; }
+.platform-approval-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid #dceae7; border-radius: 11px; background: #fbfefd; }
+.platform-approval-row strong, .platform-approval-row span { display: block; }.platform-approval-row strong { color: #075f5b; font-size: .82rem; }.platform-approval-row span { margin-top: 3px; color: #647f7d; font-size: .7rem; }.platform-approval-row > div:last-child { display: flex; gap: 6px; }.platform-approval-row .btn { min-height: 31px; padding: 5px 8px; font-size: .68rem; }
+@media (max-width: 560px) { .platform-approval-row { align-items: flex-start; flex-direction: column; }.platform-approval-row > div:last-child { width: 100%; }.platform-approval-row .btn { flex: 1; } }
