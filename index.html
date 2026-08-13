@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=064" />
+        <link rel="stylesheet" href="styles.css?v=065" />
     
 <style>
     /* Histórico de contratos */
@@ -540,6 +540,7 @@
                                 <p class="cloud-user">Conectado como <strong id="cloudUserEmail"></strong></p>
                                 <p id="accountAccessNotice" class="account-access-notice" hidden></p>
                                 <p id="planUsage" class="plan-usage" hidden></p>
+                                <p id="subscriptionNotice" class="subscription-notice" hidden></p>
                                 <section id="workspaceSection" class="workspace-section" hidden>
                                     <h3>Área de trabalho</h3>
                                     <label>Dados que você está acessando<select id="workspaceSelect" aria-label="Área de trabalho"></select></label>
@@ -660,6 +661,7 @@
                 <section id="platformApprovalsSection" class="workspace-section platform-approvals" hidden>
                     <h3>Contas e assinaturas</h3>
                     <p class="settings-note">Aprove acessos, defina o plano, acompanhe vencimentos e ajuste exceções.</p>
+                    <label class="platform-filter">Mostrar<select id="platformSubscriptionFilter"><option value="all">Todas as contas</option><option value="trial">Em teste</option><option value="active">Assinatura ativa</option><option value="overdue">Pagamento vencido</option><option value="canceled">Cancelada</option><option value="pending">Aguardando aprovação</option><option value="suspended">Acesso suspenso</option></select></label>
                     <div id="platformApprovalsList" class="platform-approvals-list"></div>
                 </section>
                 <section class="workspace-section platform-catalog">
@@ -939,6 +941,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=064"></script>
+    <script src="app.js?v=065"></script>
     </body>
 </html>
