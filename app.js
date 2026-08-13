@@ -879,13 +879,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         if (
             code === "permission-denied" ||
-            code === "firestore/permission-denied"
+            code === "firestore/permission-denied" ||
+            /permission|permiss[aã]o|insufficient/i.test(String(error && error.message || ""))
         )
             return error && error.workspaceStep
-                ? "A nuvem bloqueou ao tentar " + error.workspaceStep + "."
-                : "A conta entrou, mas as regras da nuvem ainda não permitem acessar os dados.";
+                ? "A nuvem bloqueou ao tentar " + error.workspaceStep + ". Verifique se as regras do Firestore atualizadas foram publicadas."
+                : "A conta entrou, mas as regras da nuvem ainda não permitem acessar os dados. Publique as regras atualizadas do Firestore.";
 
-        return "Não foi possível conectar à nuvem agora. Os dados locais continuam disponíveis.";
+        if (code === "unavailable" || code === "firestore/unavailable")
+            return "A nuvem está indisponível no momento. Verifique a conexão e tente novamente.";
+
+        if (code === "failed-precondition" || code === "firestore/failed-precondition")
+            return "O armazenamento local da nuvem está em atualização. Feche outras abas do app e tente novamente.";
+
+        var detail = error && error.workspaceStep ? " (" + error.workspaceStep + ")" : "";
+        return "Não foi possível conectar à nuvem agora" + detail + ". Os dados locais continuam disponíveis.";
     }
 
     function cloudCounts(value) {
@@ -1747,6 +1755,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             cloudAccountApproved = false;
             setAccountAccessNotice("");
             requestOrCheckAccountApproval(user)
+                .catch(function (error) {
+                    error.workspaceStep = error.workspaceStep || "verificar a aprovação da conta";
+                    throw error;
+                })
                 .then(function (approved) {
                     cloudAccountApproved = approved;
                     updateCloudUi();
@@ -1766,10 +1778,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         .then(function () { return loadWorkspaceList(); });
                 })
                 .then(function (result) {
-                    if (result === null && !cloudAccountApproved) return;
+                    if (result === null && !cloudAccountApproved) return null;
                     return acceptInviteFromUrl();
                 })
-                .then(function () { return acceptInviteFromUrl(); })
                 .then(function (acceptedWorkspaceId) {
                     return loadWorkspaceList().then(function () { return acceptedWorkspaceId; });
                 })
