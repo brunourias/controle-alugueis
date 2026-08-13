@@ -5438,10 +5438,10 @@ function saveExpense() {
         renderCategoryManager();
         renderEnterpriseManager();
         setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
-        if (!Number.isInteger(followUp) || followUp < 1 || followUp > 30) { overdueFollowUpDays.setCustomValidity("Informe de 1 a 30 dias."); overdueFollowUpDays.reportValidity(); overdueFollowUpDays.focus(); return; }
-        if (!Number.isFinite(adjustment) || adjustment < -100 || adjustment > 1000) { defaultAdjustmentPercent.setCustomValidity("Informe um percentual válido."); defaultAdjustmentPercent.reportValidity(); defaultAdjustmentPercent.focus(); return; }
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
+        overdueFollowUpDays.setCustomValidity("");
+        defaultAdjustmentPercent.setCustomValidity("");
         renderBackupHistory();
         ModalManager.open(settingsModal);
     }
@@ -5474,6 +5474,12 @@ function saveExpense() {
         }
         if (!Number.isInteger(reminder) || reminder < 0 || reminder > 30) {
             reminderDays.setCustomValidity("Informe de 0 a 30 dias."); reminderDays.reportValidity(); reminderDays.focus(); return;
+        }
+        if (!Number.isInteger(followUp) || followUp < 1 || followUp > 30) {
+            overdueFollowUpDays.setCustomValidity("Informe de 1 a 30 dias."); overdueFollowUpDays.reportValidity(); overdueFollowUpDays.focus(); return;
+        }
+        if (!Number.isFinite(adjustment) || adjustment < -100 || adjustment > 1000) {
+            defaultAdjustmentPercent.setCustomValidity("Informe um percentual válido."); defaultAdjustmentPercent.reportValidity(); defaultAdjustmentPercent.focus(); return;
         }
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
