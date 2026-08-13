@@ -2933,3 +2933,63 @@ textarea:focus-visible {
         bottom: -14px;
     }
 }
+
+
+/* Refinamento visual do ajuste de pagamento */
+.payment-adjust-modal .payment-adjust-heading {
+    margin-bottom: 12px;
+}
+
+.payment-adjust-modal .payment-adjust-heading h2 {
+    font-size: 1.16rem;
+    letter-spacing: -.01em;
+}
+
+.payment-adjust-modal .settings-panel {
+    box-shadow: none;
+}
+
+.payment-adjust-modal .settings-panel summary {
+    min-height: 52px;
+    padding: 10px 12px;
+}
+
+.payment-adjust-modal .settings-panel summary > span {
+    color: var(--teal-dark);
+    font-size: .85rem;
+    font-weight: 750;
+}
+
+.payment-adjust-modal .settings-panel-content,
+.payment-adjust-modal .settings-panel-body {
+    padding: 4px 12px 13px;
+}
+
+.payment-adjust-modal .settings-panel label {
+    font-size: .76rem;
+}
+
+.payment-adjust-modal .settings-panel input,
+.payment-adjust-modal .settings-panel textarea {
+    margin-top: 5px;
+}
+
+.payment-adjust-total {
+    margin-top: 12px;
+    padding: 11px 12px;
+    font-size: .84rem;
+}
+
+.payment-adjust-total input {
+    font-size: .9rem;
+}
+
+@media (max-width: 520px) {
+    .payment-adjust-modal .payment-adjust-heading h2 {
+        font-size: 1.08rem;
+    }
+
+    .payment-adjust-modal .settings-panel summary {
+        min-height: 50px;
+    }
+}
