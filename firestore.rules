@@ -6,8 +6,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // A única área que alguém pode inicializar sozinho é a sua área pessoal.
-    // Isso permite a checagem inicial antes da criação, sem expor workspaces alheios.
+    // Uma conta só pode inicializar/reparar a área com o seu próprio UID.
     function personalWorkspace(workspaceId) {
       return signedIn() && workspaceId == "personal-" + request.auth.uid;
     }
@@ -38,10 +37,6 @@ service cloud.firestore {
       return value == "admin" || value == "operator" || value == "viewer";
     }
 
-    /*
-     * Formato legado. Mantido apenas para a migração automática e como
-     * cópia de segurança do estado que existia antes dos workspaces.
-     */
     match /users/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
@@ -51,23 +46,29 @@ service cloud.firestore {
     }
 
     match /workspaces/{workspaceId} {
-      // Cada pessoa pode criar a própria área, mas somente para si.
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      // A conta pode sempre configurar apenas sua própria área pessoal.
+      // Nenhum outro workspace recebe esta exceção.
+      allow create: if personalWorkspace(workspaceId) &&
+        request.resource.data.ownerId == request.auth.uid;
+      allow update: if owner(workspaceId) ||
+        (personalWorkspace(workspaceId) &&
+          request.resource.data.ownerId == request.auth.uid);
+      allow delete: if owner(workspaceId);
       allow read: if member(workspaceId) || personalWorkspace(workspaceId);
-      allow update, delete: if owner(workspaceId);
 
       match /members/{memberId} {
+        // Necessário para o primeiro login e restrito ao próprio vínculo.
         allow get: if member(workspaceId) &&
-          (memberId == request.auth.uid || manager(workspaceId));
+          (memberId == request.auth.uid || manager(workspaceId)) ||
+          (personalWorkspace(workspaceId) && memberId == request.auth.uid);
         allow list: if manager(workspaceId);
 
-        // Proprietário inicial, convite aceito ou inclusão por gestor.
-        allow create: if manager(workspaceId) ||
-          // Criação inicial da área pessoal no primeiro login.
+        // Primeiro proprietário ou colaborador aceitando um convite.
+        allow create, update: if
           (personalWorkspace(workspaceId) &&
             memberId == request.auth.uid &&
             request.resource.data.role == "owner") ||
-          // Aceite de um convite: o usuário cria somente a própria associação.
+          manager(workspaceId) ||
           (signedIn() &&
             memberId == request.auth.uid &&
             invitedRole(request.resource.data.role) &&
@@ -77,24 +78,14 @@ service cloud.firestore {
             get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.expiresAt > request.time &&
             get(/databases/$(database)/documents/workspaces/$(workspaceId)/invites/$(request.resource.data.inviteId)).data.role == request.resource.data.role);
 
-        // Não é permitido remover ou alterar o proprietário pelo cliente.
-        allow update: if owner(workspaceId) && resource.data.role != "owner";
         allow delete: if manager(workspaceId) && resource.data.role != "owner";
       }
 
       match /invites/{inviteId} {
-        allow create: if manager(workspaceId) &&
-          invitedRole(request.resource.data.role) &&
-          request.resource.data.status == "pending";
-
-        // Somente gestores listam convites. Quem recebeu o link pode obter
-        // exclusivamente o documento cujo token já possui.
+        allow create, delete: if manager(workspaceId);
         allow list: if manager(workspaceId);
         allow get: if manager(workspaceId) ||
           (signedIn() && resource.data.status == "pending" && resource.data.expiresAt > request.time);
-
-        // O aceite só pode marcar o próprio usuário, na mesma operação que
-        // cria a sua associação em members/{uid}.
         allow update: if manager(workspaceId) ||
           (signedIn() &&
             resource.data.status == "pending" &&
@@ -105,18 +96,14 @@ service cloud.firestore {
             request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(["status", "acceptedBy", "acceptedAt"]) &&
             existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)));
-
-        allow delete: if manager(workspaceId);
       }
 
-      // Documento legado usado somente na migração para o esquema granular.
+      // Mantém o formato anterior somente como contingência de migração.
       match /state/{stateId} {
         allow read, create, update: if owner(workspaceId);
         allow delete: if false;
       }
 
-      // Dados operacionais separados para evitar que a alteração de uma
-      // unidade sobrescreva dados de outra unidade em uma sessão paralela.
       match /meta/{metaId} {
         allow read: if member(workspaceId);
         allow create, update, delete: if writer(workspaceId);
