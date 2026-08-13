@@ -93,6 +93,9 @@ const ModalManager = (() => {
     };
 
     var DEFAULT_ENTERPRISE_NAME = "Meu empreendimento";
+    // Administrador da plataforma: aprova quem pode iniciar um espaço próprio.
+    // A proteção efetiva é reforçada pelas regras do Firestore entregues junto.
+    var PLATFORM_ADMIN_EMAILS = ["brunourias@gmail.com"];
 
     var DEFAULT_SETTINGS = {
         finePercent: 10,
@@ -309,6 +312,9 @@ var historyRent = document.getElementById("historyRent");
     var useCloudData = document.getElementById("useCloudData");
     var useLocalData = document.getElementById("useLocalData");
     var cloudBanner = document.getElementById("cloudBanner");
+    var accountAccessNotice = document.getElementById("accountAccessNotice");
+    var platformApprovalsSection = document.getElementById("platformApprovalsSection");
+    var platformApprovalsList = document.getElementById("platformApprovalsList");
     var cloudBannerText = document.getElementById("cloudBannerText");
     var bannerUseCloud = document.getElementById("bannerUseCloud");
     var bannerUseLocal = document.getElementById("bannerUseLocal");
@@ -331,6 +337,7 @@ var historyRent = document.getElementById("historyRent");
     var cloudWorkspaces = [];
     var cloudWorkspaceRole = null;
     var workspaceUiBound = false;
+    var cloudAccountApproved = false;
 
     function newEnterpriseId() {
         return (
@@ -976,6 +983,93 @@ undefined || item.rent === "" ? null : Number(item.rent);
      * Contas antigas têm o documento users/{uid} copiado para essa área;
      * o documento legado é preservado como uma cópia de segurança.
      */
+    function isPlatformAdmin(user) {
+        return !!(user && user.email && PLATFORM_ADMIN_EMAILS.indexOf(String(user.email).toLowerCase()) >= 0);
+    }
+
+    function accessRequestRef(userId) {
+        return firebaseDb && userId ? firebaseDb.collection("accessRequests").doc(userId) : null;
+    }
+
+    function setAccountAccessNotice(message, pending) {
+        if (!accountAccessNotice) return;
+        accountAccessNotice.hidden = !message;
+        accountAccessNotice.textContent = message || "";
+        accountAccessNotice.classList.toggle("is-pending", !!pending);
+    }
+
+    function requestOrCheckAccountApproval(user) {
+        if (!firebaseDb || !user) return Promise.resolve(false);
+        if (isPlatformAdmin(user)) return Promise.resolve(true);
+        var profile = firebaseDb.collection("profiles").doc(user.uid);
+        // Usuários já existentes continuam ativos ao habilitar o modo de aprovação.
+        return profile.get().then(function (profileSnapshot) {
+            if (profileSnapshot.exists) return true;
+            var request = accessRequestRef(user.uid);
+            return request.get().then(function (snapshot) {
+                var data = snapshot.exists ? snapshot.data() || {} : {};
+                if (data.status === "approved") return true;
+                if (data.status === "rejected") {
+                    setAccountAccessNotice("Seu cadastro não foi aprovado. Fale com a administração para solicitar uma revisão.", true);
+                    return false;
+                }
+                if (snapshot.exists) {
+                    setAccountAccessNotice("Cadastro recebido. Sua conta está aguardando aprovação para criar a área de trabalho.", true);
+                    return false;
+                }
+                return request.set({
+                    uid: user.uid,
+                    email: user.email || "",
+                    displayName: user.displayName || "",
+                    status: "pending",
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                }).then(function () {
+                    setAccountAccessNotice("Cadastro recebido. Sua conta está aguardando aprovação para criar a área de trabalho.", true);
+                    return false;
+                });
+            });
+        });
+    }
+
+    function renderPlatformApprovals() {
+        if (!platformApprovalsSection || !platformApprovalsList) return;
+        var canApprove = isPlatformAdmin(firebaseUser);
+        platformApprovalsSection.hidden = !canApprove;
+        if (!canApprove || !firebaseDb) return;
+        platformApprovalsList.innerHTML = '<p class="settings-note">Carregando solicitações...</p>';
+        firebaseDb.collection("accessRequests").where("status", "==", "pending").get().then(function (snapshot) {
+            var requests = [];
+            snapshot.forEach(function (item) {
+                var data = item.data() || {};
+                requests.push({ id: item.id, email: data.email || item.id, displayName: data.displayName || "", createdAt: Number(data.createdAt) || 0 });
+            });
+            requests.sort(function (left, right) { return left.createdAt - right.createdAt; });
+            platformApprovalsList.innerHTML = requests.length ? requests.map(function (request) {
+                var when = request.createdAt ? new Date(request.createdAt).toLocaleDateString("pt-BR") : "data não informada";
+                return '<div class="platform-approval-row"><div><strong>' + escapeHtml(request.displayName || request.email) + '</strong><span>' + escapeHtml(request.email) + ' · solicitou em ' + escapeHtml(when) + '</span></div><div><button class="btn btn-primary" type="button" data-approve-account="' + escapeHtml(request.id) + '">Aprovar</button><button class="btn btn-danger" type="button" data-reject-account="' + escapeHtml(request.id) + '">Recusar</button></div></div>';
+            }).join("") : '<p class="settings-note">Nenhum cadastro aguardando aprovação.</p>';
+            platformApprovalsList.querySelectorAll("[data-approve-account]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    accessRequestRef(button.dataset.approveAccount).set({ status: "approved", approvedAt: Date.now(), approvedBy: firebaseUser.uid, updatedAt: Date.now() }, { merge: true })
+                        .then(renderPlatformApprovals)
+                        .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                });
+            });
+            platformApprovalsList.querySelectorAll("[data-reject-account]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (!window.confirm("Recusar este cadastro? A pessoa poderá pedir nova revisão depois.")) return;
+                    accessRequestRef(button.dataset.rejectAccount).set({ status: "rejected", rejectedAt: Date.now(), rejectedBy: firebaseUser.uid, updatedAt: Date.now() }, { merge: true })
+                        .then(renderPlatformApprovals)
+                        .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                });
+            });
+        }).catch(function (error) {
+            platformApprovalsList.innerHTML = '<p class="cloud-error">Não foi possível carregar as solicitações.</p>';
+            setCloudError(cloudErrorMessage(error));
+        });
+    }
+
     function ensurePersonalWorkspace(user) {
         if (!firebaseDb || !user) return Promise.reject(new Error("Nuvem indisponível"));
 
@@ -1108,9 +1202,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var membersSection = document.getElementById("workspaceMembersSection");
         if (!section || !selector || !role || !membersSection) return;
 
-        section.hidden = !firebaseUser;
-        membersSection.hidden = !firebaseUser || !canManageWorkspace();
-        if (!firebaseUser) return;
+        section.hidden = !firebaseUser || !cloudAccountApproved;
+        membersSection.hidden = !firebaseUser || !cloudAccountApproved || !canManageWorkspace();
+        if (!firebaseUser || !cloudAccountApproved) return;
 
         selector.innerHTML = cloudWorkspaces.map(function (workspace) {
             return '<option value="' + escapeHtml(workspace.id) + '">' +
@@ -1120,6 +1214,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         role.textContent = "Sua permissão: " + workspaceRoleLabel(cloudWorkspaceRole);
 
         if (canManageWorkspace()) renderWorkspaceMembers();
+        renderPlatformApprovals();
     }
 
     function loadWorkspaceList() {
@@ -1648,10 +1743,32 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         if (user) {
-            setCloudStatus("Conta conectada. Preparando sua área de trabalho...");
-
-            ensurePersonalWorkspace(user)
-                .then(function () { return loadWorkspaceList(); })
+            setCloudStatus("Conta conectada. Verificando a liberação da conta...");
+            cloudAccountApproved = false;
+            setAccountAccessNotice("");
+            requestOrCheckAccountApproval(user)
+                .then(function (approved) {
+                    cloudAccountApproved = approved;
+                    updateCloudUi();
+                    renderWorkspaceControls();
+                    if (!approved) {
+                        cloudWorkspaceReady = false;
+                        cloudWorkspaceId = null;
+                        cloudWorkspaces = [];
+                        cloudWorkspaceRole = null;
+                        setCloudStatus("Conta conectada. Aguardando aprovação da administração.");
+                        setSyncStatus("Acesso pendente");
+                        renderPlatformApprovals();
+                        return null;
+                    }
+                    setAccountAccessNotice("");
+                    return ensurePersonalWorkspace(user)
+                        .then(function () { return loadWorkspaceList(); });
+                })
+                .then(function (result) {
+                    if (result === null && !cloudAccountApproved) return;
+                    return acceptInviteFromUrl();
+                })
                 .then(function () { return acceptInviteFromUrl(); })
                 .then(function (acceptedWorkspaceId) {
                     return loadWorkspaceList().then(function () { return acceptedWorkspaceId; });
@@ -1670,6 +1787,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     setSyncStatus("Não sincronizado — salvo localmente");
                 });
         } else {
+            cloudAccountApproved = false;
+            setAccountAccessNotice("");
+            if (platformApprovalsSection) platformApprovalsSection.hidden = true;
             cloudWorkspaceId = null;
             cloudWorkspaceReady = false;
             cloudWorkspaces = [];
@@ -5489,6 +5609,7 @@ function saveExpense() {
         overdueFollowUpDays.setCustomValidity("");
         defaultAdjustmentPercent.setCustomValidity("");
         renderBackupHistory();
+        renderPlatformApprovals();
         ModalManager.open(settingsModal);
     }
 
