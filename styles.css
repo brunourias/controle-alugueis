@@ -4232,3 +4232,15 @@ textarea:focus-visible {
     .annual-report-body .ar-table { display: block; overflow-x: auto; }
     .annual-report-body .ar-footer { flex-direction: column; }
 }
+
+
+.tenant-whatsapp-icon {
+    display: block;
+    width: 15px;
+    height: 15px;
+}
+
+.tenant-action:has(.tenant-whatsapp-icon) {
+    color: #128c7e;
+    background: #e1f6ec;
+}
