@@ -6391,7 +6391,7 @@ function saveExpense() {
         };
 
         return '<div class="annual-report">' +
-            '<header class="ar-header"><div><p class="ar-eyebrow">Relatório financeiro</p><h1>Resumo do ano ' + selectedYear + '</h1><p class="ar-meta">' + escapeHtml(scope) + ' · Emitido em ' + escapeHtml(formatDate(new Date())) + (state.settings.receiverName ? ' · Recebedor: ' + escapeHtml(state.settings.receiverName) : '') + '</p></div><div class="ar-mark">CA</div></header>' +
+            '<header class="ar-header"><div><p class="ar-eyebrow">Relatório financeiro</p><h1>Resumo do ano ' + selectedYear + '</h1><p class="ar-meta">' + escapeHtml(scope) + ' · Emitido em ' + escapeHtml(formatDate(new Date())) + (state.settings.receiverName ? ' · Recebedor: ' + escapeHtml(state.settings.receiverName) : '') + '</p></div></header>' +
             '<div class="ar-totals">' +
                 totalCard("Previsto", money(annualExpected), "is-primary", "Contratos ativos no período") +
                 totalCard("Recebido", money(annualReceived), "", "Baixas de contratos ativos e encerrados") +
