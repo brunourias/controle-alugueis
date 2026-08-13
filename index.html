@@ -584,6 +584,13 @@
                         <label>Novo PIN<input type="password" id="newPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
                         <label>Confirmar novo PIN<input type="password" id="confirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
                         <div class="security-actions"><button id="savePin" class="btn btn-primary" type="button">Salvar PIN</button><button id="removePin" class="btn btn-danger" type="button">Remover PIN</button></div>
+                        <div class="biometric-section">
+                            <p id="biometricStatus" class="settings-note">A digital ainda não está configurada neste aparelho.</p>
+                            <div class="security-actions">
+                                <button id="enableBiometric" class="btn btn-ghost" type="button" hidden>Ativar desbloqueio por digital</button>
+                                <button id="removeBiometric" class="btn btn-danger" type="button" hidden>Remover digital</button>
+                            </div>
+                        </div>
                     </div>
                 </details>
 
@@ -766,6 +773,7 @@
                         />
                     </label>
                     <p id="authError" class="auth-error" role="alert"></p>
+                    <button id="authBiometric" class="btn btn-ghost auth-biometric" type="button" hidden>Entrar com digital</button>
                     <div class="modal-actions">
                         <span class="spacer"></span>
                         <button
