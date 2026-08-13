@@ -502,13 +502,13 @@ tfoot th {
 thead th:first-child {
     left: 0;
     z-index: 5;
-    min-width: 140px;
+    min-width: 128px;
     text-align: left;
 }
 
 tbody th {
     z-index: 2;
-    min-width: 140px;
+    min-width: 128px;
     padding: 11px 12px;
     text-align: left;
     font-size: .84rem;
@@ -517,7 +517,7 @@ tbody th {
 
 tfoot th {
     z-index: 4;
-    min-width: 140px;
+    min-width: 128px;
     text-align: left;
 }
 
