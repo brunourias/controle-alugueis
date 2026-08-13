@@ -320,6 +320,7 @@ var historyRent = document.getElementById("historyRent");
     var platformAdminModal = document.getElementById("platformAdminModal");
     var platformAdminButton = document.getElementById("platformAdminButton");
     var platformAdminBadge = document.getElementById("platformAdminBadge");
+    var subscriptionNotice = document.getElementById("subscriptionNotice");
     var cloudBannerText = document.getElementById("cloudBannerText");
     var bannerUseCloud = document.getElementById("bannerUseCloud");
     var bannerUseLocal = document.getElementById("bannerUseLocal");
@@ -1082,6 +1083,38 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return { trial: "Em teste", active: "Assinatura ativa", overdue: "Pagamento vencido", canceled: "Assinatura cancelada" }[status] || "Em teste";
     }
 
+    function addSubscriptionDays(days) {
+        var date = new Date();
+        date.setHours(12, 0, 0, 0);
+        date.setDate(date.getDate() + Number(days || 0));
+        return date.toISOString().slice(0, 10);
+    }
+
+    function subscriptionDueInfo(value) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return { kind: "none", days: null };
+        var target = new Date(value + "T12:00:00");
+        var today = new Date();
+        today.setHours(12, 0, 0, 0);
+        var days = Math.round((target - today) / 86400000);
+        return { kind: days < 0 ? "expired" : days <= 7 ? "soon" : "ok", days: days };
+    }
+
+    function updateSubscriptionNotice() {
+        if (!subscriptionNotice) return;
+        var account = cloudAccountSettings || {};
+        var info = subscriptionDueInfo(account.subscriptionDueDate);
+        var status = account.subscriptionStatus;
+        subscriptionNotice.hidden = !firebaseUser || isPlatformAdmin(firebaseUser) || (info.kind !== "expired" && info.kind !== "soon" && status !== "overdue");
+        if (subscriptionNotice.hidden) return;
+        var message = info.kind === "expired"
+            ? "Seu plano venceu em " + Math.abs(info.days) + " dia(s). Fale com a administração para renovar."
+            : info.kind === "soon"
+                ? "Seu plano vence em " + info.days + " dia(s). Programe a renovação."
+                : "Há uma pendência na sua assinatura. Fale com a administração.";
+        subscriptionNotice.textContent = message;
+        subscriptionNotice.classList.toggle("is-expired", info.kind === "expired" || status === "overdue");
+    }
+
     function platformPlanLabel(plan) {
         if (cloudAccountSettings && cloudAccountSettings.plan === plan && cloudAccountSettings.planName)
             return String(cloudAccountSettings.planName);
@@ -1256,30 +1289,33 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (!platformPendingUnsubscribe) subscribePlatformRequests();
     }
 
-    function setPlatformPendingCount(count) {
+    function setPlatformPendingCount(pending, subscriptionAlerts) {
         if (!platformAdminBadge) return;
-        count = Number(count) || 0;
+        pending = Number(pending) || 0;
+        subscriptionAlerts = Number(subscriptionAlerts) || 0;
+        var count = pending + subscriptionAlerts;
         platformAdminBadge.hidden = count < 1;
         platformAdminBadge.textContent = count > 99 ? "99+" : String(count);
-        platformAdminButton.setAttribute("aria-label", count
-            ? "Administração da plataforma: " + count + " solicitações pendentes"
-            : "Administração da plataforma");
-        platformAdminButton.title = count
-            ? count + " solicitação(ões) aguardando aprovação"
-            : "Administração da plataforma";
+        var pieces = [];
+        if (pending) pieces.push(pending + " solicitação(ões)");
+        if (subscriptionAlerts) pieces.push(subscriptionAlerts + " assinatura(s) para revisar");
+        platformAdminButton.setAttribute("aria-label", count ? "Administração da plataforma: " + pieces.join(" e ") : "Administração da plataforma");
+        platformAdminButton.title = count ? pieces.join(" · ") : "Administração da plataforma";
     }
 
     function subscribePlatformRequests() {
         if (!isPlatformAdmin(firebaseUser) || !firebaseDb || platformPendingUnsubscribe) return;
-        platformPendingUnsubscribe = firebaseDb.collection("accessRequests")
-            .where("status", "==", "pending")
-            .onSnapshot(function (snapshot) {
-                setPlatformPendingCount(snapshot.size);
-                if (platformApprovalsSection && !platformAdminModal.hidden)
-                    renderPlatformApprovals();
-            }, function () {
-                setPlatformPendingCount(0);
+        platformPendingUnsubscribe = firebaseDb.collection("accessRequests").onSnapshot(function (snapshot) {
+            var pending = 0, alerts = 0;
+            snapshot.forEach(function (item) {
+                var account = item.data() || {};
+                if (account.status === "pending") pending += 1;
+                var due = subscriptionDueInfo(account.subscriptionDueDate);
+                if (account.status === "approved" && (due.kind === "expired" || due.kind === "soon" || account.subscriptionStatus === "overdue")) alerts += 1;
             });
+            setPlatformPendingCount(pending, alerts);
+            if (platformApprovalsSection && platformAdminModal && !platformAdminModal.hidden) renderPlatformApprovals();
+        }, function () { setPlatformPendingCount(0, 0); });
     }
 
     function openPlatformAdmin() {
@@ -1347,6 +1383,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     right.createdAt - left.createdAt;
             });
 
+            var filter = document.getElementById("platformSubscriptionFilter");
+            var filterValue = filter ? filter.value : "all";
+            if (filterValue !== "all") list = list.filter(function (item) {
+                return filterValue === "pending" ? item.status === "pending" :
+                    filterValue === "suspended" ? item.status === "suspended" :
+                    item.subscriptionStatus === filterValue;
+            });
+
             var active = list.filter(function (item) { return item.status === "approved"; }).length;
             var pending = list.filter(function (item) { return item.status === "pending"; }).length;
             var suspended = list.filter(function (item) { return item.status === "suspended"; }).length;
@@ -1371,13 +1415,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     '<div class="platform-account-main"><strong>' + escapeHtml(account.displayName || account.email) + '</strong>' +
                     '<span>' + escapeHtml(account.email) + ' · desde ' + escapeHtml(date) + '</span>' +
                     '<div class="platform-account-meta"><b class="platform-status platform-status-' + escapeHtml(account.status) + '">' + escapeHtml(platformAccountStatusLabel(account.status)) + '</b>' +
+                    '<b class="subscription-status subscription-' + escapeHtml(subscriptionDueInfo(account.subscriptionDueDate).kind) + '">' + escapeHtml(subscriptionStatusLabel(account.subscriptionStatus)) + (account.subscriptionDueDate ? ' · vence ' + escapeHtml(formatDate(account.subscriptionDueDate)) : '') + '</b>' +
                     '<span>' + account.workspaces + ' área(s)</span>' +
                     '<span>limite: ' + Number(account.limits.units || 0) + ' unidades · ' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + ' empreendimentos · ' + Number(account.limits.users || 0) + ' usuários</span></div></div>' +
                     '<div class="platform-account-actions"><label>Plano<select data-account-plan="' + escapeHtml(account.id) + '">' +
                     platformPlans().map(function (plan) {
                         return '<option value="' + escapeHtml(plan.id) + '"' + (plan.id === account.plan ? " selected" : "") + '>' + escapeHtml(plan.name) + '</option>';
                     }).join("") + '</select></label><label>Assinatura<select data-subscription-status="' + escapeHtml(account.id) + '">' +
-                    ["trial", "active", "overdue", "canceled"].map(function (status) { return '<option value="' + status + '"' + (status === account.subscriptionStatus ? " selected" : "") + '>' + subscriptionStatusLabel(status) + '</option>'; }).join("") + '</select></label><label>Vence em<input type="date" data-subscription-due="' + escapeHtml(account.id) + '" value="' + escapeHtml(account.subscriptionDueDate || "") + '"></label><details class="platform-limit-editor"><summary>Limites</summary><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></details>' + primaryAction + '</div></article>';
+                    ["trial", "active", "overdue", "canceled"].map(function (status) { return '<option value="' + status + '"' + (status === account.subscriptionStatus ? " selected" : "") + '>' + subscriptionStatusLabel(status) + '</option>'; }).join("") + '</select></label><label>Vence em<input type="date" data-subscription-due="' + escapeHtml(account.id) + '" value="' + escapeHtml(account.subscriptionDueDate || "") + '"></label><details class="platform-limit-editor"><summary>Limites</summary><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></details><button class="btn btn-ghost" type="button" data-renew-subscription="' + escapeHtml(account.id) + '">+30 dias</button>' + primaryAction + '</div></article>';
             }).join("") : '<p class="settings-note">Nenhuma conta cadastrada ainda.</p>');
 
             platformApprovalsList.querySelectorAll("[data-platform-activate]").forEach(function (button) {
@@ -1387,6 +1432,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     updatePlatformAccount(button.dataset.platformActivate, {
                         status: "approved", plan: plan, planName: platformPlanLabel(plan), limits: defaultPlatformLimits(plan),
                         subscriptionStatus: plan === "trial" ? "trial" : "active",
+                        subscriptionDueDate: addSubscriptionDays(30),
                         approvedAt: Date.now(), approvedBy: firebaseUser.uid
                     }, "Conta aprovada");
                 });
@@ -1401,6 +1447,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 select.addEventListener("change", function () {
                     var plan = select.value;
                     updatePlatformAccount(select.dataset.accountPlan, { plan: plan, planName: platformPlanLabel(plan), limits: defaultPlatformLimits(plan) }, "Plano alterado");
+                });
+            });
+            platformApprovalsList.querySelectorAll("[data-renew-subscription]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    var accountId = button.dataset.renewSubscription;
+                    var due = addSubscriptionDays(30);
+                    updatePlatformAccount(accountId, { subscriptionStatus: "active", subscriptionDueDate: due }, "Assinatura renovada por 30 dias");
                 });
             });
             platformApprovalsList.querySelectorAll("[data-subscription-status], [data-subscription-due]").forEach(function (input) {
@@ -7643,6 +7696,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     if (finishOnboardingButton) finishOnboardingButton.addEventListener("click", function () { closeOnboarding(true); });
     var savePlatformPlanButton = document.getElementById("savePlatformPlan");
     if (savePlatformPlanButton) savePlatformPlanButton.addEventListener("click", savePlatformPlan);
+    var platformSubscriptionFilter = document.getElementById("platformSubscriptionFilter");
+    if (platformSubscriptionFilter) platformSubscriptionFilter.addEventListener("change", renderPlatformApprovals);
 
     document
         .getElementById("cancelSettings")
