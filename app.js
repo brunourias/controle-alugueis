@@ -2860,75 +2860,180 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function renderActionCenter() {
         var container = document.getElementById("actionCenter");
         if (!container) return;
-        var today = new Date(); today.setHours(0, 0, 0, 0);
-        var overdue = 0, overdueTotal = 0, dueSoon = 0, vacant = 0, renewals = [], calendar = [], enterprises = {};
+
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        var overdue = 0, overdueTotal = 0, dueSoon = 0, vacant = 0;
+        var renewals = [], calendar = [], enterprises = {};
+        var overdueItems = [], dueSoonItems = [], vacantItems = [];
+
         scopedUnits().forEach(function (unit) {
             var enterprise = empreendimentoName(unit.empreendimentoId);
             enterprises[enterprise] = enterprises[enterprise] || { units: 0, expected: 0, received: 0, late: 0 };
             enterprises[enterprise].units += 1;
-            if (!String(unit.tenantName || "").trim()) vacant += 1;
+
+            if (!String(unit.tenantName || "").trim()) {
+                vacant += 1;
+                vacantItems.push(unit);
+            }
+
             months.forEach(function (_, month) {
-                var key = monthKey(month), ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+                var key = monthKey(month);
+                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
                 if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") {
-                    overdue += 1; enterprises[enterprise].late += 1;
-                    overdueTotal += (ledger[key] === true || ledger[key] === "open")
+                    var amount = (ledger[key] === true || ledger[key] === "open")
                         ? historicLateRent(unit, key)
                         : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
+                    overdue += 1;
+                    enterprises[enterprise].late += 1;
+                    overdueTotal += amount;
+                    overdueItems.push({ unit: unit, month: month, amount: amount });
                 }
             });
+
             var currentMonth = today.getMonth();
             if (isActive(unit, currentMonth)) {
                 enterprises[enterprise].expected += Number(rentForMonth(unit, selectedYear, currentMonth)) || 0;
                 enterprises[enterprise].received += historicalReceivedAmount(unit, selectedYear, currentMonth);
+
                 var reminder = dueReminder(unit);
-                if (reminder !== null) { dueSoon += 1; calendar.push({ date: dueDateFor(unit, currentMonth), label: unit.name + " · vence em " + reminder + " dia(s)" }); }
+                if (reminder !== null) {
+                    dueSoon += 1;
+                    dueSoonItems.push({ unit: unit, days: reminder });
+                    calendar.push({ date: dueDateFor(unit, currentMonth), label: unit.name + " · vence em " + reminder + " dia(s)" });
+                }
             }
+
             if (unit.endDate && String(unit.endDate).match(/^\d{4}-\d{2}-\d{2}$/) && String(unit.tenantName || "").trim()) {
-                var endDate = new Date(unit.endDate + "T12:00:00"), days = Math.ceil((endDate - today) / 86400000);
-                if (days >= 0 && days <= 60) { renewals.push({ unit: unit, days: days }); calendar.push({ date: endDate, label: unit.name + " · contrato termina" }); }
+                var endDate = new Date(unit.endDate + "T12:00:00");
+                var days = Math.ceil((endDate - today) / 86400000);
+                if (days >= 0 && days <= 60) {
+                    renewals.push({ unit: unit, days: days });
+                    calendar.push({ date: endDate, label: unit.name + " · contrato termina" });
+                }
             }
         });
-        var tasks = state.tasks.filter(function (task) { return !task.done; }).sort(function (a,b) { return String(a.dueDate).localeCompare(String(b.dueDate)); });
+
+        var tasks = state.tasks.filter(function (task) {
+            return !task.done;
+        }).sort(function (a, b) {
+            return String(a.dueDate || "9999-12-31").localeCompare(String(b.dueDate || "9999-12-31"));
+        });
+
         var alerts = [];
         if (overdue) alerts.push('<div class="summary-card summary-alert action-overdue-card"><div class="summary-label">⚠️ ' + overdue + ' ' + (overdue === 1 ? 'pagamento' : 'pagamentos') + ' em atraso</div><div class="summary-value">' + money(overdueTotal) + '</div><div class="summary-detail">Total em atraso no ano, com multa e juros</div></div>');
-        if (dueSoon) alerts.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Antecedência configurada nas configurações</span></div>');
-        if (vacant) alerts.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para nova locação</span></div>');
+        if (dueSoon) alerts.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Use os atalhos abaixo para revisar ou cobrar.</span></div>');
+        if (vacant) alerts.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para cadastrar uma nova locação.</span></div>');
+
+        var overdueHtml = overdueItems.slice(0, 5).map(function (item) {
+            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + fullMonths[item.month] + ' · ' + money(item.amount) + '</span></div><button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unit.id) + '">Ver</button></div>';
+        }).join("") || '<p class="operations-empty">Nenhuma parcela em atraso.</p>';
+
+        var dueHtml = dueSoonItems.slice(0, 5).map(function (item) {
+            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName || "Sem inquilino") + ' · vence em ' + item.days + ' dia(s)</span></div><button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unit.id) + '">Ver</button></div>';
+        }).join("") || '<p class="operations-empty">Nenhum vencimento próximo.</p>';
+
+        var vacancyHtml = vacantItems.slice(0, 5).map(function (unit) {
+            return '<div class="operations-row"><div><strong>' + escapeHtml(unit.name) + '</strong><span>Sem contrato atual</span></div><button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(unit.id) + '">Cadastrar</button></div>';
+        }).join("") || '<p class="operations-empty">Nenhuma unidade vaga.</p>';
+
         var renewalHtml = renewals.map(function (item) {
             var decision = state.renewalDecisions[item.unit.id] || "";
-            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName) + ' · termina em ' + item.days + ' dias' + (decision ? ' · ' + escapeHtml(decision) : '') + '</span></div><div><button class="btn btn-ghost" data-renewal-decision="renovar" data-unit-id="' + escapeHtml(item.unit.id) + '">Renovar</button><button class="btn btn-ghost" data-renewal-decision="decidir" data-unit-id="' + escapeHtml(item.unit.id) + '">A decidir</button></div></div>';
+            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName) + ' · termina em ' + item.days + ' dias' + (decision ? ' · ' + escapeHtml(decision) : '') + '</span></div><div class="operations-actions"><button class="btn btn-ghost" type="button" data-renewal-decision="renovar" data-unit-id="' + escapeHtml(item.unit.id) + '">Renovar</button><button class="btn btn-ghost" type="button" data-renewal-decision="decidir" data-unit-id="' + escapeHtml(item.unit.id) + '">Decidir</button></div></div>';
         }).join("") || '<p class="operations-empty">Nenhum contrato perto do fim.</p>';
-        var tasksHtml = tasks.slice(0,5).map(function (task) {
-            return '<div class="operations-row"><label><input type="checkbox" data-task-done="' + escapeHtml(task.id) + '"> <strong>' + escapeHtml(task.title) + '</strong><span>' + (task.dueDate ? 'Até ' + escapeHtml(formatTimelineDate(task.dueDate)) : 'Sem prazo') + '</span></label></div>';
+
+        var tasksHtml = tasks.slice(0, 8).map(function (task) {
+            return '<div class="operations-row task-row"><label><input type="checkbox" data-task-done="' + escapeHtml(task.id) + '"><span><strong>' + escapeHtml(task.title) + '</strong><small>' + (task.dueDate ? 'Até ' + escapeHtml(formatTimelineDate(task.dueDate)) : 'Sem prazo') + '</small></span></label></div>';
         }).join("") || '<p class="operations-empty">Nenhuma tarefa pendente.</p>';
-        var calendarHtml = calendar.filter(function (item) { return item.date && item.date >= today; }).sort(function(a,b){return a.date-b.date;}).slice(0,5).map(function(item) {
-            return '<div class="calendar-event"><b>' + String(item.date.getDate()).padStart(2,"0") + '</b><span>' + escapeHtml(item.label) + '</span></div>';
+
+        var calendarHtml = calendar.filter(function (item) {
+            return item.date && item.date >= today;
+        }).sort(function (a, b) {
+            return a.date - b.date;
+        }).slice(0, 5).map(function (item) {
+            return '<div class="calendar-event"><b>' + String(item.date.getDate()).padStart(2, "0") + '</b><span>' + escapeHtml(item.label) + '</span></div>';
         }).join("") || '<p class="operations-empty">Nenhum evento próximo.</p>';
-        var enterpriseHtml = Object.keys(enterprises).map(function (name) { var item=enterprises[name]; return '<div class="enterprise-kpi"><strong>' + escapeHtml(name) + '</strong><span>' + item.units + ' unidades · ' + money(item.received) + ' recebido de ' + money(item.expected) + '</span>' + (item.late ? '<em>' + item.late + ' atraso(s)</em>' : '') + '</div>'; }).join("");
-        var attentionCount = overdue + dueSoon + renewals.length + tasks.length;
+
+        var enterpriseHtml = Object.keys(enterprises).map(function (name) {
+            var item = enterprises[name];
+            return '<div class="enterprise-kpi"><strong>' + escapeHtml(name) + '</strong><span>' + item.units + ' unidades · ' + money(item.received) + ' recebido de ' + money(item.expected) + '</span>' + (item.late ? '<em>' + item.late + ' atraso(s)</em>' : '') + '</div>';
+        }).join("") || '<p class="operations-empty">Nenhum empreendimento selecionado.</p>';
+
+        var attentionCount = overdue + dueSoon + vacant + renewals.length + tasks.length;
         var alertBadge = attentionCount
             ? '<span class="action-alert-badge" aria-label="' + attentionCount + ' avisos">' + attentionCount + '</span>'
             : '<span class="action-ok-badge" aria-label="Sem avisos">✓</span>';
+
+        var taskForm = '<form id="operationalTaskForm" class="operational-task-form"><label class="sr-only" for="operationalTaskTitle">Nova tarefa</label><input id="operationalTaskTitle" type="text" maxlength="140" placeholder="Ex.: Cobrar comprovante" required><label class="sr-only" for="operationalTaskDue">Prazo</label><input id="operationalTaskDue" type="date"><button class="btn btn-primary" type="submit">Adicionar</button></form>';
+
         var detail = (alerts.length ? '<div class="action-list">' + alerts.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>') +
-            '<div class="operations-grid"><section><h3>Renovações</h3>' + renewalHtml + '</section><section><h3>Tarefas</h3>' + tasksHtml + '</section><section><h3>Próximos eventos</h3>' + calendarHtml + '</section><section><h3>Por empreendimento</h3>' + enterpriseHtml + '</section></div>';
+            '<div class="operations-grid">' +
+                '<section><h3>Cobranças em atraso</h3>' + overdueHtml + '</section>' +
+                '<section><h3>Próximos vencimentos</h3>' + dueHtml + '</section>' +
+                '<section><h3>Renovações</h3>' + renewalHtml + '</section>' +
+                '<section><h3>Unidades vagas</h3>' + vacancyHtml + '</section>' +
+                '<section class="tasks-panel"><h3>Tarefas</h3>' + taskForm + tasksHtml + '</section>' +
+                '<section><h3>Próximos eventos</h3>' + calendarHtml + '</section>' +
+                '<section><h3>Por empreendimento</h3>' + enterpriseHtml + '</section>' +
+            '</div>';
+
         container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Decisões, cobranças e próximos passos.</p></div><div class="action-heading-controls">' + alertBadge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? 'Ocultar' : 'Ver') + '</button></div></div>' +
             (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
+
         document.getElementById("toggleActionCenter").addEventListener("click", function () {
             actionCenterExpanded = !actionCenterExpanded;
             renderActionCenter();
         });
-        var add = document.getElementById("addOperationalTask");
-        if (add) add.addEventListener("click", function () {
-            var title = window.prompt("Qual tarefa você quer registrar?");
-            if (!title || !title.trim()) return;
-            var due = window.prompt("Prazo (DD/MM/AAAA, opcional):") || "";
-            var parsed = due.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            state.tasks.push({ id:"task-"+Date.now().toString(36), title:title.trim(), dueDate:parsed ? parsed[3]+"-"+parsed[2]+"-"+parsed[1] : "", unitId:"", done:false, createdAt:new Date().toISOString() });
-            saveState(); render();
+
+        var taskFormElement = document.getElementById("operationalTaskForm");
+        if (taskFormElement) taskFormElement.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var titleInput = document.getElementById("operationalTaskTitle");
+            var dueInput = document.getElementById("operationalTaskDue");
+            var title = String(titleInput.value || "").trim();
+            if (!title) {
+                titleInput.focus();
+                return;
+            }
+            state.tasks.push({
+                id: "task-" + Date.now().toString(36),
+                title: title,
+                dueDate: isValidDateValue(dueInput.value) ? dueInput.value : "",
+                unitId: "",
+                done: false,
+                createdAt: new Date().toISOString()
+            });
+            saveState();
+            render();
         });
-        container.querySelectorAll("[data-task-done]").forEach(function (input) { input.addEventListener("change", function () { var task=state.tasks.find(function(item){return item.id===input.dataset.taskDone;}); if(task){task.done=input.checked;saveState();render();} }); });
-        container.querySelectorAll("[data-renewal-decision]").forEach(function (button) { button.addEventListener("click", function () { state.renewalDecisions[button.dataset.unitId] = button.dataset.renewalDecision === "renovar" ? "Renovar" : "A decidir"; saveState(); render(); }); });
-        var exportButton = document.getElementById("exportOperationalCsv");
-        if (exportButton) exportButton.addEventListener("click", exportOperationalCsv);
+
+        container.querySelectorAll("[data-task-done]").forEach(function (input) {
+            input.addEventListener("change", function () {
+                var task = state.tasks.find(function (item) {
+                    return item.id === input.dataset.taskDone;
+                });
+                if (task) {
+                    task.done = input.checked;
+                    saveState();
+                    render();
+                }
+            });
+        });
+
+        container.querySelectorAll("[data-open-unit]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                openModal(button.dataset.openUnit);
+            });
+        });
+
+        container.querySelectorAll("[data-renewal-decision]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                state.renewalDecisions[button.dataset.unitId] = button.dataset.renewalDecision === "renovar" ? "Renovar" : "A decidir";
+                saveState();
+                render();
+            });
+        });
     }
 
     function exportOperationalCsv() {
