@@ -2902,7 +2902,6 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (didInitialScroll && visibleUnits.length > 0)
             tableWrap.scrollLeft = lastGridScrollLeft;
         renderSummary();
-        renderCashForecast();
         renderExpenses();
         renderTaxDashboard();
     }
