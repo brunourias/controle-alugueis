@@ -2929,7 +2929,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
             return String(a.dueDate || "9999-12-31").localeCompare(String(b.dueDate || "9999-12-31"));
         });
 
+        var taxReviewCount = scopedExpenses().filter(function (expense) {
+            return expense.ym.slice(0, 4) === String(selectedYear) && expense.taxTreatment !== "dedutivel" && expense.taxTreatment !== "nao_dedutivel";
+        }).length;
+
         var alerts = [];
+        if (taxReviewCount) alerts.push('<div class="action-item is-warning"><strong>' + taxReviewCount + ' gasto' + (taxReviewCount === 1 ? '' : 's') + ' aguardando classificação fiscal</strong><span>Revise antes de usar os valores na conferência do IR.</span><button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button></div>');
         if (overdue) alerts.push('<div class="summary-card summary-alert action-overdue-card"><div class="summary-label">⚠️ ' + overdue + ' ' + (overdue === 1 ? 'pagamento' : 'pagamentos') + ' em atraso</div><div class="summary-value">' + money(overdueTotal) + '</div><div class="summary-detail">Total em atraso no ano, com multa e juros</div></div>');
         if (dueSoon) alerts.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Use os atalhos abaixo para revisar ou cobrar.</span></div>');
         if (vacant) alerts.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para cadastrar uma nova locação.</span></div>');
@@ -3032,6 +3037,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
         container.querySelectorAll("[data-open-unit]").forEach(function (button) {
             button.addEventListener("click", function () {
                 openModal(button.dataset.openUnit);
+            });
+        });
+
+        container.querySelectorAll("[data-open-tax-dashboard]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                taxDashboardExpanded = true;
+                renderTaxDashboard();
+                var dashboard = document.getElementById("taxDashboard");
+                if (dashboard) dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
             });
         });
 
@@ -3763,6 +3777,10 @@ function renderSummary() {
 
         detail.hidden = !taxDashboardExpanded;
         toggle.textContent = taxDashboardExpanded ? "Ocultar conferência" : "Ver conferência";
+        toggle.onclick = function () {
+            taxDashboardExpanded = !taxDashboardExpanded;
+            renderTaxDashboard();
+        };
         if (!taxDashboardExpanded) return;
 
         var reviewRows = review.slice().sort(function (a, b) {
