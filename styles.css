@@ -4413,3 +4413,82 @@ textarea:focus-visible {
         width: 100%;
     }
 }
+
+
+/* Leitura compacta dos lançamentos de gastos */
+.expense-month[open] {
+    padding-bottom: 4px;
+}
+
+.expense-row {
+    grid-template-columns: 78px minmax(0, 1fr) auto auto;
+    gap: 10px;
+    min-height: 42px;
+    padding: 7px 10px 7px 14px;
+    border-left: 2px solid #e1efec;
+}
+
+.expense-row:hover {
+    border-left-color: #6ec8b8;
+    background: #fbfefd;
+}
+
+.expense-row .expense-date {
+    color: #718886;
+    font-size: .68rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.expense-row-main {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    gap: 5px;
+}
+
+.expense-row-main .enterprise-name {
+    display: block;
+    width: 100%;
+    margin-bottom: 2px;
+}
+
+.expense-row-main strong {
+    color: var(--ink);
+    font-size: .77rem;
+}
+
+.expense-row-main span {
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.expense-row .expense-edit {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: .75rem;
+}
+
+@media (max-width: 520px) {
+    .expense-row {
+        grid-template-columns: 74px minmax(0, 1fr) auto auto;
+        gap: 7px;
+        padding: 7px 6px 7px 11px;
+    }
+
+    .expense-row-main {
+        flex-wrap: wrap;
+        gap: 2px 5px;
+    }
+
+    .expense-row-main .enterprise-name {
+        flex-basis: 100%;
+    }
+
+    .expense-row b {
+        font-size: .72rem;
+    }
+}
