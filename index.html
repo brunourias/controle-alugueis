@@ -580,14 +580,27 @@
                     <summary><span class="settings-panel-icon">🔒</span><span><strong>Segurança</strong><small>PIN e proteção deste dispositivo</small></span></summary>
                     <div class="settings-panel-content">
                         <p id="securityStatus" class="settings-note"></p>
-                        <label id="currentPinLabel">PIN atual<input type="password" id="currentPin" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" /></label>
-                        <label>Novo PIN<input type="password" id="newPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
-                        <label>Confirmar novo PIN<input type="password" id="confirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
-                        <div class="security-actions"><button id="savePin" class="btn btn-primary" type="button">Salvar PIN</button><button id="removePin" class="btn btn-danger" type="button">Remover PIN</button></div>
+                        <div id="pinCurrentSection" class="pin-current-section">
+                            <p class="security-help">Informe o PIN atual apenas para confirmar alterações de segurança.</p>
+                            <label id="currentPinLabel">PIN atual<input type="password" id="currentPin" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" maxlength="32" /></label>
+                            <button id="removePin" class="btn btn-danger" type="button">Remover PIN</button>
+                        </div>
+
+                        <details id="pinChangePanel" class="security-subpanel">
+                            <summary>Alterar PIN</summary>
+                            <div>
+                                <label>Novo PIN<input type="password" id="newPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
+                                <label>Confirmar novo PIN<input type="password" id="confirmPin" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="32" /></label>
+                                <button id="savePin" class="btn btn-primary" type="button">Salvar novo PIN</button>
+                            </div>
+                        </details>
+
                         <div class="biometric-section">
+                            <strong>Desbloqueio por digital</strong>
                             <p id="biometricStatus" class="settings-note">A digital ainda não está configurada neste aparelho.</p>
+                            <p class="security-help">Com o PIN atual informado acima, toque em ativar. O aparelho pedirá sua digital, rosto ou bloqueio de tela.</p>
                             <div class="security-actions">
-                                <button id="enableBiometric" class="btn btn-ghost" type="button" hidden>Ativar desbloqueio por digital</button>
+                                <button id="enableBiometric" class="btn btn-primary" type="button" hidden>Ativar desbloqueio por digital</button>
                                 <button id="removeBiometric" class="btn btn-danger" type="button" hidden>Remover digital</button>
                             </div>
                         </div>
