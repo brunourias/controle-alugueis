@@ -756,6 +756,27 @@
                         <p class="cloud-user">
                             Conectado como <strong id="cloudUserEmail"></strong>
                         </p>
+                        <section id="workspaceSection" class="workspace-section" hidden>
+                            <h3>Área de trabalho</h3>
+                            <label>Dados que você está acessando
+                                <select id="workspaceSelect" aria-label="Área de trabalho"></select>
+                            </label>
+                            <p id="workspaceRole" class="settings-note"></p>
+                        </section>
+                        <section id="workspaceMembersSection" class="workspace-section" hidden>
+                            <h3>Colaboradores</h3>
+                            <p class="settings-note">Gere um link e envie à pessoa que deverá acessar esta área.</p>
+                            <label>Permissão do convite
+                                <select id="workspaceInviteRole">
+                                    <option value="operator">Operador — pode trabalhar nos dados</option>
+                                    <option value="admin">Administrador — também gerencia colaboradores</option>
+                                    <option value="viewer">Consulta — apenas visualiza</option>
+                                </select>
+                            </label>
+                            <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Gerar link de convite</button>
+                            <p id="workspaceInviteResult" class="settings-note" hidden></p>
+                            <div id="workspaceMembersList" class="workspace-members-list"></div>
+                        </section>
                         <p id="syncStatus" class="settings-note">Sincronizando...</p>
                         <p id="cloudVerification" class="settings-note" hidden></p>
                         <button id="cloudResendVerification" class="btn btn-ghost" type="button" hidden>Reenviar confirmação de e-mail</button>
