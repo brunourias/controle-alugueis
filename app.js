@@ -6427,6 +6427,26 @@ function saveExpense() {
         });
     }
 
+    function openAnnualReport() {
+        var reportModal = document.getElementById("annualReportModal");
+        var reportContainer = document.getElementById("annualReportContainer");
+        if (!reportModal || !reportContainer) {
+            printAnnualReport();
+            return;
+        }
+
+        reportContainer.innerHTML = buildAnnualReportHtml();
+        reportModal.style.display = "flex";
+        document.body.classList.add("modal-open");
+    }
+
+    function closeAnnualReport() {
+        var reportModal = document.getElementById("annualReportModal");
+        if (!reportModal) return;
+        reportModal.style.display = "none";
+        document.body.classList.remove("modal-open");
+    }
+
     function printAnnualReport() {
         var reportHtml = buildAnnualReportHtml();
 
@@ -6773,7 +6793,25 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     document
         .getElementById("printAnnual")
+        .addEventListener("click", openAnnualReport);
+
+    document
+        .getElementById("printAnnualReportButton")
         .addEventListener("click", printAnnualReport);
+
+    document
+        .getElementById("closeAnnualReport")
+        .addEventListener("click", closeAnnualReport);
+
+    document
+        .getElementById("annualReportModal")
+        .addEventListener("click", function (event) {
+            if (event.target === event.currentTarget) closeAnnualReport();
+        });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") closeAnnualReport();
+    });
 
     document
         .getElementById("toggleSummaryCards")
