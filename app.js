@@ -308,6 +308,14 @@ var historyRent = document.getElementById("historyRent");
     var cloudVerification = document.getElementById("cloudVerification");
     var cloudResendVerification = document.getElementById("cloudResendVerification");
     var cloudError = document.getElementById("cloudError");
+    var accountGate = document.getElementById("accountGate");
+    var accountGateTitle = document.getElementById("accountGateTitle");
+    var accountGateMessage = document.getElementById("accountGateMessage");
+    var accountGateAuth = document.getElementById("accountGateAuth");
+    var accountGatePending = document.getElementById("accountGatePending");
+    var accountGateEmail = document.getElementById("accountGateEmail");
+    var accountGatePassword = document.getElementById("accountGatePassword");
+    var accountGateError = document.getElementById("accountGateError");
     var syncStatus = document.getElementById("syncStatus");
     var cloudReconcile = document.getElementById("cloudReconcile");
     var cloudReconcileText = document.getElementById("cloudReconcileText");
@@ -856,6 +864,22 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function setCloudError(message) {
         cloudError.textContent = message || "";
+        if (accountGateError) accountGateError.textContent = message || "";
+    }
+
+    function setAccountGate(visible, options) {
+        if (!accountGate) return;
+        options = options || {};
+        accountGate.hidden = !visible;
+        document.body.classList.toggle("app-access-gated", !!visible);
+        if (!visible) return;
+
+        closeAuth();
+        appUnlocked = false;
+        accountGateTitle.textContent = options.title || "Acesse sua conta";
+        accountGateMessage.textContent = options.message || "Entre ou crie sua conta para solicitar acesso à plataforma.";
+        accountGateAuth.hidden = !!options.pending;
+        accountGatePending.hidden = !options.pending;
     }
 
     function setSyncStatus(message) {
@@ -2176,6 +2200,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         if (user) {
+            setAccountGate(true, {
+                title: "Verificando acesso",
+                message: "Estamos preparando sua área de trabalho.",
+                pending: true
+            });
             setCloudStatus("Conta conectada. Verificando a liberação da conta...");
             cloudAccountApproved = false;
             setAccountAccessNotice("");
@@ -2195,6 +2224,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         cloudWorkspaceRole = null;
                         setCloudStatus("Conta conectada. Aguardando aprovação da administração.");
                         setSyncStatus("Acesso pendente");
+                        setAccountGate(true, {
+                            title: "Cadastro em análise",
+                            message: "Seu cadastro foi recebido. Aguarde a aprovação da administração para liberar a área de trabalho.",
+                            pending: true
+                        });
                         renderPlatformApprovals();
                         return null;
                     }
@@ -2213,14 +2247,24 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     if (!firebaseUser || firebaseUser.uid !== user.uid) return;
                     bindWorkspaceControls();
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
-                    if (acceptedWorkspaceId) return activateWorkspace(acceptedWorkspaceId);
+                    if (acceptedWorkspaceId) return activateWorkspace(acceptedWorkspaceId).then(function () {
+                        setAccountGate(false);
+                        initAuth();
+                    });
                     reconcileCloud();
+                    setAccountGate(false);
+                    initAuth();
                 })
                 .catch(function (error) {
                     cloudWorkspaceReady = false;
                     cloudWorkspaceId = null;
                     setCloudError(cloudErrorMessage(error));
                     setSyncStatus("Não sincronizado — salvo localmente");
+                    setAccountGate(true, {
+                        title: "Não foi possível liberar o acesso",
+                        message: "Verifique sua conexão ou tente novamente em alguns instantes.",
+                        pending: false
+                    });
                 });
         } else {
             cloudAccountApproved = false;
@@ -2234,6 +2278,11 @@ undefined || item.rent === "" ? null : Number(item.rent);
             setCloudStatus(
                 "Sincronização opcional com Firebase. Seus dados locais permanecem disponíveis."
             );
+            setAccountGate(true, {
+                title: "Acesse sua conta",
+                message: "Entre ou crie sua conta para solicitar acesso à plataforma.",
+                pending: false
+            });
         }
     }
 
@@ -2275,7 +2324,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function cloudAuthButtons() {
-        return ["cloudSignIn", "cloudSignUp", "cloudGoogleSignIn", "cloudResetPassword"]
+        return ["cloudSignIn", "cloudSignUp", "cloudGoogleSignIn", "cloudResetPassword", "accountGateSignIn", "accountGateSignUp", "accountGateGoogle", "accountGateReset"]
             .map(function (id) { return document.getElementById(id); })
             .filter(Boolean);
     }
@@ -2853,6 +2902,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function initAuth() {
+        // O PIN protege este dispositivo, mas não substitui a autenticação
+        // da plataforma. Sem conta liberada, o aplicativo permanece fechado.
+        if (!firebaseUser || !cloudAccountApproved) {
+            setAccountGate(true, {
+                title: "Acesse sua conta",
+                message: "Entre ou crie sua conta para solicitar acesso à plataforma.",
+                pending: false
+            });
+            return;
+        }
         
         if (lockConfig) {
             openAuthLogin();
@@ -7802,6 +7861,30 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     cloudGoogleSignIn.addEventListener("click", signInWithGoogle);
     cloudResetPassword.addEventListener("click", resetCloudPassword);
     cloudResendVerification.addEventListener("click", resendCloudVerification);
+
+    function useAccountGateCredentials(action) {
+        cloudEmail.value = String(accountGateEmail.value || "").trim();
+        cloudPassword.value = accountGatePassword.value || "";
+        runCloudAuth(action);
+    }
+
+    document.getElementById("accountGateSignIn").addEventListener("click", function () {
+        useAccountGateCredentials("signin");
+    });
+    document.getElementById("accountGateSignUp").addEventListener("click", function () {
+        useAccountGateCredentials("signup");
+    });
+    document.getElementById("accountGateGoogle").addEventListener("click", signInWithGoogle);
+    document.getElementById("accountGateReset").addEventListener("click", function () {
+        cloudEmail.value = String(accountGateEmail.value || "").trim();
+        resetCloudPassword();
+    });
+    document.getElementById("accountGateSignOut").addEventListener("click", function () {
+        if (!firebaseAuth) return;
+        firebaseAuth.signOut().catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+        });
+    });
 
     document
         .getElementById("cloudSignOut")
