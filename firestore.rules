@@ -28,6 +28,21 @@ service cloud.firestore {
       );
     }
 
+    // Contas antigas sem documento de assinatura seguem ativas. Para contas
+    // gerenciadas pela plataforma, overdue e canceled bloqueiam escrita também
+    // fora do aplicativo (por REST, SDK ou console do navegador).
+    function subscriptionWritable() {
+      return platformAdmin() || (
+        approvedAccount() && (
+          !exists(/databases/$(database)/documents/accessRequests/$(request.auth.uid)) ||
+          (
+            get(/databases/$(database)/documents/accessRequests/$(request.auth.uid)).data.subscriptionStatus != "overdue" &&
+            get(/databases/$(database)/documents/accessRequests/$(request.auth.uid)).data.subscriptionStatus != "canceled"
+          )
+        )
+      );
+    }
+
     function personalWorkspace(workspaceId) {
       return approvedAccount() && workspaceId == "personal-" + request.auth.uid;
     }
@@ -46,11 +61,12 @@ service cloud.firestore {
     }
 
     function manager(workspaceId) {
-      return member(workspaceId) && (role(workspaceId) == "owner" || role(workspaceId) == "admin");
+      return subscriptionWritable() && member(workspaceId) &&
+        (role(workspaceId) == "owner" || role(workspaceId) == "admin");
     }
 
     function writer(workspaceId) {
-      return member(workspaceId) &&
+      return subscriptionWritable() && member(workspaceId) &&
         (role(workspaceId) == "owner" || role(workspaceId) == "admin" || role(workspaceId) == "operator" || role(workspaceId) == "billing" || role(workspaceId) == "finance");
     }
 
@@ -90,12 +106,12 @@ service cloud.firestore {
     }
 
     match /workspaces/{workspaceId} {
-      allow create: if personalWorkspace(workspaceId) &&
+      allow create: if subscriptionWritable() && personalWorkspace(workspaceId) &&
         request.resource.data.ownerId == request.auth.uid;
-      allow update: if owner(workspaceId) ||
-        (personalWorkspace(workspaceId) &&
+      allow update: if (subscriptionWritable() && owner(workspaceId)) ||
+        (subscriptionWritable() && personalWorkspace(workspaceId) &&
           request.resource.data.ownerId == request.auth.uid);
-      allow delete: if owner(workspaceId);
+      allow delete: if subscriptionWritable() && owner(workspaceId);
       allow read: if member(workspaceId) || personalWorkspace(workspaceId);
 
       match /members/{memberId} {
@@ -139,7 +155,8 @@ service cloud.firestore {
       }
 
       match /state/{stateId} {
-        allow read, create, update: if owner(workspaceId);
+        allow read: if owner(workspaceId);
+        allow create, update: if subscriptionWritable() && owner(workspaceId);
         allow delete: if false;
       }
 
@@ -164,7 +181,8 @@ service cloud.firestore {
       }
 
       match /{document=**} {
-        allow read, write: if personalWorkspace(workspaceId);
+        allow read: if personalWorkspace(workspaceId);
+        allow write: if personalWorkspace(workspaceId) && subscriptionWritable();
       }
     }
   }
