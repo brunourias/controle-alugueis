@@ -162,6 +162,9 @@ const ModalManager = (() => {
     var autoLockTimer = null;
     var AUTO_LOCK_MS = 5 * 60 * 1000;
     var appLastActivityAt = Date.now();
+    // Evita que eventos de retorno do Android/PWA religuem o bloqueio
+    // imediatamente após um PIN aceito.
+    var authUnlockGraceUntil = 0;
     var sensitiveAction = null;
 
     var grid = document.getElementById("grid");
@@ -2122,6 +2125,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         scrollPageToTop();
         document.body.classList.remove("app-loading");
         appLastActivityAt = Date.now();
+        authUnlockGraceUntil = Date.now() + 2000;
         armAutoLock();
 
         // O teclado virtual pode reajustar a viewport após o login no Android.
@@ -2233,6 +2237,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function lockApp() {
         clearTimeout(autoLockTimer);
+        // Alguns navegadores móveis emitem visibility/pageshow ao fechar o teclado.
+        // Durante a confirmação do login, esses eventos não devem abrir o PIN novamente.
+        if (Date.now() < authUnlockGraceUntil) {
+            armAutoLock();
+            return;
+        }
         if (!lockConfig || !appUnlocked) return;
         appUnlocked = false;
         openAuthLogin();
@@ -2246,6 +2256,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function checkSessionOnReturn() {
         if (!appUnlocked) return;
+        if (Date.now() < authUnlockGraceUntil) {
+            armAutoLock();
+            return;
+        }
         if (Date.now() - appLastActivityAt >= AUTO_LOCK_MS) lockApp();
         else armAutoLock();
     }
@@ -7092,12 +7106,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
     });
 
-    window.addEventListener("pageshow", function (event) {
+    window.addEventListener("pageshow", function () {
         collapseExpenseMonths();
-        if (event.persisted && lockConfig) {
-            appUnlocked = false;
-            openAuthLogin();
-        }
+        // No retorno do cache do navegador, respeita os cinco minutos de sessão
+        // em vez de solicitar o PIN novamente logo após um desbloqueio.
+        checkSessionOnReturn();
 
         requestAnimationFrame(function () {
             requestAnimationFrame(scrollPageToTop);
