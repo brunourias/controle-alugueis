@@ -1975,9 +1975,23 @@ undefined || item.rent === "" ? null : Number(item.rent);
             render();
         } catch (error) {
             showAuthError(
-                "Não foi possível confirmar a digital. Use o PIN para entrar."
+                "Não foi possível confirmar a digital. Toque em “Entrar com PIN” para usar o PIN."
             );
         }
+    }
+
+    function showPinLogin() {
+        if (authMode !== "login") return;
+
+        authMessage.textContent = "Digite seu PIN para acessar.";
+        authPinLabel.hidden = false;
+        authSubmit.hidden = false;
+        authBiometric.hidden = true;
+        authPin.value = "";
+        showAuthError("");
+        setTimeout(function () {
+            focusAuthInput(authPin);
+        }, 0);
     }
 
     function showLockError(message) {
@@ -2010,6 +2024,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         authPinLabel.hidden = true;
         authSkip.hidden = false;
         authBiometric.hidden = true;
+        authSubmit.hidden = false;
 
         authSubmit.textContent = "Criar PIN";
 
@@ -2030,15 +2045,19 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         authTitle.textContent = "Entrar";
 
-        authMessage.textContent = biometricConfigured()
-            ? "Use sua digital ou digite o PIN para acessar."
+        var useBiometric = biometricConfigured();
+
+        authMessage.textContent = useBiometric
+            ? "Confirme sua digital para acessar."
             : "Digite seu PIN para acessar.";
 
         authNewLabel.hidden = true;
         authConfirmLabel.hidden = true;
-        authPinLabel.hidden = false;
+        authPinLabel.hidden = useBiometric;
         authSkip.hidden = true;
-        authBiometric.hidden = !biometricConfigured();
+        authBiometric.hidden = !useBiometric;
+        authBiometric.textContent = "Entrar com PIN";
+        authSubmit.hidden = useBiometric;
 
         authSubmit.textContent = "Entrar";
 
@@ -2047,7 +2066,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         authModal.hidden = false;
         setTimeout(function () {
-            focusAuthInput(authPin);
+            if (useBiometric) unlockWithBiometric();
+            else focusAuthInput(authPin);
         }, 0);
     }
 
@@ -2218,6 +2238,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         authPin.removeAttribute("pattern");
         authSkip.hidden = true;
         authBiometric.hidden = true;
+        authSubmit.hidden = false;
         authSubmit.textContent = "Confirmar";
         authPin.value = "";
         showAuthError("");
@@ -6833,7 +6854,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         closeAuth();
         render();
     });
-    authBiometric.addEventListener("click", unlockWithBiometric);
+    authBiometric.addEventListener("click", showPinLogin);
     savePinButton.addEventListener("click", savePin);
     enableBiometricButton.addEventListener("click", enableBiometric);
 
