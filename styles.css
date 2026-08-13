@@ -3509,3 +3509,71 @@ textarea:focus-visible {
         min-width: 146px;
     }
 }
+
+
+/* Rodapé financeiro da tabela */
+.table-wrap {
+    overflow: auto;
+    scrollbar-color: #8ca29f transparent;
+    scrollbar-width: thin;
+}
+
+.table-wrap::-webkit-scrollbar {
+    height: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-track {
+    margin: 0 16px;
+    background: transparent;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: #8ca29f;
+    background-clip: padding-box;
+}
+
+.table-wrap tfoot th,
+.table-wrap tfoot td {
+    height: 34px;
+    padding: 6px 8px;
+    border-top: 1px solid #d6e5e1;
+    border-right-color: #eef5f3;
+    background: #f3faf8;
+    font-size: .7rem;
+    font-weight: 750;
+}
+
+.table-wrap tfoot th {
+    z-index: 4;
+    color: var(--teal-dark);
+    box-shadow: 8px 0 12px -12px rgba(13, 74, 69, .5);
+}
+
+.table-wrap tfoot td {
+    color: #176962;
+}
+
+.table-wrap tfoot tr:last-child th:first-child {
+    border-bottom-left-radius: 17px;
+}
+
+.table-wrap tfoot tr:last-child td:last-child {
+    border-bottom-right-radius: 17px;
+}
+
+.table-wrap tfoot tr:first-child td {
+    font-weight: 850;
+}
+
+.table-wrap tfoot tr:last-child th,
+.table-wrap tfoot tr:last-child td {
+    color: #5a7774;
+    background: #f8fcfb;
+    font-size: .67rem;
+}
+
+.table-wrap tfoot tr:last-child th {
+    color: var(--teal-dark);
+}
