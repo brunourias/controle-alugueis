@@ -315,6 +315,9 @@ var historyRent = document.getElementById("historyRent");
     var accountAccessNotice = document.getElementById("accountAccessNotice");
     var platformApprovalsSection = document.getElementById("platformApprovalsSection");
     var platformApprovalsList = document.getElementById("platformApprovalsList");
+    var platformAdminModal = document.getElementById("platformAdminModal");
+    var platformAdminButton = document.getElementById("platformAdminButton");
+    var platformAdminBadge = document.getElementById("platformAdminBadge");
     var cloudBannerText = document.getElementById("cloudBannerText");
     var bannerUseCloud = document.getElementById("bannerUseCloud");
     var bannerUseLocal = document.getElementById("bannerUseLocal");
@@ -339,6 +342,7 @@ var historyRent = document.getElementById("historyRent");
     var workspaceUiBound = false;
     var cloudAccountApproved = false;
     var cloudAccountSettings = null;
+    var platformPendingUnsubscribe = null;
     var cloudAuthInFlight = false;
     var cloudAuthCooldownUntil = 0;
     var cloudAuthCooldownTimer = null;
@@ -1160,6 +1164,52 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
     }
 
+    function updatePlatformAdminTrigger() {
+        var canManage = isPlatformAdmin(firebaseUser) && !!firebaseDb;
+        if (platformAdminButton) platformAdminButton.hidden = !canManage;
+        if (!canManage) {
+            if (platformAdminBadge) platformAdminBadge.hidden = true;
+            return;
+        }
+        if (!platformPendingUnsubscribe) subscribePlatformRequests();
+    }
+
+    function setPlatformPendingCount(count) {
+        if (!platformAdminBadge) return;
+        count = Number(count) || 0;
+        platformAdminBadge.hidden = count < 1;
+        platformAdminBadge.textContent = count > 99 ? "99+" : String(count);
+        platformAdminButton.setAttribute("aria-label", count
+            ? "Administração da plataforma: " + count + " solicitações pendentes"
+            : "Administração da plataforma");
+        platformAdminButton.title = count
+            ? count + " solicitação(ões) aguardando aprovação"
+            : "Administração da plataforma";
+    }
+
+    function subscribePlatformRequests() {
+        if (!isPlatformAdmin(firebaseUser) || !firebaseDb || platformPendingUnsubscribe) return;
+        platformPendingUnsubscribe = firebaseDb.collection("accessRequests")
+            .where("status", "==", "pending")
+            .onSnapshot(function (snapshot) {
+                setPlatformPendingCount(snapshot.size);
+                if (platformApprovalsSection && !platformAdminModal.hidden)
+                    renderPlatformApprovals();
+            }, function () {
+                setPlatformPendingCount(0);
+            });
+    }
+
+    function openPlatformAdmin() {
+        if (!isPlatformAdmin(firebaseUser) || !platformAdminModal) return;
+        renderPlatformApprovals();
+        ModalManager.open(platformAdminModal);
+    }
+
+    function closePlatformAdmin() {
+        if (platformAdminModal) ModalManager.close(platformAdminModal);
+    }
+
     function renderPlatformApprovals() {
         if (!platformApprovalsSection || !platformApprovalsList) return;
         var canManagePlatform = isPlatformAdmin(firebaseUser);
@@ -1963,6 +2013,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             setSyncStatus("Sincronização desativada");
             cloudReconcile.hidden = true;
         }
+        updatePlatformAdminTrigger();
     }
 
     function handleCloudAuthState(user) {
@@ -1976,6 +2027,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             firebaseUnsubscribe();
 
             firebaseUnsubscribe = null;
+        }
+        if (platformPendingUnsubscribe) {
+            platformPendingUnsubscribe();
+            platformPendingUnsubscribe = null;
         }
 
         if (user) {
@@ -5904,7 +5959,6 @@ function saveExpense() {
         overdueFollowUpDays.setCustomValidity("");
         defaultAdjustmentPercent.setCustomValidity("");
         renderBackupHistory();
-        renderPlatformApprovals();
         ModalManager.open(settingsModal);
     }
 
@@ -7374,6 +7428,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document
         .getElementById("settingsButton")
         .addEventListener("click", openSettings);
+    if (platformAdminButton) platformAdminButton.addEventListener("click", openPlatformAdmin);
+    var closePlatformAdminButton = document.getElementById("closePlatformAdmin");
+    if (closePlatformAdminButton) closePlatformAdminButton.addEventListener("click", closePlatformAdmin);
 
     document
         .getElementById("cancelSettings")
