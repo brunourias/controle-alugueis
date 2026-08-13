@@ -1046,40 +1046,161 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
     }
 
+    function platformAccountStatusLabel(status) {
+        return {
+            pending: "Aguardando aprovação",
+            approved: "Ativa",
+            rejected: "Recusada",
+            suspended: "Suspensa"
+        }[status] || "Ativa";
+    }
+
+    function platformPlanLabel(plan) {
+        return { trial: "Teste", starter: "Inicial", professional: "Profissional" }[plan] || "Teste";
+    }
+
+    function defaultPlatformLimits(plan) {
+        return {
+            trial: { units: 10, workspaces: 1, users: 2 },
+            starter: { units: 30, workspaces: 3, users: 5 },
+            professional: { units: 9999, workspaces: 999, users: 999 }
+        }[plan] || { units: 10, workspaces: 1, users: 2 };
+    }
+
+    function platformAccountRef(userId) {
+        return accessRequestRef(userId);
+    }
+
+    function updatePlatformAccount(userId, patch) {
+        if (!isPlatformAdmin(firebaseUser) || !platformAccountRef(userId)) return;
+        platformAccountRef(userId).set(Object.assign({
+            uid: userId,
+            updatedAt: Date.now(),
+            updatedBy: firebaseUser.uid
+        }, patch), { merge: true }).then(function () {
+            renderPlatformApprovals();
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+        });
+    }
+
     function renderPlatformApprovals() {
         if (!platformApprovalsSection || !platformApprovalsList) return;
-        var canApprove = isPlatformAdmin(firebaseUser);
-        platformApprovalsSection.hidden = !canApprove;
-        if (!canApprove || !firebaseDb) return;
-        platformApprovalsList.innerHTML = '<p class="settings-note">Carregando solicitações...</p>';
-        firebaseDb.collection("accessRequests").where("status", "==", "pending").get().then(function (snapshot) {
-            var requests = [];
-            snapshot.forEach(function (item) {
-                var data = item.data() || {};
-                requests.push({ id: item.id, email: data.email || item.id, displayName: data.displayName || "", createdAt: Number(data.createdAt) || 0 });
+        var canManagePlatform = isPlatformAdmin(firebaseUser);
+        platformApprovalsSection.hidden = !canManagePlatform;
+        if (!canManagePlatform || !firebaseDb) return;
+
+        platformApprovalsList.innerHTML = '<p class="settings-note">Carregando contas da plataforma...</p>';
+
+        Promise.all([
+            firebaseDb.collection("profiles").get(),
+            firebaseDb.collection("accessRequests").get()
+        ]).then(function (results) {
+            var profiles = {};
+            var accounts = {};
+
+            results[0].forEach(function (item) {
+                profiles[item.id] = item.data() || {};
             });
-            requests.sort(function (left, right) { return left.createdAt - right.createdAt; });
-            platformApprovalsList.innerHTML = requests.length ? requests.map(function (request) {
-                var when = request.createdAt ? new Date(request.createdAt).toLocaleDateString("pt-BR") : "data não informada";
-                return '<div class="platform-approval-row"><div><strong>' + escapeHtml(request.displayName || request.email) + '</strong><span>' + escapeHtml(request.email) + ' · solicitou em ' + escapeHtml(when) + '</span></div><div><button class="btn btn-primary" type="button" data-approve-account="' + escapeHtml(request.id) + '">Aprovar</button><button class="btn btn-danger" type="button" data-reject-account="' + escapeHtml(request.id) + '">Recusar</button></div></div>';
-            }).join("") : '<p class="settings-note">Nenhum cadastro aguardando aprovação.</p>';
-            platformApprovalsList.querySelectorAll("[data-approve-account]").forEach(function (button) {
+            results[1].forEach(function (item) {
+                accounts[item.id] = Object.assign({ id: item.id }, item.data() || {});
+            });
+
+            Object.keys(profiles).forEach(function (id) {
+                if (!accounts[id]) accounts[id] = { id: id, status: "approved" };
+                accounts[id].profile = profiles[id];
+            });
+
+            var list = Object.keys(accounts).map(function (id) {
+                var account = accounts[id];
+                var profile = account.profile || {};
+                var hasRequestStatus = typeof account.status === "string";
+                var status = hasRequestStatus ? account.status : "approved";
+                var plan = typeof account.plan === "string" ? account.plan : "trial";
+                var limits = account.limits && typeof account.limits === "object"
+                    ? account.limits : defaultPlatformLimits(plan);
+                return {
+                    id: id,
+                    email: account.email || profile.email || id,
+                    displayName: account.displayName || profile.displayName || "",
+                    status: status,
+                    plan: plan,
+                    limits: limits,
+                    createdAt: Number(account.createdAt || profile.updatedAt) || 0,
+                    workspaces: Array.isArray(profile.workspaceIds) ? profile.workspaceIds.length : 0
+                };
+            }).sort(function (left, right) {
+                var priority = { pending: 0, suspended: 1, approved: 2, rejected: 3 };
+                return (priority[left.status] || 9) - (priority[right.status] || 9) ||
+                    right.createdAt - left.createdAt;
+            });
+
+            var active = list.filter(function (item) { return item.status === "approved"; }).length;
+            var pending = list.filter(function (item) { return item.status === "pending"; }).length;
+            var suspended = list.filter(function (item) { return item.status === "suspended"; }).length;
+            var summary = '<div class="platform-account-metrics">' +
+                '<span><strong>' + list.length + '</strong> contas</span>' +
+                '<span><strong>' + active + '</strong> ativas</span>' +
+                '<span><strong>' + pending + '</strong> aguardando</span>' +
+                '<span><strong>' + suspended + '</strong> suspensas</span></div>';
+
+            platformApprovalsList.innerHTML = summary + (list.length ? list.map(function (account) {
+                var date = account.createdAt
+                    ? new Date(account.createdAt).toLocaleDateString("pt-BR")
+                    : "data não informada";
+                var isPending = account.status === "pending";
+                var isSuspended = account.status === "suspended";
+                var primaryAction = isPending
+                    ? '<button class="btn btn-primary" type="button" data-platform-activate="' + escapeHtml(account.id) + '">Aprovar</button>'
+                    : isSuspended
+                        ? '<button class="btn btn-primary" type="button" data-platform-activate="' + escapeHtml(account.id) + '">Reativar</button>'
+                        : '<button class="btn btn-danger" type="button" data-platform-suspend="' + escapeHtml(account.id) + '">Suspender</button>';
+                return '<article class="platform-account-row">' +
+                    '<div class="platform-account-main"><strong>' + escapeHtml(account.displayName || account.email) + '</strong>' +
+                    '<span>' + escapeHtml(account.email) + ' · desde ' + escapeHtml(date) + '</span>' +
+                    '<div class="platform-account-meta"><b class="platform-status platform-status-' + escapeHtml(account.status) + '">' + escapeHtml(platformAccountStatusLabel(account.status)) + '</b>' +
+                    '<span>' + account.workspaces + ' área(s)</span>' +
+                    '<span>limite: ' + Number(account.limits.units || 0) + ' unidades · ' + Number(account.limits.users || 0) + ' usuários</span></div></div>' +
+                    '<div class="platform-account-actions"><label>Plano<select data-account-plan="' + escapeHtml(account.id) + '">' +
+                    ["trial", "starter", "professional"].map(function (plan) {
+                        return '<option value="' + plan + '"' + (plan === account.plan ? " selected" : "") + '>' + platformPlanLabel(plan) + '</option>';
+                    }).join("") + '</select></label>' + primaryAction + '</div></article>';
+            }).join("") : '<p class="settings-note">Nenhuma conta cadastrada ainda.</p>');
+
+            platformApprovalsList.querySelectorAll("[data-platform-activate]").forEach(function (button) {
                 button.addEventListener("click", function () {
-                    accessRequestRef(button.dataset.approveAccount).set({ status: "approved", approvedAt: Date.now(), approvedBy: firebaseUser.uid, updatedAt: Date.now() }, { merge: true })
-                        .then(renderPlatformApprovals)
-                        .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                    var planSelect = Array.prototype.slice.call(platformApprovalsList.querySelectorAll("[data-account-plan]")).find(function (select) { return select.dataset.accountPlan === button.dataset.platformActivate; });
+                    var plan = planSelect ? planSelect.value : "trial";
+                    updatePlatformAccount(button.dataset.platformActivate, {
+                        status: "approved",
+                        plan: plan,
+                        limits: defaultPlatformLimits(plan),
+                        approvedAt: Date.now(),
+                        approvedBy: firebaseUser.uid
+                    });
                 });
             });
-            platformApprovalsList.querySelectorAll("[data-reject-account]").forEach(function (button) {
+            platformApprovalsList.querySelectorAll("[data-platform-suspend]").forEach(function (button) {
                 button.addEventListener("click", function () {
-                    if (!window.confirm("Recusar este cadastro? A pessoa poderá pedir nova revisão depois.")) return;
-                    accessRequestRef(button.dataset.rejectAccount).set({ status: "rejected", rejectedAt: Date.now(), rejectedBy: firebaseUser.uid, updatedAt: Date.now() }, { merge: true })
-                        .then(renderPlatformApprovals)
-                        .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                    if (!window.confirm("Suspender o acesso desta conta? Os dados serão preservados, mas a sincronização ficará bloqueada.")) return;
+                    updatePlatformAccount(button.dataset.platformSuspend, {
+                        status: "suspended",
+                        suspendedAt: Date.now(),
+                        suspendedBy: firebaseUser.uid
+                    });
+                });
+            });
+            platformApprovalsList.querySelectorAll("[data-account-plan]").forEach(function (select) {
+                select.addEventListener("change", function () {
+                    var plan = select.value;
+                    updatePlatformAccount(select.dataset.accountPlan, {
+                        plan: plan,
+                        limits: defaultPlatformLimits(plan)
+                    });
                 });
             });
         }).catch(function (error) {
-            platformApprovalsList.innerHTML = '<p class="cloud-error">Não foi possível carregar as solicitações.</p>';
+            platformApprovalsList.innerHTML = '<p class="cloud-error">Não foi possível carregar as contas da plataforma.</p>';
             setCloudError(cloudErrorMessage(error));
         });
     }
