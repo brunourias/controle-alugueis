@@ -6464,7 +6464,7 @@ function saveExpense() {
 							/* Layout do relatório anual */
                             * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                             body { margin: 0; padding: 28px; color: #173333; background: #f1f7f6; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-                            body > .annual-report { display: none; }
+                            body > .annual-report { display: block; }
                             .annual-report .annual-report { width: 100%; max-width: 980px; margin: 0 auto; padding: 30px; border: 1px solid #dbe9e7; border-radius: 20px; background: #fff; box-shadow: 0 10px 32px rgba(15, 94, 89, .10); }
                             .ar-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 20px; border-bottom: 1px solid #dbe9e7; }
                             .ar-eyebrow { margin: 0 0 5px; color: #0f766e; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
