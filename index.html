@@ -639,84 +639,69 @@
 
 		<!-- Modal de Ajuste de Pagamento -->
 		<div class="modal-backdrop" id="paymentAdjustModal" hidden>
-			<div class="modal">
-				<h2 id="paymentAdjustTitle">Ajustar pagamento</h2>
+			<div class="modal payment-adjust-modal">
+				<div class="settings-heading payment-adjust-heading">
+					<div>
+						<h2 id="paymentAdjustTitle">Ajustar pagamento</h2>
+						<p id="paymentAdjustInfo" class="settings-note"></p>
+					</div>
+				</div>
 
-				<p id="paymentAdjustInfo" class="settings-note"></p>
+				<details class="settings-panel" open>
+					<summary>
+						<span>Pagamento</span>
+						<small>Data e valor principal</small>
+					</summary>
+					<div class="settings-panel-body">
+						<label>
+							Data real do pagamento
+							<input type="date" id="paymentAdjustDate" />
+						</label>
+						<label>
+							Valor do aluguel
+							<input type="number" id="paymentAdjustRent" inputmode="decimal" min="0" step="0.01" />
+						</label>
+					</div>
+				</details>
 
-				<label>
-					Data real do pagamento
-					<input
-						type="date"
-						id="paymentAdjustDate"
-					/>
-				</label>
+				<details class="settings-panel">
+					<summary>
+						<span>Multas e encargos</span>
+						<small>Valores adicionais</small>
+					</summary>
+					<div class="settings-panel-body">
+						<label>
+							Multa
+							<input type="number" id="paymentAdjustFine" inputmode="decimal" min="0" step="0.01" />
+						</label>
+						<label>
+							Juros / encargos
+							<input type="number" id="paymentAdjustInterest" inputmode="decimal" min="0" step="0.01" />
+						</label>
+					</div>
+				</details>
 
-				<label>
-					Valor do aluguel
-					<input
-						type="number"
-						id="paymentAdjustRent"
-						inputmode="decimal"
-						min="0"
-						step="0.01"
-					/>
-				</label>
+				<details class="settings-panel">
+					<summary>
+						<span>Observação</span>
+						<small>Opcional</small>
+					</summary>
+					<div class="settings-panel-body">
+						<label>
+							Registro interno
+							<textarea id="paymentAdjustNotes" rows="2" placeholder="Opcional"></textarea>
+						</label>
+					</div>
+				</details>
 
-				<label>
-					Multa
-					<input
-						type="number"
-						id="paymentAdjustFine"
-						inputmode="decimal"
-						min="0"
-						step="0.01"
-					/>
-				</label>
+				<div class="payment-adjust-total">
+					<span>Total recebido</span>
+					<input type="number" id="paymentAdjustTotal" readonly />
+				</div>
 
-				<label>
-					Juros / encargos
-					<input
-						type="number"
-						id="paymentAdjustInterest"
-						inputmode="decimal"
-						min="0"
-						step="0.01"
-					/>
-				</label>
-
-				<label>
-					Observação
-					<textarea id="paymentAdjustNotes" rows="2" placeholder="Opcional"></textarea>
-				</label>
-
-				<label>
-					Total recebido
-					<input
-						type="number"
-						id="paymentAdjustTotal"
-						readonly
-					/>
-				</label>
-
-				<div class="modal-actions">
-					<span class="spacer"></span>
-
-					<button
-						id="cancelPaymentAdjust"
-						class="btn btn-ghost"
-						type="button"
-					>
-						Cancelar
-					</button>
-
-					<button
-						id="savePaymentAdjust"
-						class="btn btn-primary"
-						type="button"
-					>
-						Salvar ajuste
-					</button>
+				<div class="modal-actions settings-footer payment-adjust-footer">
+					<button id="cancelPaymentAdjust" class="btn btn-ghost" type="button">Cancelar</button>
+					<button id="savePaymentAdjust" class="btn btn-primary" type="button">Salvar ajuste</button>
 				</div>
 			</div>
 		</div>
