@@ -2810,3 +2810,69 @@ textarea:focus-visible {
         flex: 1;
     }
 }
+
+
+/* Edição de unidade em painéis */
+.unit-modal {
+    width: min(100%, 560px);
+    max-height: calc(100dvh - 32px);
+    padding: 18px;
+    background: #f8fbfb;
+}
+
+.unit-modal .settings-panel {
+    margin: 9px 0;
+}
+
+.unit-modal .contract-attachments-section,
+.unit-modal .contract-history-section {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.unit-modal .contract-history-manual {
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px solid var(--line);
+}
+
+.unit-modal .contract-history-manual summary {
+    color: var(--teal-dark);
+    font-size: .76rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.unit-modal .contract-history-manual[open] summary {
+    margin-bottom: 9px;
+}
+
+.unit-contract-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.unit-contract-actions .btn {
+    flex: 1 1 180px;
+}
+
+.unit-modal-footer {
+    bottom: -18px;
+}
+
+@media (max-width: 520px) {
+    .unit-modal {
+        max-height: calc(100dvh - 16px);
+        padding: 14px;
+    }
+
+    .unit-modal-footer {
+        bottom: -14px;
+    }
+
+    .unit-modal-footer #deleteUnit {
+        flex: 1 0 100%;
+    }
+}
