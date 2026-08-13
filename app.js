@@ -308,6 +308,10 @@ var historyRent = document.getElementById("historyRent");
     var cloudVerification = document.getElementById("cloudVerification");
     var cloudResendVerification = document.getElementById("cloudResendVerification");
     var cloudError = document.getElementById("cloudError");
+    var pwaStatus = document.getElementById("pwaStatus");
+    var pwaStatusText = document.getElementById("pwaStatusText");
+    var pwaStatusAction = document.getElementById("pwaStatusAction");
+    var pwaStatusDismiss = document.getElementById("pwaStatusDismiss");
     var accountGate = document.getElementById("accountGate");
     var accountGateTitle = document.getElementById("accountGateTitle");
     var accountGateMessage = document.getElementById("accountGateMessage");
@@ -362,6 +366,9 @@ var historyRent = document.getElementById("historyRent");
     var cloudAuthInFlight = false;
     var cloudAuthCooldownUntil = 0;
     var cloudAuthCooldownTimer = null;
+    var pendingPwaInstall = null;
+    var pendingPwaUpdate = null;
+    var pwaUpdateAccepted = false;
 
     function newEnterpriseId() {
         return (
@@ -8012,16 +8019,66 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     bannerUseCloud.addEventListener("click", chooseCloudData);
     bannerUseLocal.addEventListener("click", chooseLocalData);
 
+    function showPwaStatus(message, actionLabel, action) {
+        if (!pwaStatus) return;
+        pwaStatus.hidden = false;
+        pwaStatusText.textContent = message || "";
+        pwaStatusAction.hidden = !actionLabel;
+        pwaStatusAction.textContent = actionLabel || "";
+        pwaStatusAction.onclick = action || null;
+    }
+
+    function hidePwaStatus() {
+        if (pwaStatus) pwaStatus.hidden = true;
+    }
+
+    function offerPwaUpdate(registration) {
+        if (!registration || !registration.waiting) return;
+        pendingPwaUpdate = registration;
+        showPwaStatus("Uma atualização está disponível.", "Atualizar agora", function () {
+            pwaUpdateAccepted = true;
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        });
+    }
+
     window.addEventListener("online", function () {
-        if (!firebaseUser) return;
-        updateConnectionStatus();
-        if (cloudHasPendingWrite) scheduleCloudWrite();
+        if (firebaseUser) {
+            updateConnectionStatus();
+            if (cloudHasPendingWrite) scheduleCloudWrite();
+        }
+        if (!pendingPwaUpdate) {
+            showPwaStatus("Conexão restaurada.", "", null);
+            window.setTimeout(hidePwaStatus, 2200);
+        }
     });
 
     window.addEventListener("offline", function () {
-        if (firebaseUser)
-            setSyncStatus("Offline — alterações salvas localmente");
+        if (firebaseUser) setSyncStatus("Offline — alterações salvas localmente");
+        showPwaStatus("Você está offline. Alterações serão sincronizadas quando a conexão voltar.", "", null);
     });
+
+    window.addEventListener("beforeinstallprompt", function (event) {
+        event.preventDefault();
+        pendingPwaInstall = event;
+        if (!pendingPwaUpdate) {
+            showPwaStatus("Instale o app para abrir mais rápido pelo celular.", "Instalar", function () {
+                if (!pendingPwaInstall) return;
+                pendingPwaInstall.prompt();
+                pendingPwaInstall.userChoice.then(function () {
+                    pendingPwaInstall = null;
+                    hidePwaStatus();
+                });
+            });
+        }
+    });
+
+    window.addEventListener("appinstalled", function () {
+        pendingPwaInstall = null;
+        showPwaStatus("App instalado com sucesso.", "", null);
+        window.setTimeout(hidePwaStatus, 2200);
+    });
+
+    if (pwaStatusDismiss) pwaStatusDismiss.addEventListener("click", hidePwaStatus);
 
     ["click", "keydown", "touchstart"].forEach(function (eventName) {
         document.addEventListener(eventName, registerAppActivity, { passive: eventName === "touchstart" });
@@ -8094,25 +8151,25 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     initAuth();
 
     if ("serviceWorker" in navigator) {
-        var reloadingForUpdate = false;
-
-        navigator.serviceWorker.addEventListener(
-            "controllerchange",
-            function () {
-                if (reloadingForUpdate) return;
-
-                reloadingForUpdate = true;
-
-                window.location.reload();
-            }
-        );
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+            if (pwaUpdateAccepted) window.location.reload();
+        });
 
         window.addEventListener("load", function () {
             navigator.serviceWorker
                 .register("sw.js", { updateViaCache: "none" })
                 .then(function (registration) {
+                    offerPwaUpdate(registration);
+                    registration.addEventListener("updatefound", function () {
+                        var worker = registration.installing;
+                        if (!worker) return;
+                        worker.addEventListener("statechange", function () {
+                            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+                                offerPwaUpdate(registration);
+                            }
+                        });
+                    });
                     registration.update();
-
                     setInterval(function () {
                         registration.update();
                     }, 60 * 60 * 1000);
