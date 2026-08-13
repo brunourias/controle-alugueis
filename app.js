@@ -1893,11 +1893,50 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return url.toString();
     }
 
+    function inviteEmailValue() {
+        var input = document.getElementById("workspaceInviteEmail");
+        return input ? String(input.value || "").trim().toLowerCase() : "";
+    }
+
+    function inviteExpiresLabel(value) {
+        var date = value && typeof value.toDate === "function" ? value.toDate() : null;
+        return date ? date.toLocaleDateString("pt-BR") : "data não informada";
+    }
+
+    function inviteEmailLink(invite) {
+        var subject = "Convite para acessar o Controle de Aluguéis";
+        var body = "Olá!\n\nVocê foi convidado(a) para acessar uma área no Controle de Aluguéis como " +
+            workspaceRoleLabel(invite.role) + ".\n\nUse este link para entrar ou criar sua conta com este mesmo e-mail:\n" +
+            invite.link + "\n\nO convite é válido até " + inviteExpiresLabel(invite.expiresAt) +
+            ".\n\nPor segurança, o link só funciona para " + invite.email + ".";
+        return "mailto:" + encodeURIComponent(invite.email) + "?subject=" +
+            encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    }
+
+    function copyInviteLink(link, result) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function () {
+                if (result) result.textContent = "Link copiado.";
+            }).catch(function () { window.prompt("Copie este link:", link); });
+        } else {
+            window.prompt("Copie este link:", link);
+        }
+    }
+
     function createWorkspaceInvite() {
         if (!firebaseDb || !firebaseUser || !cloudWorkspaceId || !canManageWorkspace()) return;
         var roleInput = document.getElementById("workspaceInviteRole");
         var result = document.getElementById("workspaceInviteResult");
         var role = roleInput ? roleInput.value : "operator";
+        var email = inviteEmailValue();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            if (result) {
+                result.hidden = false;
+                result.textContent = "Informe o e-mail da pessoa que receberá o convite.";
+            }
+            document.getElementById("workspaceInviteEmail").focus();
+            return;
+        }
         if (["admin", "operator", "billing", "finance", "viewer"].indexOf(role) < 0) return;
 
         Promise.all([
@@ -1910,25 +1949,27 @@ undefined || item.rent === "" ? null : Number(item.rent);
             var token = newInviteToken();
             var expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
             var link = inviteUrl(cloudWorkspaceId, token);
-            return workspaceRef(cloudWorkspaceId).collection("invites").doc(token).set({
-            role: role,
-            status: "pending",
-            createdAt: Date.now(),
-            expiresAt: expiresAt,
-            createdBy: firebaseUser.uid
-            }).then(function () {
-                if (!link) return;
+            var invite = {
+                role: role,
+                email: email,
+                status: "pending",
+                createdAt: Date.now(),
+                expiresAt: expiresAt,
+                createdBy: firebaseUser.uid,
+                lastSentAt: Date.now()
+            };
+            return workspaceRef(cloudWorkspaceId).collection("invites").doc(token).set(invite).then(function () {
+                if (!result) return;
                 result.hidden = false;
-                result.innerHTML = 'Convite criado (válido por 7 dias). <button class="btn btn-ghost" type="button" data-copy-invite>Copiar link</button>';
-                result.querySelector("[data-copy-invite]").addEventListener("click", function () {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(link).then(function () {
-                            result.firstChild.textContent = "Link copiado. ";
-                        }).catch(function () { window.prompt("Copie este link:", link); });
-                    } else {
-                        window.prompt("Copie este link:", link);
-                    }
+                result.innerHTML = 'Convite preparado para <strong>' + escapeHtml(email) +
+                    '</strong>, válido por 7 dias. <button class="btn btn-ghost" type="button" data-email-invite>Abrir e-mail</button> <button class="btn btn-ghost" type="button" data-copy-invite>Copiar link</button>';
+                var emailButton = result.querySelector("[data-email-invite]");
+                var copyButton = result.querySelector("[data-copy-invite]");
+                if (emailButton) emailButton.addEventListener("click", function () {
+                    window.location.href = inviteEmailLink(Object.assign({ link: link }, invite));
                 });
+                if (copyButton) copyButton.addEventListener("click", function () { copyInviteLink(link, result); });
+                renderWorkspaceMembers();
                 renderPlanUsage();
             });
         }).catch(function (error) {
@@ -1941,7 +1982,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var overview = document.getElementById("workspacePermissions");
         if (!list || !canManageWorkspace() || !cloudWorkspaceId) return;
         list.innerHTML = '<p class="settings-note">Carregando colaboradores...</p>';
-        workspaceRef(cloudWorkspaceId).collection("members").get().then(function (snapshot) {
+        Promise.all([
+            workspaceRef(cloudWorkspaceId).collection("members").get(),
+            workspaceRef(cloudWorkspaceId).collection("invites").get()
+        ]).then(function (snapshots) {
+            var snapshot = snapshots[0];
+            var inviteSnapshot = snapshots[1];
             var members = [];
             snapshot.forEach(function (item) {
                 var member = item.data() || {};
@@ -1978,10 +2024,73 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
                 });
             });
+
+            var invites = [];
+            inviteSnapshot.forEach(function (item) {
+                var invite = item.data() || {};
+                invite.id = item.id;
+                invites.push(invite);
+            });
+            invites.sort(function (left, right) { return Number(right.createdAt) - Number(left.createdAt); });
+            var inviteMarkup = invites.length ? '<h4 class="workspace-members-heading">Convites</h4>' +
+                invites.map(function (invite) {
+                    var expired = !invite.expiresAt || invite.expiresAt.toDate() <= new Date();
+                    var status = invite.status === "pending" && expired ? "expirado" : (invite.status || "pendente");
+                    var isPending = status === "pending";
+                    var inviteLink = inviteUrl(cloudWorkspaceId, invite.id);
+                    return '<div class="workspace-invite-row"><div><strong>' + escapeHtml(invite.email || "E-mail não informado") + '</strong><span>' +
+                        escapeHtml(workspaceRoleLabel(invite.role || "viewer")) + ' · ' + escapeHtml(status.charAt(0).toUpperCase() + status.slice(1)) +
+                        '</span><small>' + (isPending ? 'Válido até ' + inviteExpiresLabel(invite.expiresAt) : 'Criado em ' + new Date(Number(invite.createdAt) || Date.now()).toLocaleDateString("pt-BR")) +
+                        '</small></div>' + (isPending ? '<div class="workspace-member-actions"><button class="btn btn-ghost" type="button" data-email-invite="' + escapeHtml(invite.id) + '">Reenviar</button><button class="btn btn-danger" type="button" data-revoke-invite="' + escapeHtml(invite.id) + '">Revogar</button></div>' : '') + '</div>';
+                }).join("") : "";
+            list.insertAdjacentHTML("beforeend", inviteMarkup);
+            list.querySelectorAll("[data-email-invite]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    var invite = invites.find(function (item) { return item.id === button.dataset.emailInvite; });
+                    if (!invite) return;
+                    var expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+                    workspaceRef(cloudWorkspaceId).collection("invites").doc(invite.id).update({
+                        expiresAt: expiresAt,
+                        lastSentAt: Date.now()
+                    }).then(function () {
+                        invite.expiresAt = expiresAt;
+                        invite.link = inviteUrl(cloudWorkspaceId, invite.id);
+                        window.location.href = inviteEmailLink(invite);
+                        renderWorkspaceMembers();
+                    }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                });
+            });
+            list.querySelectorAll("[data-revoke-invite]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (!window.confirm("Revogar este convite? O link deixará de funcionar imediatamente.")) return;
+                    workspaceRef(cloudWorkspaceId).collection("invites").doc(button.dataset.revokeInvite).update({
+                        status: "revoked",
+                        revokedAt: Date.now(),
+                        revokedBy: firebaseUser.uid
+                    }).then(renderWorkspaceMembers)
+                        .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+                });
+            });
         }).catch(function (error) {
             list.innerHTML = '<p class="cloud-error">Não foi possível carregar os colaboradores.</p>';
             if (overview) overview.innerHTML = "";
             setCloudError(cloudErrorMessage(error));
+        });
+    }
+
+    function pendingInviteFromUrl(user) {
+        if (!firebaseDb || !user) return Promise.resolve(null);
+        var params = new URLSearchParams(window.location.search);
+        var workspaceId = params.get("workspace");
+        var token = params.get("invite");
+        if (!workspaceId || !token || !/^[a-zA-Z0-9_-]{20,}$/.test(token)) return Promise.resolve(null);
+        return workspaceRef(workspaceId).collection("invites").doc(token).get().then(function (snapshot) {
+            if (!snapshot.exists) throw new Error("Convite não encontrado.");
+            var data = snapshot.data() || {};
+            if (String(data.email || "").toLowerCase() !== String(user.email || "").toLowerCase()) {
+                throw new Error("Este convite foi enviado para outro e-mail.");
+            }
+            return { workspaceId: workspaceId, token: token };
         });
     }
 
@@ -1994,22 +2103,36 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         var invite = workspaceRef(workspaceId).collection("invites").doc(token);
         var profile = firebaseDb.collection("profiles").doc(firebaseUser.uid);
-        return invite.get().then(function (snapshot) {
+        return Promise.all([invite.get(), profile.get()]).then(function (snapshots) {
+            var snapshot = snapshots[0];
+            var profileSnapshot = snapshots[1];
             if (!snapshot.exists) throw new Error("Convite não encontrado.");
             var data = snapshot.data() || {};
             var role = data.role;
+            var invitedEmail = String(data.email || "").toLowerCase();
+            var currentEmail = String(firebaseUser.email || "").toLowerCase();
             var expired = !data.expiresAt || data.expiresAt.toDate() <= new Date();
+            if (invitedEmail !== currentEmail) throw new Error("Entre com o mesmo e-mail que recebeu o convite.");
             if (data.status !== "pending" || expired || ["admin", "operator", "billing", "finance", "viewer"].indexOf(role) < 0) {
-                throw new Error("Este convite expirou ou já foi utilizado.");
+                throw new Error("Este convite expirou, foi revogado ou já foi utilizado.");
             }
 
             var batch = firebaseDb.batch();
-            batch.set(profile, {
+            var profilePayload = profileSnapshot.exists ? {
                 email: firebaseUser.email || "",
                 displayName: firebaseUser.displayName || "",
                 workspaceIds: firebase.firestore.FieldValue.arrayUnion(workspaceId),
                 updatedAt: Date.now()
-            }, { merge: true });
+            } : {
+                email: firebaseUser.email || "",
+                displayName: firebaseUser.displayName || "",
+                workspaceIds: [workspaceId],
+                invitedOnly: true,
+                acceptedWorkspaceId: workspaceId,
+                acceptedInviteId: token,
+                updatedAt: Date.now()
+            };
+            batch.set(profile, profilePayload, { merge: true });
             batch.set(workspaceMemberRef(workspaceId, firebaseUser.uid), {
                 role: role,
                 email: firebaseUser.email || "",
@@ -2298,6 +2421,62 @@ undefined || item.rent === "" ? null : Number(item.rent);
         updatePlatformAdminTrigger();
     }
 
+    function prepareWorkspaceAccess(user) {
+        return pendingInviteFromUrl(user).then(function (inviteContext) {
+            if (inviteContext) {
+                // Colaboradores convidados não precisam de uma assinatura própria:
+                // o acesso é limitado à área para a qual foram convidados.
+                cloudAccountApproved = true;
+                updateCloudUi();
+                renderWorkspaceControls();
+                setAccountAccessNotice("Convite identificado. Vinculando você à área de trabalho...");
+                return acceptInviteFromUrl().then(function (workspaceId) {
+                    return loadWorkspaceList().then(function () { return workspaceId; });
+                });
+            }
+
+            return requestOrCheckAccountApproval(user)
+                .catch(function (error) {
+                    error.workspaceStep = error.workspaceStep || "verificar a aprovação da conta";
+                    throw error;
+                })
+                .then(function (approved) {
+                    cloudAccountApproved = approved;
+                    updateCloudUi();
+                    renderWorkspaceControls();
+                    if (!approved) {
+                        cloudAccessChecking = false;
+                        cloudWorkspaceReady = false;
+                        cloudWorkspaceId = null;
+                        cloudWorkspaces = [];
+                        cloudWorkspaceRole = null;
+                        setCloudStatus("Conta conectada. Aguardando aprovação da administração.");
+                        setSyncStatus("Acesso pendente");
+                        setAccountGate(true, {
+                            title: "Cadastro em análise",
+                            message: "Seu cadastro foi recebido. Aguarde a aprovação da administração para liberar a área de trabalho.",
+                            pending: true
+                        });
+                        renderPlatformApprovals();
+                        return null;
+                    }
+                    setAccountAccessNotice("");
+                    cloudSessionStartedAt = Date.now();
+                    firebaseDb.collection("profiles").doc(user.uid).set({
+                        lastAccessAt: cloudSessionStartedAt
+                    }, { merge: true }).catch(function () {});
+                    return ensurePersonalWorkspace(user).then(function () {
+                        return loadWorkspaceList();
+                    }).then(function () {
+                        return acceptInviteFromUrl();
+                    });
+                });
+        }).then(function (acceptedWorkspaceId) {
+            if (acceptedWorkspaceId === null && !cloudAccountApproved) return null;
+            return loadWorkspaceList().then(function () { return acceptedWorkspaceId || null; });
+        });
+    }
+
     function handleCloudAuthState(user) {
         firebaseUser = user;
 
@@ -2329,47 +2508,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
             setCloudStatus("Conta conectada. Verificando a liberação da conta...");
             cloudAccountApproved = false;
             setAccountAccessNotice("");
-            requestOrCheckAccountApproval(user)
-                .catch(function (error) {
-                    error.workspaceStep = error.workspaceStep || "verificar a aprovação da conta";
-                    throw error;
-                })
-                .then(function (approved) {
-                    cloudAccountApproved = approved;
-                    updateCloudUi();
-                    renderWorkspaceControls();
-                    if (!approved) {
-                        cloudAccessChecking = false;
-                        cloudWorkspaceReady = false;
-                        cloudWorkspaceId = null;
-                        cloudWorkspaces = [];
-                        cloudWorkspaceRole = null;
-                        setCloudStatus("Conta conectada. Aguardando aprovação da administração.");
-                        setSyncStatus("Acesso pendente");
-                        setAccountGate(true, {
-                            title: "Cadastro em análise",
-                            message: "Seu cadastro foi recebido. Aguarde a aprovação da administração para liberar a área de trabalho.",
-                            pending: true
-                        });
-                        renderPlatformApprovals();
-                        return null;
-                    }
-                    setAccountAccessNotice("");
-                    cloudSessionStartedAt = Date.now();
-                    firebaseDb.collection("profiles").doc(user.uid).set({
-                        lastAccessAt: cloudSessionStartedAt
-                    }, { merge: true }).catch(function () {});
-                    return ensurePersonalWorkspace(user)
-                        .then(function () { return loadWorkspaceList(); });
-                })
-                .then(function (result) {
-                    if (result === null && !cloudAccountApproved) return null;
-                    return acceptInviteFromUrl();
-                })
+            prepareWorkspaceAccess(user)
                 .then(function (acceptedWorkspaceId) {
-                    return loadWorkspaceList().then(function () { return acceptedWorkspaceId; });
-                })
-                .then(function (acceptedWorkspaceId) {
+                    if (acceptedWorkspaceId === null && !cloudAccountApproved) return;
                     if (!firebaseUser || firebaseUser.uid !== user.uid) return;
                     bindWorkspaceControls();
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
