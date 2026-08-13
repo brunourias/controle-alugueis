@@ -101,6 +101,8 @@ const ModalManager = (() => {
         dailyInterestPercent: 1,
         receiverName: "",
         reminderDays: 5,
+        overdueFollowUpDays: 3,
+        defaultAdjustmentPercent: 0,
     };
     var months = [
         "Jan",
@@ -233,6 +235,12 @@ var historyRent = document.getElementById("historyRent");
     var dailyInterestPercent = document.getElementById("dailyInterestPercent");
     var receiverName = document.getElementById("receiverName");
     var reminderDays = document.getElementById("reminderDays");
+    var overdueFollowUpDays = document.getElementById("overdueFollowUpDays");
+    var defaultAdjustmentPercent = document.getElementById("defaultAdjustmentPercent");
+    var cashForecast = document.getElementById("cashForecast");
+    var unitOverview = document.getElementById("unitOverview");
+    var suggestedRentAdjustment = document.getElementById("suggestedRentAdjustment");
+    var applySuggestedRentAdjustment = document.getElementById("applySuggestedRentAdjustment");
     var securityStatus = document.getElementById("securityStatus");
     var currentPinLabel = document.getElementById("currentPinLabel");
     var pinCurrentSection = document.getElementById("pinCurrentSection");
@@ -540,6 +548,8 @@ var historyRent = document.getElementById("historyRent");
                 settings && Number.isInteger(Number(settings.reminderDays)) && Number(settings.reminderDays) >= 0 && Number(settings.reminderDays) <= 30
                     ? Number(settings.reminderDays)
                     : DEFAULT_SETTINGS.reminderDays,
+            overdueFollowUpDays: settings && Number.isInteger(Number(settings.overdueFollowUpDays)) && Number(settings.overdueFollowUpDays) >= 1 && Number(settings.overdueFollowUpDays) <= 30 ? Number(settings.overdueFollowUpDays) : DEFAULT_SETTINGS.overdueFollowUpDays,
+            defaultAdjustmentPercent: settings && Number.isFinite(Number(settings.defaultAdjustmentPercent)) && Number(settings.defaultAdjustmentPercent) >= -100 && Number(settings.defaultAdjustmentPercent) <= 1000 ? Number(settings.defaultAdjustmentPercent) : DEFAULT_SETTINGS.defaultAdjustmentPercent,
         };
     }
 
@@ -1051,6 +1061,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
             owner: "Proprietário",
             admin: "Administrador",
             operator: "Operador",
+            billing: "Cobrança",
+            finance: "Financeiro",
             viewer: "Consulta"
         }[role] || "Sem permissão";
     }
@@ -1215,7 +1227,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var roleInput = document.getElementById("workspaceInviteRole");
         var result = document.getElementById("workspaceInviteResult");
         var role = roleInput ? roleInput.value : "operator";
-        if (["admin", "operator", "viewer"].indexOf(role) < 0) return;
+        if (["admin", "operator", "billing", "finance", "viewer"].indexOf(role) < 0) return;
 
         var token = newInviteToken();
         var expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
@@ -1257,9 +1269,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 var removable = member.role !== "owner";
                 return '<div class="workspace-member-row"><div><strong>' + escapeHtml(member.email) +
                     '</strong><span>' + escapeHtml(workspaceRoleLabel(member.role)) +
-                    '</span></div>' + (removable ? '<button class="btn btn-danger" type="button" data-remove-member="' +
-                    escapeHtml(member.id) + '">Remover</button>' : '<span class="workspace-owner">Proprietário</span>') + '</div>';
+                    '</span></div>' + (removable ? '<div class="workspace-member-actions"><select data-member-role="' + escapeHtml(member.id) + '">' + ["admin","operator","billing","finance","viewer"].map(function(role){return '<option value="'+role+'"'+(member.role===role?' selected':'')+'>'+workspaceRoleLabel(role)+'</option>';}).join("") + '</select><button class="btn btn-danger" type="button" data-remove-member="' + escapeHtml(member.id) + '">Remover</button></div>' : '<span class="workspace-owner">Proprietário</span>') + '</div>';
             }).join("") || '<p class="settings-note">Nenhum colaborador cadastrado.</p>';
+            list.querySelectorAll("[data-member-role]").forEach(function (select) { select.addEventListener("change", function () { workspaceMemberRef(cloudWorkspaceId, select.dataset.memberRole).set({ role: select.value }, { merge: true }).then(renderWorkspaceMembers).catch(function(error){ setCloudError(cloudErrorMessage(error)); }); }); });
             list.querySelectorAll("[data-remove-member]").forEach(function (button) {
                 button.addEventListener("click", function () {
                     if (!window.confirm("Remover o acesso deste colaborador?")) return;
@@ -1288,7 +1300,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             var data = snapshot.data() || {};
             var role = data.role;
             var expired = !data.expiresAt || data.expiresAt.toDate() <= new Date();
-            if (data.status !== "pending" || expired || ["admin", "operator", "viewer"].indexOf(role) < 0) {
+            if (data.status !== "pending" || expired || ["admin", "operator", "billing", "finance", "viewer"].indexOf(role) < 0) {
                 throw new Error("Este convite expirou ou já foi utilizado.");
             }
 
@@ -2876,6 +2888,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (didInitialScroll && visibleUnits.length > 0)
             tableWrap.scrollLeft = lastGridScrollLeft;
         renderSummary();
+        renderCashForecast();
         renderExpenses();
         renderTaxDashboard();
     }
@@ -2914,11 +2927,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var unit = state.units.find(function (item) { return item.id === unitId; });
         if (!unit) return;
         chargeModalUnitId = unit.id;
-        chargeModalContext.textContent = unit.name + (unit.tenantName ? " · " + unit.tenantName : "") + ". Registre o contato e defina o próximo passo.";
+        var hasLateInstallment = months.some(function (_, month) { return effectiveStatus(unit, month) === "atrasado"; });
+        var followUp = new Date();
+        followUp.setDate(followUp.getDate() + Number(state.settings.overdueFollowUpDays || 3));
+        var followUpValue = followUp.getFullYear() + "-" + String(followUp.getMonth() + 1).padStart(2, "0") + "-" + String(followUp.getDate()).padStart(2, "0");
+        chargeModalContext.textContent = unit.name + (unit.tenantName ? " · " + unit.tenantName : "") + (hasLateInstallment ? ". A régua sugere retorno em " + Number(state.settings.overdueFollowUpDays || 3) + " dias; ajuste se necessário." : ". Registre o contato e defina o próximo passo.");
         chargeType.value = "whatsapp";
         chargeDate.value = new Date().toISOString().slice(0, 10);
         chargePromisedDate.value = "";
-        chargeNextActionDate.value = "";
+        chargeNextActionDate.value = hasLateInstallment ? followUpValue : "";
         chargeNote.value = "";
         ModalManager.open(chargeModal);
     }
@@ -3619,6 +3636,31 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return history.length ? history[0].tenantName : "";
     }
 
+function renderCashForecast() {
+    if (!cashForecast) return;
+    var today=new Date(); today.setHours(0,0,0,0); var totals=[0,0,0], horizons=[30,60,90], next=[];
+    scopedUnits().forEach(function(unit){ if(!unit.tenantName || !Number.isInteger(unit.dueDay)) return;
+        for(var o=0;o<4;o++){ var base=new Date(today.getFullYear(),today.getMonth()+o,1), last=new Date(base.getFullYear(),base.getMonth()+1,0).getDate(), due=new Date(base.getFullYear(),base.getMonth(),Math.min(unit.dueDay,last));
+            var ym=due.getFullYear()+"-"+String(due.getMonth()+1).padStart(2,"0"), start=unit.startDate||"", end=unit.endDate||"", value=due.getFullYear()+"-"+String(due.getMonth()+1).padStart(2,"0")+"-"+String(due.getDate()).padStart(2,"0");
+            if(due<today || (start&&value<start) || (end&&value>end)) continue;
+            var days=Math.ceil((due-today)/86400000), amount=Number(rentForYm(unit,ym))||0; horizons.forEach(function(h,i){if(days<=h)totals[i]+=amount}); next.push({due:due,amount:amount,unit:unit});
+        }
+    });
+    next.sort(function(a,b){return a.due-b.due});
+    cashForecast.innerHTML='<div class="cash-forecast-metrics">'+horizons.map(function(h,i){return '<div><span>Próximos '+h+' dias</span><strong>'+money(totals[i])+'</strong></div>'}).join("")+'</div><p class="cash-forecast-note">Considera contratos ativos e vencimentos previstos.</p><div class="cash-forecast-next">'+(next.slice(0,3).map(function(x){return '<span><strong>'+escapeHtml(x.unit.name)+'</strong> · '+String(x.due.getDate()).padStart(2,"0")+"/"+String(x.due.getMonth()+1).padStart(2,"0")+' · '+money(x.amount)+'</span>'}).join("")||'<span>Nenhuma receita contratada nos próximos 90 dias.</span>')+'</div>';
+}
+function renderUnitOverview(unit) {
+    if(!unitOverview)return;
+    if(!unit){unitOverview.innerHTML='<p class="field-help">Salve a unidade para ver o resumo.</p>';return;}
+    var late=months.filter(function(_,m){return effectiveStatus(unit,m)==="atrasado"}).length, follow=(unit.chargeLog||[]).map(function(x){return x.nextActionDate}).filter(isValidDateValue).sort()[0];
+    unitOverview.innerHTML='<div class="unit-overview-grid"><div><span>Contrato atual</span><strong>'+escapeHtml(unit.tenantName||"Unidade vaga")+'</strong></div><div><span>Aluguel</span><strong>'+(unit.tenantName?money(unit.rent):"—")+'</strong></div><div><span>Situação</span><strong>'+(late?late+" atraso(s)":"Em dia")+'</strong></div><div><span>Próxima ação</span><strong>'+(follow?formatTimelineDate(follow):"Não definida")+'</strong></div></div>';
+}
+function suggestAdjustment() {
+    var percent=Number(state.settings.defaultAdjustmentPercent), rent=Number(unitRent.value);
+    if(!Number.isFinite(percent)||percent===0||!Number.isFinite(rent)){suggestedRentAdjustment.textContent="Defina o percentual padrão nas Configurações e o valor do aluguel.";return;}
+    var base=unitStartYm.value?unitStartYm.value.slice(0,7):monthKey(new Date().getMonth()), p=base.split("-").map(Number), date=new Date(p[0]+1,p[1]-1,1), ym=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0"), value=Math.round(rent*(1+percent/100)*100)/100;
+    rentChangeYm.value=ym;rentChangePercent.value=String(percent);rentChangeAbsolute.value="";suggestedRentAdjustment.textContent="Sugestão: "+percent+"% em "+ymLabel(ym)+" · "+money(value)+". Revise e clique em “Adicionar reajuste”.";
+}
 function renderSummary() {
     var units = scopedUnits();
     var annual = units.reduce(function (sum, unit) {
@@ -4466,6 +4508,8 @@ document
 		renderRentChanges();
 		renderContractHistory();
         renderChargeHistory(unit);
+        renderUnitOverview(unit);
+        suggestedRentAdjustment.textContent = "";
 
 		document.getElementById("deleteUnit").hidden = !unit;
 		document.getElementById("startNewContract").hidden = hasCurrentContract;
@@ -5325,6 +5369,8 @@ function saveExpense() {
     function openSettings() {
         finePercent.value = state.settings.finePercent;
         dailyInterestPercent.value = state.settings.dailyInterestPercent;
+        overdueFollowUpDays.value = state.settings.overdueFollowUpDays;
+        defaultAdjustmentPercent.value = state.settings.defaultAdjustmentPercent;
 
         // O campo continua com o id antigo para preservar os dados salvos,
         // mas a interface deve deixar claro que 1 representa 1% AO MÊS.
@@ -5392,6 +5438,8 @@ function saveExpense() {
         renderCategoryManager();
         renderEnterpriseManager();
         setCategoryStatus("Edite as opções disponíveis para os gastos.", false);
+        if (!Number.isInteger(followUp) || followUp < 1 || followUp > 30) { overdueFollowUpDays.setCustomValidity("Informe de 1 a 30 dias."); overdueFollowUpDays.reportValidity(); overdueFollowUpDays.focus(); return; }
+        if (!Number.isFinite(adjustment) || adjustment < -100 || adjustment > 1000) { defaultAdjustmentPercent.setCustomValidity("Informe um percentual válido."); defaultAdjustmentPercent.reportValidity(); defaultAdjustmentPercent.focus(); return; }
         finePercent.setCustomValidity("");
         dailyInterestPercent.setCustomValidity("");
         renderBackupHistory();
@@ -5406,6 +5454,8 @@ function saveExpense() {
         var fine = Number(finePercent.value);
         var interest = Number(dailyInterestPercent.value);
         var reminder = Number(reminderDays.value);
+        var followUp = Number(overdueFollowUpDays.value);
+        var adjustment = Number(defaultAdjustmentPercent.value);
         if (!Number.isFinite(fine) || fine < 0) {
             finePercent.setCustomValidity(
                 "Informe um percentual válido igual ou maior que zero."
@@ -5434,6 +5484,8 @@ function saveExpense() {
             dailyInterestPercent: interest,
             receiverName: receiverName.value.trim(),
             reminderDays: reminder,
+            overdueFollowUpDays: followUp,
+            defaultAdjustmentPercent: adjustment,
         };
         saveState();
         closeSettings();
@@ -7970,5 +8022,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     });
     document.getElementById("saveCharge").addEventListener("click", function () { saveChargeRecord(false); });
     document.getElementById("saveChargeAndOpenWhatsapp").addEventListener("click", function () { saveChargeRecord(true); });
+
+    applySuggestedRentAdjustment.addEventListener("click", suggestAdjustment);
 
 })();
