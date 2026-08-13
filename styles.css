@@ -3430,3 +3430,82 @@ textarea:focus-visible {
         padding: 15px;
     }
 }
+
+
+/* Leitura refinada da tabela de pagamentos */
+.table-wrap {
+    box-shadow: 0 5px 18px rgba(32, 70, 66, .055);
+}
+
+.table-wrap th,
+.table-wrap td {
+    border-right-color: #f3f7f6;
+}
+
+.table-wrap thead th {
+    border-bottom-color: #dce9e6;
+    background: #f8fbfa;
+}
+
+.table-wrap thead th:first-child,
+.table-wrap tbody th,
+.table-wrap tfoot th {
+    min-width: 158px;
+    border-right: 1px solid #d6e5e1;
+    box-shadow: 8px 0 12px -12px rgba(13, 74, 69, .5);
+}
+
+.table-wrap thead th:first-child {
+    background: #f8fbfa;
+}
+
+.table-wrap tbody th,
+.table-wrap tfoot th {
+    background: #fff;
+}
+
+.table-wrap .month-current {
+    background: #edf8f5 !important;
+}
+
+.table-wrap thead .month-current {
+    color: #176962;
+    background: #e5f5f1 !important;
+}
+
+.table-wrap .status-btn.chip-pendente {
+    color: #63737a;
+    background: #eff3f4;
+    border: 1px solid #d4e0e2;
+}
+
+.table-wrap .status-btn.chip-pago {
+    min-height: 40px;
+}
+
+.table-wrap .status-btn.chip-pago > .status-label {
+    font-size: .58rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .table-wrap .status-cell .receipt-btn,
+    .table-wrap .status-cell .payment-adjust-btn {
+        opacity: .35;
+        transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .table-wrap td:hover .receipt-btn,
+    .table-wrap td:hover .payment-adjust-btn,
+    .table-wrap .status-cell:focus-within .receipt-btn,
+    .table-wrap .status-cell:focus-within .payment-adjust-btn {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 520px) {
+    .table-wrap thead th:first-child,
+    .table-wrap tbody th,
+    .table-wrap tfoot th {
+        min-width: 146px;
+    }
+}
