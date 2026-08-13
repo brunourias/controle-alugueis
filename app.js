@@ -3655,7 +3655,6 @@ undefined || item.rent === "" ? null : Number(item.rent);
         empty.hidden = hasUnits;
         filterEmpty.hidden = !hasUnits || visibleUnits.length > 0;
         renderActionCenter();
-        renderOperationsHub();
         renderGrid(visibleUnits);
         if (didInitialScroll && visibleUnits.length > 0)
             tableWrap.scrollLeft = lastGridScrollLeft;
@@ -3741,103 +3740,6 @@ undefined || item.rent === "" ? null : Number(item.rent);
             var url = chargeUrl(unit);
             if (url) window.open(url, "_blank", "noopener");
         }
-    }
-
-    function operationalToday() {
-        var date = new Date();
-        date.setHours(0, 0, 0, 0);
-        return date;
-    }
-
-    function operationalDateLabel(value) {
-        return isValidDateValue(value) ? formatDate(value) : "Sem data";
-    }
-
-    function upcomingContractEnd(unit, today, limit) {
-        if (!isValidDateValue(unit.endDate)) return null;
-        var end = new Date(unit.endDate + "T12:00:00");
-        var days = Math.round((end - today) / 86400000);
-        return days >= 0 && days <= limit ? days : null;
-    }
-
-    function overdueUnitMonths(unit) {
-        var result = [];
-        months.forEach(function (_, month) {
-            var key = monthKey(month);
-            var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-            if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") result.push(month);
-        });
-        return result;
-    }
-
-    function renderOperationsHub() {
-        var container = document.getElementById("operationsHub");
-        if (!container) return;
-        var today = operationalToday();
-        var month = today.getMonth();
-        var agenda = [], charges = [];
-
-        function addAgenda(date, title, detail, unitId, kind) {
-            if (!isValidDateValue(date)) return;
-            var eventDate = new Date(date + "T12:00:00");
-            var distance = Math.round((eventDate - today) / 86400000);
-            if (distance < -1 || distance > 30) return;
-            agenda.push({ date: date, title: title, detail: detail, unitId: unitId || "", kind: kind || "open", distance: distance });
-        }
-
-        scopedUnits().forEach(function (unit) {
-            var lateMonths = overdueUnitMonths(unit);
-            if (lateMonths.length) {
-                var logs = (unit.chargeLog || []).slice().sort(function (left, right) {
-                    return String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
-                });
-                var latest = logs[0] || {};
-                var next = logs.find(function (entry) { return isValidDateValue(entry.nextActionDate); }) || {};
-                charges.push({
-                    unit: unit, lateMonths: lateMonths, latest: latest, next: next,
-                    amount: lateMonths.reduce(function (total, item) {
-                        var key = monthKey(item);
-                        var ledger = unit.lateLedger && unit.lateLedger[key];
-                        return total + (ledger === true || ledger === "open" ? historicLateRent(unit, key) : rentForMonth(unit, selectedYear, item));
-                    }, 0)
-                });
-            }
-            (unit.chargeLog || []).forEach(function (entry) {
-                addAgenda(entry.nextActionDate, "Retorno de cobrança · " + unit.name, (unit.tenantName || "Inquilino") + " · " + chargeKindLabel(entry.kind), unit.id, "charge");
-                addAgenda(entry.promisedDate, "Pagamento prometido · " + unit.name, unit.tenantName || "Inquilino", unit.id, "charge");
-            });
-            if (selectedYear === today.getFullYear() && isActive(unit, month)) {
-                var due = dueDateFor(unit, month);
-                if (due) addAgenda(localDateValue(due), "Vencimento · " + unit.name, unit.tenantName || "Sem inquilino", unit.id, "open");
-            }
-            var contractDays = upcomingContractEnd(unit, today, 30);
-            if (contractDays !== null) addAgenda(unit.endDate, "Contrato próximo do fim · " + unit.name, (unit.tenantName || "Inquilino") + " · faltam " + contractDays + " dia(s)", unit.id, "open");
-        });
-        state.tasks.filter(function (task) { return !task.done; }).forEach(function (task) {
-            addAgenda(task.dueDate, "Tarefa · " + task.title, task.unitId ? (state.units.find(function (unit) { return unit.id === task.unitId; }) || {}).name || "" : "Tarefa manual", task.unitId, "task");
-        });
-
-        agenda.sort(function (left, right) { return left.date.localeCompare(right.date) || left.title.localeCompare(right.title); });
-        charges.sort(function (left, right) {
-            var leftDate = left.next.nextActionDate || "9999-12-31", rightDate = right.next.nextActionDate || "9999-12-31";
-            return leftDate.localeCompare(rightDate) || right.amount - left.amount;
-        });
-
-        container.innerHTML = '<section class="operations-panel collection-panel"><div class="operations-panel-heading"><div><span class="operations-eyebrow">Acompanhe hoje</span><h2>Central de cobrança</h2><p>Parcelas em atraso, último contato e próxima ação por unidade.</p></div><b>' + charges.length + '</b></div>' +
-            (charges.length ? '<div class="charge-center-list">' + charges.map(function (item) {
-                var lastContact = item.latest.date ? chargeKindLabel(item.latest.kind) + " em " + operationalDateLabel(item.latest.date) : "Nenhum contato registrado";
-                var nextAction = item.next.nextActionDate ? "Próxima ação: " + operationalDateLabel(item.next.nextActionDate) : "Defina a próxima ação";
-                return '<article class="charge-center-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName || "Sem inquilino") + ' · ' + item.lateMonths.length + ' parcela(s) em atraso · ' + money(item.amount) + '</span><small>' + escapeHtml(lastContact) + ' · ' + escapeHtml(nextAction) + '</small></div><div class="charge-center-actions"><button class="btn btn-ghost" type="button" data-operations-charge="' + escapeHtml(item.unit.id) + '">Registrar</button>' + (chargeUrl(item.unit) ? '<button class="btn btn-primary" type="button" data-operations-whatsapp="' + escapeHtml(item.unit.id) + '">WhatsApp</button>' : '') + '</div></article>';
-            }).join("") + '</div>' : '<p class="operations-empty">Nenhuma cobrança pendente. Ótimo trabalho.</p>') + '</section>' +
-            '<section class="operations-panel agenda-panel"><div class="operations-panel-heading"><div><span class="operations-eyebrow">Próximos 30 dias</span><h2>Agenda operacional</h2><p>Vencimentos, retornos, promessas, contratos e tarefas.</p></div><b>' + agenda.length + '</b></div>' +
-            (agenda.length ? '<div class="agenda-list">' + agenda.slice(0, 18).map(function (event) {
-                var when = event.distance < 0 ? "Ontem" : event.distance === 0 ? "Hoje" : event.distance === 1 ? "Amanhã" : operationalDateLabel(event.date);
-                return '<article class="agenda-row"><time>' + escapeHtml(when) + '</time><div><strong>' + escapeHtml(event.title) + '</strong><span>' + escapeHtml(event.detail || "") + '</span></div><button class="btn btn-ghost" type="button" data-operations-open="' + escapeHtml(event.unitId) + '">' + (event.kind === "charge" ? "Cobrar" : "Ver") + '</button></article>';
-            }).join("") + '</div>' : '<p class="operations-empty">Nenhum compromisso nos próximos 30 dias.</p>') + '</section>';
-
-        container.querySelectorAll("[data-operations-charge]").forEach(function (button) { button.addEventListener("click", function () { openChargeModal(button.dataset.operationsCharge); }); });
-        container.querySelectorAll("[data-operations-whatsapp]").forEach(function (button) { button.addEventListener("click", function () { var unit = state.units.find(function (item) { return item.id === button.dataset.operationsWhatsapp; }); var url = unit && chargeUrl(unit); if (url) window.open(url, "_blank", "noopener"); }); });
-        container.querySelectorAll("[data-operations-open]").forEach(function (button) { button.addEventListener("click", function () { if (button.dataset.operationsOpen) openModal(button.dataset.operationsOpen); }); });
     }
 
     function renderActionCenter() {
