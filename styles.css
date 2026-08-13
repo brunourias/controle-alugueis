@@ -4511,3 +4511,17 @@ textarea:focus-visible {
 .expense-month + .expense-month {
     margin-top: 2px;
 }
+
+
+/* Central de ação e cobrança */
+.action-priority-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.action-priority-section, .action-tasks-panel { border: 1px solid var(--line, #d9e6e5); border-radius: 14px; padding: 14px; background: #fff; }
+.action-priority-section h3, .action-tasks-panel h3 { margin: 0 0 10px; color: #075f5b; font-size: .95rem; }
+.action-priority-section.is-urgent { border-color: #f3c8cf; background: #fffafb; }
+.action-priority-row.is-urgent strong { color: #a52d3b; }
+.action-priority-row { gap: 10px; }
+.charge-history-list { display: grid; gap: 8px; margin: 2px 0 12px; }
+.charge-history-row { padding: 10px 12px; border: 1px solid #dce9e8; border-radius: 10px; background: #fbfefe; }
+.charge-history-row strong, .charge-history-row span { display: block; }
+.charge-history-row span { margin-top: 3px; font-size: .82rem; color: #52706f; }
+@media (max-width: 760px) { .action-priority-grid { grid-template-columns: 1fr; gap: 10px; } .action-priority-section { padding: 12px; } }
