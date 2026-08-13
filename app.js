@@ -814,7 +814,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
             code === "permission-denied" ||
             code === "firestore/permission-denied"
         )
-            return "A conta entrou, mas as regras da nuvem ainda não permitem acessar os dados.";
+            return error && error.workspaceStep
+                ? "A nuvem bloqueou ao tentar " + error.workspaceStep + "."
+                : "A conta entrou, mas as regras da nuvem ainda não permitem acessar os dados.";
 
         return "Não foi possível conectar à nuvem agora. Os dados locais continuam disponíveis.";
     }
