@@ -547,7 +547,8 @@
                                     <label>Permissão do convite<select id="workspaceInviteRole"><option value="operator">Operador — acesso operacional completo</option><option value="billing">Cobrança — acompanha inadimplência</option><option value="finance">Financeiro — pagamentos e gastos</option><option value="admin">Administrador — também gerencia colaboradores</option><option value="viewer">Consulta — apenas visualiza</option></select></label>
                                     <button id="createWorkspaceInvite" class="btn btn-primary" type="button">Gerar link de convite</button>
                                     <p id="workspaceInviteResult" class="settings-note" hidden></p>
-                                    <div id="workspaceMembersList" class="workspace-members-list"></div>
+                                    <div id="workspacePermissions" class="workspace-permissions" aria-live="polite"></div>
+                                    <div id="workspaceMembersList" class="workspace-members-list" aria-live="polite"></div>
                                 </section>
                                 <p id="syncStatus" class="settings-note">Sincronizando...</p>
                                 <p id="cloudVerification" class="settings-note" hidden></p>
