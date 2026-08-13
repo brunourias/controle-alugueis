@@ -4727,3 +4727,9 @@ textarea:focus-visible {
 .onboarding-steps strong, .onboarding-steps small { display: block; }.onboarding-steps strong { color: #075f5b; font-size: .79rem; }.onboarding-steps small { margin: 3px 0 8px; color: #647f7d; font-size: .68rem; }
 .onboarding-enterprise { display: flex; gap: 7px; }.onboarding-enterprise input { min-width: 0; min-height: 36px; padding: 6px 8px; border: 1px solid #c5d9d6; border-radius: 9px; }.onboarding-enterprise .btn, .onboarding-steps .btn { min-height: 35px; padding: 5px 9px; font-size: .67rem; }.onboarding-done { color: #08745f; font-size: .7rem; font-weight: 800; }.onboarding-wait { color: #7d9693; font-size: .68rem; }.onboarding-footer { margin-top: 8px; }
 @media (max-width: 520px) { .onboarding-modal { width: calc(100vw - 20px); padding: 14px; } .onboarding-progress { align-items: flex-start; flex-direction: column; } .onboarding-enterprise { flex-direction: column; } }
+
+
+/* Operação de assinaturas */
+.subscription-notice { margin: 10px 0; padding: 10px 12px; border: 1px solid #e8c88d; border-radius: 10px; color: #805400; background: #fff9eb; font-size: .74rem; line-height: 1.4; }.subscription-notice.is-expired { border-color: #f0b9c1; color: #a23a45; background: #fff1f3; }
+.platform-filter { display: flex; align-items: center; gap: 7px; margin: 9px 0 2px; color: #647f7d; font-size: .7rem; font-weight: 700; }.platform-filter select { width: auto; min-height: 32px; margin: 0; padding: 0 7px; font-size: .7rem; }
+.subscription-status { padding: 3px 6px; border-radius: 999px; color: #416967; background: #edf5f3; font-size: .64rem; }.subscription-status.subscription-soon { color: #8a5a00; background: #fff1ca; }.subscription-status.subscription-expired { color: #a23a45; background: #ffe3e7; }
