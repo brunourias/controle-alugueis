@@ -54,7 +54,14 @@ body.app-access-gated {
     place-items: center;
     padding: 20px;
     color: var(--ink);
+    opacity: 0;
+    pointer-events: none;
     background: linear-gradient(145deg, var(--teal-dark), var(--teal));
+}
+
+.account-gate.is-visible {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .account-gate[hidden] {
