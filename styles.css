@@ -2545,3 +2545,104 @@ textarea:focus-visible {
         gap: 8px;
     }
 }
+
+
+/* Áreas de trabalho e colaboradores */
+.workspace-section {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
+.workspace-section h3 {
+    margin: 0 0 6px;
+    color: var(--teal-dark);
+    font-size: 1rem;
+}
+
+.workspace-section label {
+    display: block;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.workspace-section select {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    margin-top: 5px;
+    padding: 0 11px;
+    border: 1px solid #c5d9d6;
+    border-radius: 11px;
+    color: var(--ink);
+    background: #fbfefd;
+}
+
+.workspace-section > .btn {
+    margin-top: 10px;
+}
+
+.workspace-members-list {
+    display: grid;
+    gap: 7px;
+    margin-top: 13px;
+}
+
+.workspace-member-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #f9fcfb;
+}
+
+.workspace-member-row strong,
+.workspace-member-row span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-member-row strong {
+    color: var(--ink);
+    font-size: .78rem;
+}
+
+.workspace-member-row span {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: .7rem;
+}
+
+.workspace-member-row .btn {
+    min-height: 32px;
+    padding: 0 9px;
+    font-size: .7rem;
+}
+
+.workspace-owner {
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    border-radius: 999px;
+    color: #135f5a !important;
+    background: #e2f3ef;
+    font-size: .64rem !important;
+    font-weight: 800;
+}
+
+@media (max-width: 520px) {
+    .workspace-member-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .workspace-member-row .btn {
+        width: 100%;
+    }
+}
