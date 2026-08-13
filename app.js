@@ -343,6 +343,7 @@ var historyRent = document.getElementById("historyRent");
     var cloudAccountApproved = false;
     var cloudAccountSettings = null;
     var platformPendingUnsubscribe = null;
+    var platformPlanCatalog = [];
     var cloudAuthInFlight = false;
     var cloudAuthCooldownUntil = 0;
     var cloudAuthCooldownTimer = null;
@@ -1054,55 +1055,96 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
     }
 
+    function builtinPlatformPlans() {
+        return [
+            { id: "trial", name: "Teste", price: 0, limits: { units: 10, enterprises: 1, workspaces: 1, users: 2 }, system: true },
+            { id: "starter", name: "Inicial", price: 0, limits: { units: 30, enterprises: 3, workspaces: 3, users: 5 }, system: true },
+            { id: "professional", name: "Profissional", price: 0, limits: { units: 9999, enterprises: 999, workspaces: 999, users: 999 }, system: true }
+        ];
+    }
+
+    function platformPlans() {
+        return platformPlanCatalog.length ? platformPlanCatalog : builtinPlatformPlans();
+    }
+
+    function platformPlanFor(id) {
+        return platformPlans().find(function (item) { return item.id === id; }) || builtinPlatformPlans()[0];
+    }
+
     function platformAccountStatusLabel(status) {
-        return {
-            pending: "Aguardando aprovação",
-            approved: "Ativa",
-            rejected: "Recusada",
-            suspended: "Suspensa"
-        }[status] || "Ativa";
+        return { pending: "Aguardando aprovação", approved: "Ativa", rejected: "Recusada", suspended: "Suspensa" }[status] || "Ativa";
+    }
+
+    function subscriptionStatusLabel(status) {
+        return { trial: "Em teste", active: "Assinatura ativa", overdue: "Pagamento vencido", canceled: "Assinatura cancelada" }[status] || "Em teste";
     }
 
     function platformPlanLabel(plan) {
-        return { trial: "Teste", starter: "Inicial", professional: "Profissional" }[plan] || "Teste";
+        if (cloudAccountSettings && cloudAccountSettings.plan === plan && cloudAccountSettings.planName)
+            return String(cloudAccountSettings.planName);
+        return platformPlanFor(plan).name || "Teste";
     }
 
     function defaultPlatformLimits(plan) {
+        var limits = platformPlanFor(plan).limits || {};
         return {
-            trial: { units: 10, enterprises: 1, workspaces: 1, users: 2 },
-            starter: { units: 30, enterprises: 3, workspaces: 3, users: 5 },
-            professional: { units: 9999, enterprises: 999, workspaces: 999, users: 999 }
-        }[plan] || { units: 10, enterprises: 1, workspaces: 1, users: 2 };
+            units: Number(limits.units) || 0,
+            enterprises: Number(limits.enterprises) || 0,
+            workspaces: Number(limits.workspaces) || 0,
+            users: Number(limits.users) || 0
+        };
+    }
+
+    function loadPlatformPlans() {
+        if (!firebaseDb || !isPlatformAdmin(firebaseUser)) return Promise.resolve(platformPlans());
+        return firebaseDb.collection("platformPlans").get().then(function (snapshot) {
+            var custom = [];
+            snapshot.forEach(function (item) {
+                var data = item.data() || {};
+                if (!data.name || !data.limits || typeof data.limits !== "object") return;
+                custom.push({
+                    id: item.id, name: String(data.name).slice(0, 60),
+                    price: Number(data.price) || 0,
+                    limits: {
+                        units: Number(data.limits.units) || 0,
+                        enterprises: Number(data.limits.enterprises) || 0,
+                        workspaces: Number(data.limits.workspaces) || 0,
+                        users: Number(data.limits.users) || 0
+                    },
+                    system: data.system === true
+                });
+            });
+            var builtins = builtinPlatformPlans();
+            builtins.forEach(function (base) {
+                if (!custom.some(function (plan) { return plan.id === base.id; })) custom.push(base);
+            });
+            platformPlanCatalog = custom.sort(function (left, right) {
+                return left.name.localeCompare(right.name, "pt-BR");
+            });
+            return platformPlanCatalog;
+        }).catch(function () {
+            platformPlanCatalog = builtinPlatformPlans();
+            return platformPlanCatalog;
+        });
     }
 
     function activePlatformPlan() {
         if (isPlatformAdmin(firebaseUser)) return "professional";
-        return cloudAccountSettings && typeof cloudAccountSettings.plan === "string"
-            ? cloudAccountSettings.plan : "trial";
+        return cloudAccountSettings && typeof cloudAccountSettings.plan === "string" ? cloudAccountSettings.plan : "trial";
     }
 
     function activePlatformLimits() {
         var base = defaultPlatformLimits(activePlatformPlan());
-        var custom = cloudAccountSettings && cloudAccountSettings.limits &&
-            typeof cloudAccountSettings.limits === "object"
-            ? cloudAccountSettings.limits : {};
+        var custom = cloudAccountSettings && cloudAccountSettings.limits && typeof cloudAccountSettings.limits === "object" ? cloudAccountSettings.limits : {};
         ["units", "enterprises", "workspaces", "users"].forEach(function (key) {
-            if (Number.isFinite(Number(custom[key])) && Number(custom[key]) >= 0)
-                base[key] = Number(custom[key]);
+            if (Number.isFinite(Number(custom[key])) && Number(custom[key]) >= 0) base[key] = Number(custom[key]);
         });
         return base;
     }
 
     function limitMessage(resource, used, limit) {
-        var labels = {
-            units: "unidades",
-            enterprises: "empreendimentos",
-            workspaces: "áreas de trabalho",
-            users: "usuários"
-        };
-        return "Limite do plano " + platformPlanLabel(activePlatformPlan()) +
-            " atingido: " + used + "/" + limit + " " + (labels[resource] || resource) +
-            ". Fale com a administração para ampliar o plano.";
+        var labels = { units: "unidades", enterprises: "empreendimentos", workspaces: "áreas de trabalho", users: "usuários" };
+        return "Limite do plano " + platformPlanLabel(activePlatformPlan()) + " atingido: " + used + "/" + limit + " " + (labels[resource] || resource) + ". Fale com a administração para ampliar o plano.";
     }
 
     function canCreateWithinPlan(resource, used) {
@@ -1118,50 +1160,87 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function renderPlanUsage() {
         var usage = document.getElementById("planUsage");
         if (!usage) return;
-        if (!firebaseUser || !cloudAccountApproved) {
-            usage.hidden = true;
-            return;
-        }
-        var limits = activePlatformLimits();
-        var plan = activePlatformPlan();
-        var unitCount = state.units.length;
-        var enterpriseCount = state.empreendimentos.length;
+        if (!firebaseUser || !cloudAccountApproved) { usage.hidden = true; return; }
+        var limits = activePlatformLimits(), plan = activePlatformPlan(), unitCount = state.units.length, enterpriseCount = state.empreendimentos.length;
         usage.hidden = false;
-        usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong>' +
-            '<span>' + unitCount + '/' + limits.units + ' unidades · ' +
-            enterpriseCount + '/' + limits.enterprises + ' empreendimentos · carregando colaboradores...</span>';
+        usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong><span>' + unitCount + '/' + limits.units + ' unidades · ' + enterpriseCount + '/' + limits.enterprises + ' empreendimentos · carregando colaboradores...</span>';
         if (!firebaseDb || !cloudWorkspaceId) return;
         workspaceRef(cloudWorkspaceId).collection("members").get().then(function (snapshot) {
             if (!firebaseUser || usage.hidden) return;
-            usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong>' +
-                '<span>' + unitCount + '/' + limits.units + ' unidades · ' +
-                enterpriseCount + '/' + limits.enterprises + ' empreendimentos · ' +
-                snapshot.size + '/' + limits.users + ' usuários</span>';
-        }).catch(function () {
-            usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong>' +
-                '<span>' + unitCount + '/' + limits.units + ' unidades · ' +
-                enterpriseCount + '/' + limits.enterprises + ' empreendimentos</span>';
-        });
+            usage.innerHTML = '<strong>Plano ' + escapeHtml(platformPlanLabel(plan)) + '</strong><span>' + unitCount + '/' + limits.units + ' unidades · ' + enterpriseCount + '/' + limits.enterprises + ' empreendimentos · ' + snapshot.size + '/' + limits.users + ' usuários</span>';
+        }).catch(function () {});
     }
 
-    function platformAccountRef(userId) {
-        return accessRequestRef(userId);
+    function platformAccountRef(userId) { return accessRequestRef(userId); }
+
+    function writePlatformAudit(action, accountId, details) {
+        if (!firebaseDb || !isPlatformAdmin(firebaseUser)) return Promise.resolve();
+        return firebaseDb.collection("platformAudit").add({
+            action: action, accountId: accountId || "", details: details || {},
+            actorEmail: firebaseUser.email || "", actorId: firebaseUser.uid,
+            createdAt: Date.now()
+        }).catch(function () {});
     }
 
-    function updatePlatformAccount(userId, patch) {
+    function updatePlatformAccount(userId, patch, action) {
         if (!isPlatformAdmin(firebaseUser) || !platformAccountRef(userId)) return;
-        platformAccountRef(userId).set(Object.assign({
-            uid: userId,
-            updatedAt: Date.now(),
-            updatedBy: firebaseUser.uid
-        }, patch), { merge: true }).then(function () {
-            if (firebaseUser && userId === firebaseUser.uid)
-                cloudAccountSettings = Object.assign({}, cloudAccountSettings || {}, patch);
-            renderPlatformApprovals();
-            renderPlanUsage();
-        }).catch(function (error) {
-            setCloudError(cloudErrorMessage(error));
+        return platformAccountRef(userId).set(Object.assign({ uid: userId, updatedAt: Date.now(), updatedBy: firebaseUser.uid }, patch), { merge: true })
+            .then(function () {
+                if (firebaseUser && userId === firebaseUser.uid) cloudAccountSettings = Object.assign({}, cloudAccountSettings || {}, patch);
+                return writePlatformAudit(action || "Conta atualizada", userId, patch);
+            }).then(function () {
+                renderPlatformApprovals(); renderPlatformPlans(); renderPlatformAudit(); renderPlanUsage();
+            }).catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+    }
+
+    function renderPlatformPlans() {
+        var list = document.getElementById("platformPlansList");
+        if (!list || !isPlatformAdmin(firebaseUser)) return;
+        loadPlatformPlans().then(function () {
+            list.innerHTML = platformPlans().map(function (plan) {
+                var limits = plan.limits || {};
+                return '<article class="platform-plan-row"><div><strong>' + escapeHtml(plan.name) + '</strong><span>' + (plan.price ? money(plan.price) + '/mês · ' : '') + Number(limits.units) + ' unidades · ' + Number(limits.enterprises) + ' empreendimentos · ' + Number(limits.users) + ' usuários</span></div>' + (plan.system ? '<small>Plano base</small>' : '<button class="btn btn-danger" type="button" data-delete-plan="' + escapeHtml(plan.id) + '">Remover</button>') + '</article>';
+            }).join("");
+            list.querySelectorAll("[data-delete-plan]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (!window.confirm("Remover este plano? Clientes já associados manterão os limites atuais.")) return;
+                    firebaseDb.collection("platformPlans").doc(button.dataset.deletePlan).delete()
+                        .then(function () { return writePlatformAudit("Plano removido", "", { plan: button.dataset.deletePlan }); })
+                        .then(function () { platformPlanCatalog = []; renderPlatformPlans(); renderPlatformApprovals(); });
+                });
+            });
         });
+    }
+
+    function savePlatformPlan() {
+        var nameInput = document.getElementById("platformPlanName"), priceInput = document.getElementById("platformPlanPrice");
+        var unitInput = document.getElementById("platformPlanUnits"), enterpriseInput = document.getElementById("platformPlanEnterprises"), userInput = document.getElementById("platformPlanUsers");
+        if (!isPlatformAdmin(firebaseUser) || !nameInput) return;
+        var name = nameInput.value.trim(), price = Number(priceInput.value);
+        var limits = { units: Number(unitInput.value), enterprises: Number(enterpriseInput.value), users: Number(userInput.value), workspaces: Number(enterpriseInput.value) };
+        if (!name || !Number.isFinite(price) || price < 0 || Object.keys(limits).some(function (key) { return !Number.isInteger(limits[key]) || limits[key] < 1; })) {
+            nameInput.setCustomValidity("Informe nome, preço e limites válidos."); nameInput.reportValidity(); return;
+        }
+        nameInput.setCustomValidity("");
+        var id = "custom-" + name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36);
+        firebaseDb.collection("platformPlans").doc(id).set({ name: name, price: price, limits: limits, createdAt: Date.now(), createdBy: firebaseUser.uid })
+            .then(function () { return writePlatformAudit("Plano criado", "", { plan: name, price: price, limits: limits }); })
+            .then(function () { [nameInput, priceInput, unitInput, enterpriseInput, userInput].forEach(function (input) { input.value = ""; }); platformPlanCatalog = []; renderPlatformPlans(); renderPlatformApprovals(); })
+            .catch(function (error) { setCloudError(cloudErrorMessage(error)); });
+    }
+
+    function renderPlatformAudit() {
+        var list = document.getElementById("platformAuditList");
+        if (!list || !firebaseDb || !isPlatformAdmin(firebaseUser)) return;
+        list.innerHTML = '<p class="settings-note">Carregando histórico...</p>';
+        firebaseDb.collection("platformAudit").orderBy("createdAt", "desc").limit(30).get().then(function (snapshot) {
+            var entries = [];
+            snapshot.forEach(function (item) { entries.push(item.data() || {}); });
+            list.innerHTML = entries.length ? entries.map(function (entry) {
+                var when = entry.createdAt ? new Date(Number(entry.createdAt)).toLocaleString("pt-BR") : "data não informada";
+                return '<div class="platform-audit-row"><strong>' + escapeHtml(entry.action || "Alteração") + '</strong><span>' + escapeHtml(entry.actorEmail || "Administração") + ' · ' + escapeHtml(when) + '</span></div>';
+            }).join("") : '<p class="settings-note">Nenhuma operação administrativa registrada ainda.</p>';
+        }).catch(function () { list.innerHTML = '<p class="settings-note">O histórico estará disponível após publicar as regras atualizadas.</p>'; });
     }
 
     function updatePlatformAdminTrigger() {
@@ -1202,8 +1281,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function openPlatformAdmin() {
         if (!isPlatformAdmin(firebaseUser) || !platformAdminModal) return;
-        renderPlatformApprovals();
         ModalManager.open(platformAdminModal);
+        renderPlatformApprovals();
+        renderPlatformPlans();
+        renderPlatformAudit();
     }
 
     function closePlatformAdmin() {
@@ -1218,10 +1299,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         platformApprovalsList.innerHTML = '<p class="settings-note">Carregando contas da plataforma...</p>';
 
-        Promise.all([
+        loadPlatformPlans().then(function () { return Promise.all([
             firebaseDb.collection("profiles").get(),
             firebaseDb.collection("accessRequests").get()
-        ]).then(function (results) {
+        ]); }).then(function (results) {
             var profiles = {};
             var accounts = {};
 
@@ -1252,6 +1333,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     status: status,
                     plan: plan,
                     limits: limits,
+                    subscriptionStatus: typeof account.subscriptionStatus === "string" ? account.subscriptionStatus : (plan === "trial" ? "trial" : "active"),
+                    subscriptionDueDate: typeof account.subscriptionDueDate === "string" ? account.subscriptionDueDate : "",
                     createdAt: Number(account.createdAt || profile.updatedAt) || 0,
                     workspaces: Array.isArray(profile.workspaceIds) ? profile.workspaceIds.length : 0
                 };
@@ -1288,9 +1371,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     '<span>' + account.workspaces + ' área(s)</span>' +
                     '<span>limite: ' + Number(account.limits.units || 0) + ' unidades · ' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + ' empreendimentos · ' + Number(account.limits.users || 0) + ' usuários</span></div></div>' +
                     '<div class="platform-account-actions"><label>Plano<select data-account-plan="' + escapeHtml(account.id) + '">' +
-                    ["trial", "starter", "professional"].map(function (plan) {
-                        return '<option value="' + plan + '"' + (plan === account.plan ? " selected" : "") + '>' + platformPlanLabel(plan) + '</option>';
-                    }).join("") + '</select></label><details class="platform-limit-editor"><summary>Limites</summary><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></details>' + primaryAction + '</div></article>';
+                    platformPlans().map(function (plan) {
+                        return '<option value="' + escapeHtml(plan.id) + '"' + (plan.id === account.plan ? " selected" : "") + '>' + escapeHtml(plan.name) + '</option>';
+                    }).join("") + '</select></label><label>Assinatura<select data-subscription-status="' + escapeHtml(account.id) + '">' +
+                    ["trial", "active", "overdue", "canceled"].map(function (status) { return '<option value="' + status + '"' + (status === account.subscriptionStatus ? " selected" : "") + '>' + subscriptionStatusLabel(status) + '</option>'; }).join("") + '</select></label><label>Vence em<input type="date" data-subscription-due="' + escapeHtml(account.id) + '" value="' + escapeHtml(account.subscriptionDueDate || "") + '"></label><details class="platform-limit-editor"><summary>Limites</summary><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></details>' + primaryAction + '</div></article>';
             }).join("") : '<p class="settings-note">Nenhuma conta cadastrada ainda.</p>');
 
             platformApprovalsList.querySelectorAll("[data-platform-activate]").forEach(function (button) {
@@ -1298,31 +1382,33 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     var planSelect = Array.prototype.slice.call(platformApprovalsList.querySelectorAll("[data-account-plan]")).find(function (select) { return select.dataset.accountPlan === button.dataset.platformActivate; });
                     var plan = planSelect ? planSelect.value : "trial";
                     updatePlatformAccount(button.dataset.platformActivate, {
-                        status: "approved",
-                        plan: plan,
-                        limits: defaultPlatformLimits(plan),
-                        approvedAt: Date.now(),
-                        approvedBy: firebaseUser.uid
-                    });
+                        status: "approved", plan: plan, planName: platformPlanLabel(plan), limits: defaultPlatformLimits(plan),
+                        subscriptionStatus: plan === "trial" ? "trial" : "active",
+                        approvedAt: Date.now(), approvedBy: firebaseUser.uid
+                    }, "Conta aprovada");
                 });
             });
             platformApprovalsList.querySelectorAll("[data-platform-suspend]").forEach(function (button) {
                 button.addEventListener("click", function () {
                     if (!window.confirm("Suspender o acesso desta conta? Os dados serão preservados, mas a sincronização ficará bloqueada.")) return;
-                    updatePlatformAccount(button.dataset.platformSuspend, {
-                        status: "suspended",
-                        suspendedAt: Date.now(),
-                        suspendedBy: firebaseUser.uid
-                    });
+                    updatePlatformAccount(button.dataset.platformSuspend, { status: "suspended", suspendedAt: Date.now(), suspendedBy: firebaseUser.uid }, "Acesso suspenso");
                 });
             });
             platformApprovalsList.querySelectorAll("[data-account-plan]").forEach(function (select) {
                 select.addEventListener("change", function () {
                     var plan = select.value;
-                    updatePlatformAccount(select.dataset.accountPlan, {
-                        plan: plan,
-                        limits: defaultPlatformLimits(plan)
-                    });
+                    updatePlatformAccount(select.dataset.accountPlan, { plan: plan, planName: platformPlanLabel(plan), limits: defaultPlatformLimits(plan) }, "Plano alterado");
+                });
+            });
+            platformApprovalsList.querySelectorAll("[data-subscription-status], [data-subscription-due]").forEach(function (input) {
+                input.addEventListener("change", function () {
+                    var accountId = input.dataset.subscriptionStatus || input.dataset.subscriptionDue;
+                    var statusField = platformApprovalsList.querySelector('[data-subscription-status="' + accountId + '"]');
+                    var dueField = platformApprovalsList.querySelector('[data-subscription-due="' + accountId + '"]');
+                    updatePlatformAccount(accountId, {
+                        subscriptionStatus: statusField ? statusField.value : "trial",
+                        subscriptionDueDate: dueField ? dueField.value : ""
+                    }, "Assinatura atualizada");
                 });
             });
             platformApprovalsList.querySelectorAll("[data-account-limit]").forEach(function (input) {
@@ -1336,7 +1422,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                             if (Number.isInteger(value) && value >= 0) limits[field.dataset.limitKey] = value;
                         });
                     if (Object.keys(limits).length !== 3) return;
-                    updatePlatformAccount(accountId, { limits: limits });
+                    updatePlatformAccount(accountId, { limits: limits }, "Limites personalizados");
                 });
             });
         }).catch(function (error) {
@@ -7431,6 +7517,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     if (platformAdminButton) platformAdminButton.addEventListener("click", openPlatformAdmin);
     var closePlatformAdminButton = document.getElementById("closePlatformAdmin");
     if (closePlatformAdminButton) closePlatformAdminButton.addEventListener("click", closePlatformAdmin);
+    var savePlatformPlanButton = document.getElementById("savePlatformPlan");
+    if (savePlatformPlanButton) savePlatformPlanButton.addEventListener("click", savePlatformPlan);
 
     document
         .getElementById("cancelSettings")
