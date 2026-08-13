@@ -2824,7 +2824,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 escapeHtml(whatsapp) +
                 '" target="_blank" rel="noopener noreferrer" aria-label="Falar com ' +
                 escapeHtml(unit.tenantName || "inquilino") +
-                ' pelo WhatsApp" data-tenant-action>💬</a>';
+                ' pelo WhatsApp" data-tenant-action><svg class="tenant-whatsapp-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a9.82 9.82 0 0 0-8.46 14.81L2.5 21.5l4.84-.99A9.82 9.82 0 1 0 12 2Z"></path><path fill="#ffffff" d="M16.97 14.54c-.2.56-1.13 1.03-1.57 1.1-.42.07-.96.1-1.55-.09-.35-.11-.8-.26-1.38-.51-2.43-1.05-4.02-3.51-4.14-3.67-.12-.16-.99-1.32-.99-2.52 0-1.2.63-1.79.85-2.03.22-.24.48-.3.64-.3.16 0 .32 0 .46.01.15.01.35-.06.55.42.2.48.67 1.65.73 1.77.06.12.1.27.02.43-.08.16-.12.27-.24.41-.12.14-.25.31-.36.42-.12.12-.24.25-.1.49.14.24.63 1.04 1.35 1.68.93.83 1.72 1.09 1.96 1.21.24.12.38.1.52-.06.14-.16.6-.7.76-.94.16-.24.32-.2.54-.12.22.08 1.39.66 1.63.78.24.12.4.18.46.28.06.1.06.58-.14 1.14Z"></path></svg></a>';
         }
         if (unit.tenantEmail) {
             actions +=
