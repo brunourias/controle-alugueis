@@ -246,6 +246,14 @@ var historyRent = document.getElementById("historyRent");
     var enableBiometricButton = document.getElementById("enableBiometric");
     var removeBiometricButton = document.getElementById("removeBiometric");
     var backupFile = document.getElementById("backupFile");
+    var chargeModal = document.getElementById("chargeModal");
+    var chargeModalContext = document.getElementById("chargeModalContext");
+    var chargeType = document.getElementById("chargeType");
+    var chargeDate = document.getElementById("chargeDate");
+    var chargePromisedDate = document.getElementById("chargePromisedDate");
+    var chargeNextActionDate = document.getElementById("chargeNextActionDate");
+    var chargeNote = document.getElementById("chargeNote");
+    var chargeModalUnitId = null;
     var expenseModal = document.getElementById("expenseModal");
     var expenseModalTitle = document.getElementById("expenseModalTitle");
     var expenseYm = document.getElementById("expenseYm");
@@ -728,7 +736,17 @@ undefined || item.rent === "" ? null : Number(item.rent);
             return item && typeof item === "object" && typeof item.name === "string" && typeof item.url === "string";
         }).slice(0, 30) : [];
         unit.chargeLog = Array.isArray(unit.chargeLog) ? unit.chargeLog.filter(function (entry) {
-            return entry && typeof entry === "object" && typeof entry.createdAt === "string";
+            return entry && typeof entry === "object";
+        }).map(function (entry, index) {
+            return {
+                id: typeof entry.id === "string" && entry.id ? entry.id : "charge-" + index + "-" + Date.now().toString(36),
+                createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+                date: isValidDateValue(entry.date) ? entry.date : "",
+                kind: ["whatsapp", "ligacao", "contato", "promessa", "nota"].indexOf(entry.kind) >= 0 ? entry.kind : "contato",
+                note: typeof entry.note === "string" ? entry.note.trim().slice(0, 220) : "",
+                promisedDate: isValidDateValue(entry.promisedDate) ? entry.promisedDate : "",
+                nextActionDate: isValidDateValue(entry.nextActionDate) ? entry.nextActionDate : ""
+            };
         }).slice(0, 40) : [];
         unit.lateLedger =
             unit.lateLedger &&
@@ -2818,11 +2836,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var charge = chargeUrl(unit);
         if (charge) {
             actions +=
-                '<a class="tenant-action charge-btn" href="' +
-                escapeHtml(charge) +
-                '" target="_blank" rel="noopener noreferrer" aria-label="Cobrar ' +
+                '<button class="tenant-action charge-btn" type="button" aria-label="Cobrar ' +
                 escapeHtml(unit.tenantName || "inquilino") +
-                ' pelo WhatsApp" data-tenant-action data-charge-unit="' + escapeHtml(unit.id) + '">Cobrar</a>';
+                ' pelo WhatsApp" data-tenant-action data-charge-unit="' + escapeHtml(unit.id) + '">Cobrar</button>';
         }
         var whatsapp = whatsappUrl(unit.tenantPhone);
         if (whatsapp) {
@@ -2865,197 +2881,176 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
 
+
+    function chargeKindLabel(kind) {
+        return { whatsapp: "Mensagem por WhatsApp", ligacao: "Ligação", contato: "Contato realizado", promessa: "Promessa de pagamento", nota: "Observação" }[kind] || "Contato realizado";
+    }
+
+    function chargeLogDate(value) {
+        return isValidDateValue(value) ? new Date(value + "T12:00:00") : null;
+    }
+
+    function renderChargeHistory(unit) {
+        var list = document.getElementById("chargeHistoryList");
+        if (!list) return;
+        if (!unit) {
+            list.innerHTML = '<p class="rent-changes-empty">Salve a unidade antes de registrar cobranças.</p>';
+            return;
+        }
+        var entries = (unit.chargeLog || []).slice().sort(function (a, b) {
+            return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+        });
+        if (!entries.length) {
+            list.innerHTML = '<p class="rent-changes-empty">Nenhuma cobrança registrada.</p>';
+            return;
+        }
+        list.innerHTML = entries.slice(0, 8).map(function (entry) {
+            var meta = [entry.date ? formatTimelineDate(entry.date) : "", entry.promisedDate ? "prometeu pagar em " + formatTimelineDate(entry.promisedDate) : "", entry.nextActionDate ? "próxima ação: " + formatTimelineDate(entry.nextActionDate) : ""].filter(Boolean).join(" · ");
+            return '<div class="charge-history-row"><div><strong>' + escapeHtml(chargeKindLabel(entry.kind)) + '</strong><span>' + escapeHtml(meta || "Sem data informada") + (entry.note ? " · " + escapeHtml(entry.note) : "") + '</span></div></div>';
+        }).join("");
+    }
+
+    function openChargeModal(unitId) {
+        var unit = state.units.find(function (item) { return item.id === unitId; });
+        if (!unit) return;
+        chargeModalUnitId = unit.id;
+        chargeModalContext.textContent = unit.name + (unit.tenantName ? " · " + unit.tenantName : "") + ". Registre o contato e defina o próximo passo.";
+        chargeType.value = "whatsapp";
+        chargeDate.value = new Date().toISOString().slice(0, 10);
+        chargePromisedDate.value = "";
+        chargeNextActionDate.value = "";
+        chargeNote.value = "";
+        ModalManager.open(chargeModal);
+    }
+
+    function saveChargeRecord(openWhatsapp) {
+        var unit = state.units.find(function (item) { return item.id === chargeModalUnitId; });
+        if (!unit) return;
+        if (!isValidDateValue(chargeDate.value)) {
+            chargeDate.focus();
+            return;
+        }
+        var entry = {
+            id: "charge-" + Date.now().toString(36),
+            createdAt: new Date().toISOString(),
+            date: chargeDate.value,
+            kind: chargeType.value,
+            note: String(chargeNote.value || "").trim().slice(0, 220),
+            promisedDate: isValidDateValue(chargePromisedDate.value) ? chargePromisedDate.value : "",
+            nextActionDate: isValidDateValue(chargeNextActionDate.value) ? chargeNextActionDate.value : ""
+        };
+        unit.chargeLog = [entry].concat(unit.chargeLog || []).slice(0, 40);
+        createVersionedBackup("Registro de cobrança", unit.name + " · " + (unit.tenantName || ""));
+        recordOperation("Cobrança registrada", unit.name + " · " + chargeKindLabel(entry.kind));
+        saveState();
+        render();
+        renderChargeHistory(unit);
+        ModalManager.close(chargeModal);
+        chargeModalUnitId = null;
+        if (openWhatsapp) {
+            var url = chargeUrl(unit);
+            if (url) window.open(url, "_blank", "noopener");
+        }
+    }
+
     function renderActionCenter() {
         var container = document.getElementById("actionCenter");
         if (!container) return;
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
+        var urgent = [], week = [], decisions = [];
+        var currentMonth = today.getMonth();
 
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        var overdue = 0, overdueTotal = 0, dueSoon = 0, vacant = 0;
-        var renewals = [], calendar = [], enterprises = {};
-        var overdueItems = [], dueSoonItems = [], vacantItems = [];
+        function add(list, title, description, unitId, action) {
+            list.push({ title: title, description: description, unitId: unitId || "", action: action || "" });
+        }
 
         scopedUnits().forEach(function (unit) {
-            var enterprise = empreendimentoName(unit.empreendimentoId);
-            enterprises[enterprise] = enterprises[enterprise] || { units: 0, expected: 0, received: 0, late: 0 };
-            enterprises[enterprise].units += 1;
-
-            if (!String(unit.tenantName || "").trim()) {
-                vacant += 1;
-                vacantItems.push(unit);
-            }
-
             months.forEach(function (_, month) {
                 var key = monthKey(month);
                 var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
                 if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") {
-                    var amount = (ledger[key] === true || ledger[key] === "open")
-                        ? historicLateRent(unit, key)
-                        : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
-                    overdue += 1;
-                    enterprises[enterprise].late += 1;
-                    overdueTotal += amount;
-                    overdueItems.push({ unit: unit, month: month, amount: amount });
+                    var amount = (ledger[key] === true || ledger[key] === "open") ? historicLateRent(unit, key) : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
+                    add(urgent, unit.name + " · parcela em atraso", fullMonths[month] + " · " + money(amount), unit.id, "charge");
                 }
             });
-
-            var currentMonth = today.getMonth();
-            if (isActive(unit, currentMonth)) {
-                enterprises[enterprise].expected += Number(rentForMonth(unit, selectedYear, currentMonth)) || 0;
-                enterprises[enterprise].received += historicalReceivedAmount(unit, selectedYear, currentMonth);
-
+            (unit.chargeLog || []).forEach(function (entry) {
+                var date = chargeLogDate(entry.nextActionDate);
+                if (!date) return;
+                var label = unit.name + " · retorno de cobrança";
+                var detail = (unit.tenantName || "Inquilino") + " · " + chargeKindLabel(entry.kind);
+                if (date <= today) add(urgent, label, detail + " · ação prevista para " + formatTimelineDate(entry.nextActionDate), unit.id, "charge");
+                else if (date <= weekEnd) add(week, label, detail + " · em " + formatTimelineDate(entry.nextActionDate), unit.id, "charge");
+            });
+            if (selectedYear === today.getFullYear() && isActive(unit, currentMonth)) {
                 var reminder = dueReminder(unit);
-                if (reminder !== null) {
-                    dueSoon += 1;
-                    dueSoonItems.push({ unit: unit, days: reminder });
-                    calendar.push({ date: dueDateFor(unit, currentMonth), label: unit.name + " · vence em " + reminder + " dia(s)" });
+                if (reminder !== null && reminder >= 0 && reminder <= 7) {
+                    add(week, unit.name + " · vencimento próximo", (unit.tenantName || "Inquilino") + " · vence em " + reminder + " dia(s)", unit.id, "open");
                 }
             }
-
-            if (unit.endDate && String(unit.endDate).match(/^\d{4}-\d{2}-\d{2}$/) && String(unit.tenantName || "").trim()) {
-                var endDate = new Date(unit.endDate + "T12:00:00");
-                var days = Math.ceil((endDate - today) / 86400000);
-                if (days >= 0 && days <= 60) {
-                    renewals.push({ unit: unit, days: days });
-                    calendar.push({ date: endDate, label: unit.name + " · contrato termina" });
+            if (!String(unit.tenantName || "").trim()) {
+                add(decisions, unit.name + " · unidade vaga", "Defina se deseja iniciar uma nova locação.", unit.id, "open");
+            } else if (isValidDateValue(unit.endDate)) {
+                var endDate = chargeLogDate(unit.endDate);
+                var endDays = Math.ceil((endDate - today) / 86400000);
+                if (endDays >= 0 && endDays <= 60) {
+                    var decision = state.renewalDecisions[unit.id] || "A decidir";
+                    add(decisions, unit.name + " · contrato termina em " + endDays + " dia(s)", unit.tenantName + " · " + decision, unit.id, "decision");
                 }
             }
         });
 
-        var tasks = state.tasks.filter(function (task) {
-            return !task.done;
-        }).sort(function (a, b) {
-            return String(a.dueDate || "9999-12-31").localeCompare(String(b.dueDate || "9999-12-31"));
+        state.tasks.filter(function (task) { return !task.done; }).forEach(function (task) {
+            var date = chargeLogDate(task.dueDate);
+            var target = !date || date <= today ? urgent : date <= weekEnd ? week : null;
+            if (target) add(target, "Tarefa · " + task.title, date ? "Prazo: " + formatTimelineDate(task.dueDate) : "Sem prazo definido", task.unitId, "task:" + task.id);
         });
 
         var taxReviewCount = scopedExpenses().filter(function (expense) {
             return expense.ym.slice(0, 4) === String(selectedYear) && expense.taxTreatment !== "dedutivel" && expense.taxTreatment !== "nao_dedutivel";
         }).length;
+        if (taxReviewCount) add(week, "Classificação fiscal pendente", taxReviewCount + " gasto(s) aguardando revisão para o IR.", "", "tax");
 
-        var alerts = [];
-        if (taxReviewCount) alerts.push('<div class="action-item is-warning"><strong>' + taxReviewCount + ' gasto' + (taxReviewCount === 1 ? '' : 's') + ' aguardando classificação fiscal</strong><span>Revise antes de usar os valores na conferência do IR.</span><button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button></div>');
-        if (overdue) alerts.push('<div class="summary-card summary-alert action-overdue-card"><div class="summary-label">⚠️ ' + overdue + ' ' + (overdue === 1 ? 'pagamento' : 'pagamentos') + ' em atraso</div><div class="summary-value">' + money(overdueTotal) + '</div><div class="summary-detail">Total em atraso no ano, com multa e juros</div></div>');
-        if (dueSoon) alerts.push('<div class="action-item is-warning"><strong>' + dueSoon + ' vencimento' + (dueSoon === 1 ? '' : 's') + ' próximo</strong><span>Use os atalhos abaixo para revisar ou cobrar.</span></div>');
-        if (vacant) alerts.push('<div class="action-item is-neutral"><strong>' + vacant + ' unidade' + (vacant === 1 ? '' : 's') + ' vaga</strong><span>Pronta para cadastrar uma nova locação.</span></div>');
+        function rows(items, empty, tone) {
+            if (!items.length) return '<p class="operations-empty">' + empty + '</p>';
+            return items.slice(0, 8).map(function (item) {
+                var button = item.action === "charge" ? '<button class="btn btn-ghost" type="button" data-register-charge="' + escapeHtml(item.unitId) + '">Cobrar</button>' :
+                    item.action === "decision" ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Decidir</button>' :
+                    item.action === "tax" ? '<button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button>' :
+                    item.action && item.action.indexOf("task:") === 0 ? '<button class="btn btn-ghost" type="button" data-task-done="' + escapeHtml(item.action.slice(5)) + '">Concluir</button>' :
+                    item.unitId ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Ver</button>' : "";
+                return '<div class="operations-row action-priority-row ' + tone + '"><div><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.description) + '</span></div>' + button + '</div>';
+            }).join("");
+        }
 
-        var overdueHtml = overdueItems.slice(0, 5).map(function (item) {
-            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + fullMonths[item.month] + ' · ' + money(item.amount) + '</span></div><button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unit.id) + '">Ver</button></div>';
-        }).join("") || '<p class="operations-empty">Nenhuma parcela em atraso.</p>';
+        var attentionCount = urgent.length + week.length + decisions.length;
+        var badge = attentionCount ? '<span class="action-alert-badge" aria-label="' + attentionCount + ' avisos">' + attentionCount + '</span>' : '<span class="action-ok-badge" aria-label="Sem avisos">✓</span>';
+        var taskForm = '<form id="operationalTaskForm" class="operational-task-form"><input id="operationalTaskTitle" type="text" maxlength="140" placeholder="Ex.: Cobrar comprovante" required><input id="operationalTaskDue" type="date"><button class="btn btn-primary" type="submit">Adicionar</button></form>';
+        var detail = '<div class="action-priority-grid">' +
+            '<section class="action-priority-section is-urgent"><h3>Urgente hoje</h3>' + rows(urgent, "Nada urgente no momento.", "is-urgent") + '</section>' +
+            '<section class="action-priority-section"><h3>Esta semana</h3>' + rows(week, "Nenhuma ação prevista para os próximos 7 dias.", "is-week") + '</section>' +
+            '<section class="action-priority-section"><h3>Decisões de contrato</h3>' + rows(decisions, "Nenhuma decisão de contrato pendente.", "is-decision") + '</section>' +
+            '</div><section class="action-tasks-panel"><h3>Tarefas manuais</h3>' + taskForm + '</section>';
 
-        var dueHtml = dueSoonItems.slice(0, 5).map(function (item) {
-            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName || "Sem inquilino") + ' · vence em ' + item.days + ' dia(s)</span></div><button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unit.id) + '">Ver</button></div>';
-        }).join("") || '<p class="operations-empty">Nenhum vencimento próximo.</p>';
+        container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? "Ocultar" : "Ver") + '</button></div></div>' + (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
 
-        var vacancyHtml = vacantItems.slice(0, 5).map(function (unit) {
-            return '<div class="operations-row"><div><strong>' + escapeHtml(unit.name) + '</strong><span>Sem contrato atual</span></div><button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(unit.id) + '">Cadastrar</button></div>';
-        }).join("") || '<p class="operations-empty">Nenhuma unidade vaga.</p>';
-
-        var renewalHtml = renewals.map(function (item) {
-            var decision = state.renewalDecisions[item.unit.id] || "";
-            return '<div class="operations-row"><div><strong>' + escapeHtml(item.unit.name) + '</strong><span>' + escapeHtml(item.unit.tenantName) + ' · termina em ' + item.days + ' dias' + (decision ? ' · ' + escapeHtml(decision) : '') + '</span></div><div class="operations-actions"><button class="btn btn-ghost" type="button" data-renewal-decision="renovar" data-unit-id="' + escapeHtml(item.unit.id) + '">Renovar</button><button class="btn btn-ghost" type="button" data-renewal-decision="decidir" data-unit-id="' + escapeHtml(item.unit.id) + '">Decidir</button></div></div>';
-        }).join("") || '<p class="operations-empty">Nenhum contrato perto do fim.</p>';
-
-        var tasksHtml = tasks.slice(0, 8).map(function (task) {
-            return '<div class="operations-row task-row"><label><input type="checkbox" data-task-done="' + escapeHtml(task.id) + '"><span><strong>' + escapeHtml(task.title) + '</strong><small>' + (task.dueDate ? 'Até ' + escapeHtml(formatTimelineDate(task.dueDate)) : 'Sem prazo') + '</small></span></label></div>';
-        }).join("") || '<p class="operations-empty">Nenhuma tarefa pendente.</p>';
-
-        var calendarHtml = calendar.filter(function (item) {
-            return item.date && item.date >= today;
-        }).sort(function (a, b) {
-            return a.date - b.date;
-        }).slice(0, 5).map(function (item) {
-            return '<div class="calendar-event"><b>' + String(item.date.getDate()).padStart(2, "0") + '</b><span>' + escapeHtml(item.label) + '</span></div>';
-        }).join("") || '<p class="operations-empty">Nenhum evento próximo.</p>';
-
-        var enterpriseHtml = Object.keys(enterprises).map(function (name) {
-            var item = enterprises[name];
-            return '<div class="enterprise-kpi"><strong>' + escapeHtml(name) + '</strong><span>' + item.units + ' unidades · ' + money(item.received) + ' recebido de ' + money(item.expected) + '</span>' + (item.late ? '<em>' + item.late + ' atraso(s)</em>' : '') + '</div>';
-        }).join("") || '<p class="operations-empty">Nenhum empreendimento selecionado.</p>';
-
-        var attentionCount = overdue + dueSoon + vacant + renewals.length + tasks.length;
-        var alertBadge = attentionCount
-            ? '<span class="action-alert-badge" aria-label="' + attentionCount + ' avisos">' + attentionCount + '</span>'
-            : '<span class="action-ok-badge" aria-label="Sem avisos">✓</span>';
-
-        var taskForm = '<form id="operationalTaskForm" class="operational-task-form"><label class="sr-only" for="operationalTaskTitle">Nova tarefa</label><input id="operationalTaskTitle" type="text" maxlength="140" placeholder="Ex.: Cobrar comprovante" required><label class="sr-only" for="operationalTaskDue">Prazo</label><input id="operationalTaskDue" type="date"><button class="btn btn-primary" type="submit">Adicionar</button></form>';
-
-        var detail = (alerts.length ? '<div class="action-list">' + alerts.join("") + '</div>' : '<p class="action-empty">Tudo em dia no momento.</p>') +
-            '<div class="operations-grid">' +
-                '<section><h3>Cobranças em atraso</h3>' + overdueHtml + '</section>' +
-                '<section><h3>Próximos vencimentos</h3>' + dueHtml + '</section>' +
-                '<section><h3>Renovações</h3>' + renewalHtml + '</section>' +
-                '<section><h3>Unidades vagas</h3>' + vacancyHtml + '</section>' +
-                '<section class="tasks-panel"><h3>Tarefas</h3>' + taskForm + tasksHtml + '</section>' +
-                '<section><h3>Próximos eventos</h3>' + calendarHtml + '</section>' +
-                '<section><h3>Por empreendimento</h3>' + enterpriseHtml + '</section>' +
-            '</div>';
-
-        container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Decisões, cobranças e próximos passos.</p></div><div class="action-heading-controls">' + alertBadge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? 'Ocultar' : 'Ver') + '</button></div></div>' +
-            (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
-
-        document.getElementById("toggleActionCenter").addEventListener("click", function () {
-            actionCenterExpanded = !actionCenterExpanded;
-            renderActionCenter();
-        });
-
+        document.getElementById("toggleActionCenter").addEventListener("click", function () { actionCenterExpanded = !actionCenterExpanded; renderActionCenter(); });
         var taskFormElement = document.getElementById("operationalTaskForm");
         if (taskFormElement) taskFormElement.addEventListener("submit", function (event) {
             event.preventDefault();
-            var titleInput = document.getElementById("operationalTaskTitle");
-            var dueInput = document.getElementById("operationalTaskDue");
-            var title = String(titleInput.value || "").trim();
-            if (!title) {
-                titleInput.focus();
-                return;
-            }
-            state.tasks.push({
-                id: "task-" + Date.now().toString(36),
-                title: title,
-                dueDate: isValidDateValue(dueInput.value) ? dueInput.value : "",
-                unitId: "",
-                done: false,
-                createdAt: new Date().toISOString()
-            });
-            saveState();
-            render();
+            var title = String(document.getElementById("operationalTaskTitle").value || "").trim();
+            var dueDate = document.getElementById("operationalTaskDue").value;
+            if (!title) return;
+            state.tasks.push({ id: "task-" + Date.now().toString(36), title: title, dueDate: isValidDateValue(dueDate) ? dueDate : "", unitId: "", done: false, createdAt: new Date().toISOString() });
+            saveState(); render();
         });
-
-        container.querySelectorAll("[data-task-done]").forEach(function (input) {
-            input.addEventListener("change", function () {
-                var task = state.tasks.find(function (item) {
-                    return item.id === input.dataset.taskDone;
-                });
-                if (task) {
-                    task.done = input.checked;
-                    saveState();
-                    render();
-                }
-            });
-        });
-
-        container.querySelectorAll("[data-open-unit]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                openModal(button.dataset.openUnit);
-            });
-        });
-
-        container.querySelectorAll("[data-open-tax-dashboard]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                taxDashboardExpanded = true;
-                renderTaxDashboard();
-                var dashboard = document.getElementById("taxDashboard");
-                if (dashboard) dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
-            });
-        });
-
-        container.querySelectorAll("[data-renewal-decision]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                state.renewalDecisions[button.dataset.unitId] = button.dataset.renewalDecision === "renovar" ? "Renovar" : "A decidir";
-                saveState();
-                render();
-            });
-        });
+        container.querySelectorAll("[data-open-unit]").forEach(function (button) { button.addEventListener("click", function () { openModal(button.dataset.openUnit); }); });
+        container.querySelectorAll("[data-register-charge]").forEach(function (button) { button.addEventListener("click", function () { openChargeModal(button.dataset.registerCharge); }); });
+        container.querySelectorAll("[data-task-done]").forEach(function (button) { button.addEventListener("click", function () {
+            var task = state.tasks.find(function (item) { return item.id === button.dataset.taskDone; });
+            if (task) { task.done = true; saveState(); render(); }
+        }); });
+        container.querySelectorAll("[data-open-tax-dashboard]").forEach(function (button) { button.addEventListener("click", function () { taxDashboardExpanded = true; renderTaxDashboard(); var dashboard = document.getElementById("taxDashboard"); if (dashboard) dashboard.scrollIntoView({ behavior: "smooth", block: "start" }); }); });
     }
 
     function exportOperationalCsv() {
@@ -4458,6 +4453,7 @@ document
 		document.getElementById("rentChanges").open = false;
 		renderRentChanges();
 		renderContractHistory();
+        renderChargeHistory(unit);
 
 		document.getElementById("deleteUnit").hidden = !unit;
 		document.getElementById("startNewContract").hidden = hasCurrentContract;
@@ -7944,5 +7940,23 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             renderWorkspaceControls();
         });
     }
+
+
+    document.addEventListener("click", function (event) {
+        var chargeButton = event.target.closest("[data-charge-unit]");
+        if (chargeButton) {
+            event.preventDefault();
+            openChargeModal(chargeButton.dataset.chargeUnit);
+        }
+    });
+    document.getElementById("openChargeModal").addEventListener("click", function () {
+        if (editingId) openChargeModal(editingId);
+    });
+    document.getElementById("cancelCharge").addEventListener("click", function () {
+        chargeModalUnitId = null;
+        ModalManager.close(chargeModal);
+    });
+    document.getElementById("saveCharge").addEventListener("click", function () { saveChargeRecord(false); });
+    document.getElementById("saveChargeAndOpenWhatsapp").addEventListener("click", function () { saveChargeRecord(true); });
 
 })();
