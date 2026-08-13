@@ -3617,6 +3617,16 @@ function renderSummary() {
             : 0);
     }, 0);
 
+    // Projeção anual baseada em todos os contratos cadastrados para cada mês do ano.
+    // Não presume novas locações após o fim de um contrato.
+    var annualRevenueForecast = units.reduce(function (sum, unit) {
+        return sum + months.reduce(function (monthSum, _, month) {
+            return monthSum + (isActive(unit, month)
+                ? Number(rentForMonth(unit, selectedYear, month)) || 0
+                : 0);
+        }, 0);
+    }, 0);
+
     var annualExpenses = scopedExpenses().reduce(function (sum, expense) {
         return sum + (expense.ym.slice(0, 4) === String(selectedYear) ? expense.amount : 0);
     }, 0);
@@ -3693,6 +3703,7 @@ function renderSummary() {
         summaryContainer.innerHTML =
             '<div id="summaryCards" class="summary-cards enterprise-dashboard-cards">' +
                 '<article class="summary-card dashboard-card dashboard-card-primary"><div class="summary-label">Previsto neste mês</div><div class="summary-value">' + money(expected) + '</div><div class="summary-detail">' + monthLabel + '</div></article>' +
+                '<article class="summary-card dashboard-card dashboard-card-forecast"><div class="summary-label">Receita estimada no ano</div><div class="summary-value">' + money(annualRevenueForecast) + '</div><div class="summary-detail">Contratos cadastrados em ' + selectedYear + '</div></article>' +
                 '<article class="summary-card dashboard-card"><div class="summary-label">Recebido neste mês</div><div class="summary-value">' + money(received) + '</div><div class="summary-detail">Pagamentos efetivamente baixados</div></article>' +
                 '<article class="summary-card dashboard-card ' + (overdueCount ? 'summary-alert' : '') + '"><div class="summary-label">Inadimplência no ano</div><div class="summary-value">' + money(overdueTotal) + '</div><div class="summary-detail">' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</div></article>' +
                 '<article class="summary-card dashboard-card"><div class="summary-label">Gastos neste mês</div><div class="summary-value">' + money(currentExpenses) + '</div><div class="summary-detail">' + monthLabel + '</div></article>' +
