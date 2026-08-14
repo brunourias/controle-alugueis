@@ -5256,3 +5256,89 @@ textarea:focus-visible {
         flex: 0 0 138px;
     }
 }
+
+
+/* Espaçamento uniforme entre os blocos de cada área do aplicativo. */
+.app-view {
+    display: grid;
+    gap: 12px;
+}
+
+.app-view > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.reports-late-report {
+    margin: 0;
+}
+
+.reports-expandable {
+    overflow: hidden;
+}
+
+.reports-expandable summary {
+    display: flex;
+    align-items: center;
+    min-height: 62px;
+    padding: 11px 14px;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+.reports-expandable summary::-webkit-details-marker {
+    display: none;
+}
+
+.reports-expandable summary::after {
+    content: "›";
+    margin-left: auto;
+    color: var(--teal-dark);
+    font-size: 1.45rem;
+    line-height: 1;
+    transition: transform .18s ease;
+}
+
+.reports-expandable[open] summary {
+    border-bottom: 1px solid var(--line);
+    background: #f8fbfa;
+}
+
+.reports-expandable[open] summary::after {
+    transform: rotate(90deg);
+}
+
+.reports-expandable summary strong,
+.reports-expandable summary small {
+    display: block;
+}
+
+.reports-expandable summary strong {
+    color: var(--ink);
+    font-size: .94rem;
+}
+
+.reports-expandable summary small {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.reports-expandable .late-dashboard {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+@media (max-width: 680px) {
+    .app-view {
+        gap: 12px;
+    }
+
+    .reports-expandable summary {
+        min-height: 58px;
+        padding: 10px 12px;
+    }
+}
