@@ -5892,3 +5892,30 @@ textarea:focus-visible {
         gap: 12px;
     }
 }
+
+
+/* Atalhos específicos de Gastos e Imposto de Renda, somente na grade mobile. */
+.mobile-shortcut-nav {
+    display: none;
+}
+
+@media (max-width: 680px) {
+    .mobile-shortcut-nav {
+        display: grid;
+    }
+
+    .app-navigation {
+        grid-auto-rows: minmax(76px, auto);
+    }
+
+    .app-nav-button,
+    .app-nav-alert {
+        min-height: 76px;
+    }
+
+    .app-nav-button > span,
+    .action-alert-nav-label {
+        text-align: center;
+        line-height: 1.15;
+    }
+}
