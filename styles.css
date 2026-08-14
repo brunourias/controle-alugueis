@@ -5567,3 +5567,114 @@ textarea:focus-visible {
     font-size: .7rem;
     font-weight: 800;
 }
+
+
+/* Central fechada: um único alerta objetivo, com escudo de situação. */
+.action-center.is-compact {
+    padding: 8px 10px;
+}
+
+.action-alert-trigger {
+    display: flex;
+    width: 100%;
+    min-height: 48px;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 2px;
+    border: 0;
+    color: #0d5c58;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.action-alert-shield {
+    position: relative;
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 12px;
+    color: #08705f;
+    background: #e2f7ef;
+}
+
+.action-alert-shield svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.action-alert-shield b {
+    position: absolute;
+    top: -6px;
+    right: -7px;
+    display: grid;
+    min-width: 19px;
+    height: 19px;
+    place-items: center;
+    padding: 0 3px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    color: #fff;
+    background: #ae3040;
+    font-size: .66rem;
+    line-height: 1;
+}
+
+.action-alert-trigger.has-alert .action-alert-shield {
+    color: #a52d3b;
+    background: #fff0f1;
+}
+
+.action-alert-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.action-alert-copy strong {
+    font-size: .86rem;
+}
+
+.action-alert-copy small {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: .72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.action-alert-chevron {
+    margin-left: auto;
+    color: #4c7772;
+    font-size: 1.45rem;
+    font-weight: 400;
+}
+
+.action-alert-trigger:hover .action-alert-chevron {
+    transform: translateX(2px);
+}
+
+@media (max-width: 520px) {
+    .action-center.is-compact {
+        padding: 7px 9px;
+    }
+
+    .action-alert-trigger {
+        min-height: 44px;
+        gap: 9px;
+    }
+
+    .action-alert-shield {
+        flex-basis: 33px;
+        width: 33px;
+        height: 33px;
+    }
+}
