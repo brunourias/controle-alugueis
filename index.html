@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=089" />
+        <link rel="stylesheet" href="styles.css?v=090" />
     
 <style>
     /* Histórico de contratos */
@@ -307,12 +307,17 @@
                     <button id="printAnnual" class="btn btn-ghost" type="button">Resumo do ano</button>
                 </section>
 
-            <details id="financialReportPanel" class="summary-bar reports-expandable">
-                <summary>
-                    <span><strong>Controle financeiro</strong><small>Atrasos em aberto e pagamentos realizados após o vencimento.</small></span>
-                </summary>
-                <div id="lateReport" class="reports-late-report" aria-live="polite"></div>
-            </details>
+            <section id="financialReportPanel" class="summary-bar reports-financial">
+                <header class="financial-dashboard-header">
+                    <div>
+                        <p class="financial-eyebrow">Análises e conferências</p>
+                        <h2>Controle financeiro</h2>
+                        <p class="financial-summary-description">Atrasos em aberto e pagamentos realizados após o vencimento.</p>
+                    </div>
+                    <button id="toggleFinancialReport" class="btn btn-ghost" type="button">Mostrar</button>
+                </header>
+                <div id="lateReport" class="reports-late-report" aria-live="polite" hidden></div>
+            </section>
 
             <section id="taxDashboard" class="summary-bar tax-dashboard" aria-labelledby="taxDashboardTitle">
                 <header class="tax-dashboard-header">
@@ -980,6 +985,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=089"></script>
+    <script src="app.js?v=090"></script>
     </body>
 </html>
