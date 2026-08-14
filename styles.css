@@ -5415,3 +5415,67 @@ textarea:focus-visible {
         font-size: .7rem;
     }
 }
+
+
+/* Leitura prioritária no painel inicial de telas estreitas. */
+@media (max-width: 680px) {
+    .home-snapshot {
+        padding: 10px;
+    }
+
+    .home-snapshot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .home-snapshot-card {
+        min-height: 0;
+        padding: 8px 9px;
+    }
+
+    .home-snapshot-card:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .home-snapshot-card span {
+        font-size: .66rem;
+    }
+
+    .home-snapshot-card small {
+        display: none;
+    }
+
+    .home-snapshot-card strong {
+        margin: 3px 0 0;
+        font-size: .88rem;
+        line-height: 1.18;
+        white-space: nowrap;
+    }
+}
+
+/* O comando de abrir fica ancorado à direita da ação, não no centro. */
+@media (max-width: 520px) {
+    .action-center-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 8px;
+    }
+
+    .action-title {
+        grid-column: 1 / -1;
+    }
+
+    .action-heading-controls {
+        grid-column: 1 / -1;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .action-heading-controls > .btn {
+        min-width: 64px;
+        margin-left: auto;
+    }
+}
