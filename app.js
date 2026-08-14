@@ -4891,8 +4891,11 @@ function renderSummary() {
         return sum + (isActive(unit, current) ? Number(rentForMonth(unit, selectedYear, current)) || 0 : 0);
     }, 0);
 
+    // "A receber" representa somente parcelas que continuam dentro do prazo.
+    // Após o vencimento, effectiveStatus passa a ser "atrasado" e o valor
+    // compõe exclusivamente a inadimplência — sem duplicar a previsão.
     var pending = current < 0 ? 0 : units.reduce(function (sum, unit) {
-        return sum + (isActive(unit, current) && statusFor(unit, current) === "pendente"
+        return sum + (isActive(unit, current) && effectiveStatus(unit, current) === "pendente"
             ? rentForMonth(unit, selectedYear, current)
             : 0);
     }, 0);
@@ -4985,7 +4988,7 @@ function renderSummary() {
                 '<section class="dashboard-card-group"><div class="dashboard-group-heading"><strong>Este mês</strong><span>' + monthLabel + '</span></div><div class="dashboard-group-cards">' +
                     '<article class="summary-card dashboard-card dashboard-card-primary"><div class="summary-label">Previsto</div><div class="summary-value">' + money(expected) + '</div><div class="summary-detail">Receita esperada</div></article>' +
                     '<article class="summary-card dashboard-card"><div class="summary-label">Recebido</div><div class="summary-value">' + money(received) + '</div><div class="summary-detail">Pagamentos baixados</div></article>' +
-                    '<article class="summary-card summary-year dashboard-card"><div class="summary-label">Pendente</div><div class="summary-value">' + money(pending) + '</div><div class="summary-detail">Ainda não recebido</div></article>' +
+                    '<article class="summary-card summary-year dashboard-card"><div class="summary-label">A receber</div><div class="summary-value">' + money(pending) + '</div><div class="summary-detail">Parcelas ainda no prazo</div></article>' +
                     '<article class="summary-card dashboard-card"><div class="summary-label">Gastos</div><div class="summary-value">' + money(currentExpenses) + '</div><div class="summary-detail">Despesas de ' + monthLabel + '</div></article>' +
                     '<article class="summary-card dashboard-card ' + (currentNet < 0 ? 'summary-negative' : '') + '"><div class="summary-label">Lucro líquido</div><div class="summary-value">' + money(currentNet) + '</div><div class="summary-detail">Recebido menos gastos</div></article>' +
                 '</div></section>' +
@@ -5011,7 +5014,7 @@ function renderSummary() {
             '<div class="home-snapshot-heading"><strong>Este mês</strong><span>' + escapeHtml(monthLabel) + '</span></div>' +
             '<div class="home-snapshot-grid">' +
                 '<article class="home-snapshot-card"><span>Recebido</span><strong>' + money(received) + '</strong><small>Pagamentos baixados</small></article>' +
-                '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas pendentes</small></article>' +
+                '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas ainda no prazo</small></article>' +
                 '<article class="home-snapshot-card ' + (overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(overdueTotal) + '</strong><small>' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</small></article>' +
                 '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
             '</div>';
