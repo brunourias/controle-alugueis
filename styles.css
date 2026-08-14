@@ -5507,3 +5507,32 @@ textarea:focus-visible {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
+
+
+/* Atualização disponível: destaque inequívoco entre avisos operacionais. */
+.pwa-status.is-update {
+    border: 2px solid #0f766e;
+    color: #073f3b;
+    background: linear-gradient(135deg, #ecfffa, #f7fffd);
+    box-shadow: 0 12px 30px rgba(15, 118, 110, .28), 0 0 0 4px rgba(94, 212, 193, .16);
+}
+
+.pwa-status.is-update::before {
+    content: "↻";
+    display: grid;
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: #0f766e;
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+
+.pwa-status.is-update .btn {
+    color: #fff;
+    background: #0f766e;
+    box-shadow: 0 4px 10px rgba(15, 118, 110, .25);
+}
