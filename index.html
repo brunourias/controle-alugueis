@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=104" />
+        <link rel="stylesheet" href="styles.css?v=105" />
     
 <style>
     /* Histórico de contratos */
@@ -190,6 +190,10 @@
                 <button class="app-nav-button is-active" type="button" data-app-view="home">Início</button>
                 <button class="app-nav-button" type="button" data-app-view="financial">Financeiro</button>
                 <button class="app-nav-button" type="button" data-app-view="reports">Relatórios</button>
+                <button id="actionAlertNav" class="app-nav-alert is-clear" type="button" aria-label="O que precisa de ação" title="O que precisa de ação">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.2c0 4.8-3.3 8.3-8 9.8-4.7-1.5-8-5-8-9.8V6l8-3Z"></path><path d="m8.6 12.1 2.1 2.1 4.7-4.7"></path></svg>
+                    <span id="actionAlertNavBadge" hidden>0</span>
+                </button>
             </nav>
 
             <section id="homeView" class="app-view" data-app-view-panel="home">
@@ -985,6 +989,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=104"></script>
+    <script src="app.js?v=105"></script>
     </body>
 </html>
