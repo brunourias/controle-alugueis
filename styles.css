@@ -6046,3 +6046,21 @@ textarea:focus-visible {
         margin-top: 12px;
     }
 }
+
+
+/* O menu inicial volta a priorizar botões grandes e confortáveis ao toque. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 76px;
+        padding: 9px 8px;
+        gap: 6px;
+        font-size: .78rem;
+    }
+
+    .app-navigation.is-launcher .app-nav-button > svg,
+    .app-navigation.is-launcher .app-nav-alert > svg {
+        width: 23px;
+        height: 23px;
+    }
+}
