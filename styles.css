@@ -5678,3 +5678,61 @@ textarea:focus-visible {
         height: 33px;
     }
 }
+
+
+/* Alerta global compacto ao lado da navegação. */
+.app-nav-alert {
+    position: relative;
+    display: inline-grid;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    color: #08705f;
+    background: #e2f7ef;
+    cursor: pointer;
+}
+
+.app-nav-alert svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.app-nav-alert.has-alert {
+    color: #a52d3b;
+    background: #fff0f1;
+}
+
+.app-nav-alert > span {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    display: grid;
+    min-width: 18px;
+    height: 18px;
+    place-items: center;
+    padding: 0 3px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    color: #fff;
+    background: #ae3040;
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+@media (max-width: 680px) {
+    .app-nav-alert {
+        flex-basis: 32px;
+        width: 32px;
+        height: 32px;
+    }
+}
