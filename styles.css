@@ -5492,3 +5492,18 @@ textarea:focus-visible {
         border-color: #cde9df;
     }
 }
+
+
+/* No desktop, os seis indicadores do mês ocupam uma linha única. */
+@media (min-width: 901px) {
+    .home-snapshot-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+/* Faixa intermediária: mantém cartões confortáveis antes do layout móvel. */
+@media (min-width: 681px) and (max-width: 900px) {
+    .home-snapshot-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
