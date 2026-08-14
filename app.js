@@ -166,6 +166,8 @@ const ModalManager = (() => {
     var mobileLauncherActive = true;
     // Identifica qual atalho abriu a tela atual para permitir fechá-la ao tocar novamente.
     var activeMobileShortcut = "";
+    // Evita duas solicitações de digital sobrepostas durante a inicialização.
+    var biometricUnlockInProgress = false;
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -2994,8 +2996,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     async function unlockWithBiometric() {
-        if (authMode !== "login" || !biometricConfigured()) return;
+        if (
+            authMode !== "login" ||
+            !biometricConfigured() ||
+            biometricUnlockInProgress
+        ) return;
 
+        biometricUnlockInProgress = true;
         try {
             var assertion = await navigator.credentials.get({
                 publicKey: {
@@ -3019,9 +3026,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
             revealApp();
             render();
         } catch (error) {
-            showAuthError(
-                "Não foi possível confirmar a digital. Toque em “Entrar com PIN” para usar o PIN."
-            );
+            // Cancelamento, indisponibilidade ou falha da digital não é um erro
+            // visível: volta diretamente para o PIN, sem deixar aviso atrás do
+            // diálogo do sistema.
+            showPinLogin();
+        } finally {
+            biometricUnlockInProgress = false;
         }
     }
 
