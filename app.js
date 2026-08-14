@@ -168,6 +168,8 @@ const ModalManager = (() => {
     var activeMobileShortcut = "";
     // Evita duas solicitações de digital sobrepostas durante a inicialização.
     var biometricUnlockInProgress = false;
+    // Cada abertura do bloqueio tenta a digital apenas uma vez.
+    var biometricAutoPromptAttempted = false;
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -3095,6 +3097,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function openAuthLogin() {
+        // Eventos de autenticação/nuvem podem disparar durante a mesma abertura.
+        // Não reinicia a tela nem chama a digital uma segunda vez.
+        if (!authModal.hidden && authMode === "login" && biometricAutoPromptAttempted) {
+            return;
+        }
+
+        var freshLogin = authModal.hidden;
+        if (freshLogin) biometricAutoPromptAttempted = false;
+
         document.body.classList.add("app-loading");
         authMode = "login";
 
@@ -3121,8 +3132,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
         authModal.hidden = false;
         setTimeout(function () {
-            if (useBiometric) unlockWithBiometric();
-            else focusAuthInput(authPin);
+            if (useBiometric && !biometricAutoPromptAttempted) {
+                biometricAutoPromptAttempted = true;
+                unlockWithBiometric();
+            } else if (!useBiometric) {
+                focusAuthInput(authPin);
+            }
         }, 0);
     }
 
