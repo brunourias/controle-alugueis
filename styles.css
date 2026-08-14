@@ -5224,3 +5224,35 @@ textarea:focus-visible {
         min-width: 126px;
     }
 }
+
+
+/* Indicadores mensais: uma única faixa, sem criar altura extra no celular. */
+.home-snapshot-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 680px) {
+    .home-snapshot-grid {
+        display: flex;
+        grid-template-columns: none;
+        gap: 7px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+        scrollbar-color: #a6bab7 transparent;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .home-snapshot-grid::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    .home-snapshot-grid::-webkit-scrollbar-thumb {
+        border-radius: 99px;
+        background: #a6bab7;
+    }
+
+    .home-snapshot-card {
+        flex: 0 0 138px;
+    }
+}
