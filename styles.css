@@ -5919,3 +5919,130 @@ textarea:focus-visible {
         line-height: 1.15;
     }
 }
+
+
+/* Visão geral: painel operacional separado do resumo mensal. */
+.overview-dashboard {
+    padding: 16px;
+    border: 1px solid #d7e8e5;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 77, 73, .06);
+}
+
+.overview-heading p {
+    margin: 0 0 4px;
+    color: #167268;
+    font-size: .67rem;
+    font-weight: 850;
+    letter-spacing: .06em;
+}
+
+.overview-heading h2 {
+    margin: 0;
+    color: #0d5c58;
+    font-size: 1.1rem;
+}
+
+.overview-heading span {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: .76rem;
+}
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.overview-grid article {
+    min-width: 0;
+    padding: 10px;
+    border-radius: 11px;
+    background: #f3f9f8;
+}
+
+.overview-grid article.is-alert {
+    color: #a52d3b;
+    background: #fff3f4;
+}
+
+.overview-grid span,
+.overview-grid small {
+    display: block;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: .69rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overview-grid article.is-alert span,
+.overview-grid article.is-alert small {
+    color: #a7616b;
+}
+
+.overview-grid strong {
+    display: block;
+    margin: 4px 0 2px;
+    color: #0d5c58;
+    font-size: 1rem;
+}
+
+.overview-grid article.is-alert strong {
+    color: #a52d3b;
+}
+
+@media (max-width: 680px) {
+    .desktop-home-nav {
+        display: none;
+    }
+
+    .app-navigation.is-launcher {
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 58px;
+        padding: 6px;
+        gap: 3px;
+        font-size: .7rem;
+    }
+
+    .app-navigation.is-launcher .app-nav-button > svg,
+    .app-navigation.is-launcher .app-nav-alert > svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .app-navigation.is-launcher + .app-view .home-snapshot {
+        padding: 8px;
+    }
+
+    .app-navigation.is-launcher + .app-view .home-snapshot-heading {
+        margin-bottom: 6px;
+    }
+
+    .app-navigation.is-launcher + .app-view .home-snapshot-card {
+        padding: 6px 7px;
+    }
+
+    .app-navigation.is-launcher + .app-view .home-snapshot-card strong {
+        font-size: .8rem;
+    }
+
+    .overview-dashboard {
+        padding: 13px;
+    }
+
+    .overview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 12px;
+    }
+}
