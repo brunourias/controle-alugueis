@@ -4251,7 +4251,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             '<section class="action-priority-section"><h3>Decisões de contrato</h3>' + rows(decisions, "Nenhuma decisão de contrato pendente.", "is-decision") + '</section>' +
             '</div><section class="action-tasks-panel"><h3>Tarefas manuais</h3>' + taskForm + '</section>';
 
-        container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? "Ocultar" : "Ver") + '</button></div></div>' + (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
+        container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? "Ocultar" : "Abrir") + '</button></div></div>' + (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
 
         document.getElementById("toggleActionCenter").addEventListener("click", function () { actionCenterExpanded = !actionCenterExpanded; renderActionCenter(); });
         var taskFormElement = document.getElementById("operationalTaskForm");
