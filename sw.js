@@ -1,9 +1,9 @@
-const CACHE_NAME = "controle-alugueis-v083";
+const CACHE_NAME = "controle-alugueis-v084";
 
 const APP_SHELL = [
   "./index.html",
-  "./styles.css",
-  "./app.js",
+  "./styles.css?v=084",
+  "./app.js?v=084",
   "./manifest.json"
 ];
 
@@ -40,7 +40,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 function cacheFirst(request) {
-  return caches.match(request).then((cached) => cached || fetchAndCache(request));
+  return caches.match(request, { ignoreSearch: true }).then((cached) => cached || fetchAndCache(request));
 }
 
 function networkFirst(request) {
@@ -50,7 +50,7 @@ function networkFirst(request) {
       caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
     }
     return response;
-  }).catch(() => caches.match(request).then((cached) => cached || (request.mode === "navigate" ? caches.match("./index.html") : Response.error())));
+  }).catch(() => caches.match(request, { ignoreSearch: true }).then((cached) => cached || (request.mode === "navigate" ? caches.match("./index.html", { ignoreSearch: true }) : Response.error())));
 }
 
 function fetchAndCache(request) {
