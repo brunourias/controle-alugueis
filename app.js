@@ -157,6 +157,7 @@ const ModalManager = (() => {
     var expensesExpanded = false;
     var summaryCardsExpanded = false;
     var taxDashboardExpanded = false;
+    var financialReportExpanded = false;
     var actionCenterExpanded = false;
     // A tela inicial prioriza a operação diária. Financeiro e relatórios
     // concentram informações de análise, sem poluir a rotina de cobrança.
@@ -5006,7 +5007,14 @@ function renderSummary() {
     }
 
     var lateReport = document.getElementById("lateReport");
-    if (lateReport) lateReport.innerHTML = report;
+    var toggleFinancialReport = document.getElementById("toggleFinancialReport");
+    if (lateReport) {
+        lateReport.innerHTML = report;
+        lateReport.hidden = !financialReportExpanded;
+    }
+    if (toggleFinancialReport) {
+        toggleFinancialReport.textContent = financialReportExpanded ? "Ocultar" : "Mostrar";
+    }
 
     var homeSnapshot = document.getElementById("homeSnapshot");
     if (homeSnapshot) {
@@ -8250,6 +8258,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         .addEventListener("click", function () {
             summaryCardsExpanded = !summaryCardsExpanded;
             applySummaryCardsVisibility();
+        });
+
+    document
+        .getElementById("toggleFinancialReport")
+        .addEventListener("click", function () {
+            financialReportExpanded = !financialReportExpanded;
+            renderSummary();
         });
 
     document
