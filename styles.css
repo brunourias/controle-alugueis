@@ -5479,3 +5479,16 @@ textarea:focus-visible {
         margin-left: auto;
     }
 }
+
+
+/* Seis indicadores equilibrados: duas colunas e três linhas no celular. */
+@media (max-width: 680px) {
+    .home-snapshot-card:last-child {
+        grid-column: auto;
+    }
+
+    .home-snapshot-card-occupancy {
+        background: #edf8f4;
+        border-color: #cde9df;
+    }
+}
