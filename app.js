@@ -808,7 +808,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 kind: ["whatsapp", "ligacao", "contato", "promessa", "nota"].indexOf(entry.kind) >= 0 ? entry.kind : "contato",
                 note: typeof entry.note === "string" ? entry.note.trim().slice(0, 220) : "",
                 promisedDate: isValidDateValue(entry.promisedDate) ? entry.promisedDate : "",
-                nextActionDate: isValidDateValue(entry.nextActionDate) ? entry.nextActionDate : ""
+                nextActionDate: isValidDateValue(entry.nextActionDate) ? entry.nextActionDate : "",
+                handledLateKeys: Array.isArray(entry.handledLateKeys)
+                    ? entry.handledLateKeys.filter(function (key) { return typeof key === "string" && /^\d{4}-\d{2}$/.test(key); }).slice(0, 24)
+                    : []
             };
         }).slice(0, 40) : [];
         unit.lateLedger =
@@ -4080,6 +4083,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
         return isValidDateValue(value) ? new Date(value + "T12:00:00") : null;
     }
 
+    function lateInstallmentKeysForUnit(unit) {
+        var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        return months.reduce(function (keys, _, month) {
+            var key = monthKey(month);
+            if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") keys.push(key);
+            return keys;
+        }, []);
+    }
+
     function renderChargeHistory(unit) {
         var list = document.getElementById("chargeHistoryList");
         if (!list) return;
@@ -4127,12 +4139,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
         // A cobrança registrada trata as parcelas em atraso existentes neste momento.
         // Novos atrasos futuros continuam aparecendo normalmente como ação pendente.
-        var handledLateKeys = months.reduce(function (keys, _, month) {
-            var key = monthKey(month);
-            var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-            if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") keys.push(key);
-            return keys;
-        }, []);
+        var handledLateKeys = lateInstallmentKeysForUnit(unit);
         var entry = {
             id: "charge-" + Date.now().toString(36),
             createdAt: new Date().toISOString(),
@@ -4181,7 +4188,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 var key = monthKey(month);
                 var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
                 var wasCharged = (unit.chargeLog || []).some(function (entry) {
-                    return Array.isArray(entry.handledLateKeys) && entry.handledLateKeys.indexOf(key) !== -1;
+                    if (Array.isArray(entry.handledLateKeys) && entry.handledLateKeys.indexOf(key) !== -1) return true;
+                    // Registros anteriores à melhoria não tinham a parcela vinculada.
+                    // Um contato feito após o vencimento também trata aquela cobrança.
+                    if (!Array.isArray(entry.handledLateKeys) || !entry.handledLateKeys.length) {
+                        var entryYm = isValidDateValue(entry.date)
+                            ? entry.date.slice(0, 7)
+                            : String(entry.createdAt || "").slice(0, 7);
+                        return /^\d{4}-\d{2}$/.test(entryYm) && entryYm >= key;
+                    }
+                    return false;
                 });
                 if (!wasCharged && (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open")) {
                     var amount = (ledger[key] === true || ledger[key] === "open") ? historicLateRent(unit, key) : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
@@ -4728,7 +4744,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 var unit = state.units.find(function (item) { return item.id === link.dataset.chargeUnit; });
                 if (unit) {
                     unit.chargeLog = Array.isArray(unit.chargeLog) ? unit.chargeLog : [];
-                    unit.chargeLog.unshift({ createdAt:new Date().toISOString(), channel:"WhatsApp", tenantName:unit.tenantName || "" });
+                    unit.chargeLog.unshift({
+                        createdAt: new Date().toISOString(),
+                        date: new Date().toISOString().slice(0, 10),
+                        kind: "whatsapp",
+                        tenantName: unit.tenantName || "",
+                        handledLateKeys: lateInstallmentKeysForUnit(unit)
+                    });
                     unit.chargeLog = unit.chargeLog.slice(0,40);
                     recordOperation("Cobrança enviada", unit.name + " · WhatsApp");
                     saveState();
