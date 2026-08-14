@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=088" />
+        <link rel="stylesheet" href="styles.css?v=089" />
     
 <style>
     /* Histórico de contratos */
@@ -307,7 +307,12 @@
                     <button id="printAnnual" class="btn btn-ghost" type="button">Resumo do ano</button>
                 </section>
 
-            <div id="lateReport" class="reports-late-report" aria-live="polite"></div>
+            <details id="financialReportPanel" class="summary-bar reports-expandable">
+                <summary>
+                    <span><strong>Controle financeiro</strong><small>Atrasos em aberto e pagamentos realizados após o vencimento.</small></span>
+                </summary>
+                <div id="lateReport" class="reports-late-report" aria-live="polite"></div>
+            </details>
 
             <section id="taxDashboard" class="summary-bar tax-dashboard" aria-labelledby="taxDashboardTitle">
                 <header class="tax-dashboard-header">
@@ -321,33 +326,6 @@
                 <div id="taxDashboardDetail" hidden></div>
             </section>
 
-            <div class="backup-toolbar" aria-label="Backup dos dados">
-                <span class="backup-title"
-                    >Seus dados ficam salvos na Nuvem.</span
-                >
-                <div class="backup-actions">
-                    <button
-                        id="exportBackup"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Exportar backup
-                    </button>
-                    <button
-                        id="importBackup"
-                        class="btn btn-ghost"
-                        type="button"
-                    >
-                        Importar backup
-                    </button>
-                    <input
-                        id="backupFile"
-                        type="file"
-                        accept="application/json"
-                        hidden
-                    />
-                </div>
-            </div>
             </section>
         </main>
 
@@ -693,7 +671,12 @@
                     <div class="settings-panel-content">
                         <p class="settings-note">Backups automáticos são criados antes de encerramentos, exclusões e baixas.</p>
                         <div id="backupHistoryList" class="backup-history-list"></div>
-                        <button id="createBackupNow" class="btn btn-ghost" type="button">Criar backup agora</button>
+                        <div class="backup-actions">
+                            <button id="createBackupNow" class="btn btn-ghost" type="button">Criar backup agora</button>
+                            <button id="exportBackup" class="btn btn-ghost" type="button">Exportar backup</button>
+                            <button id="importBackup" class="btn btn-ghost" type="button">Importar backup</button>
+                            <input id="backupFile" type="file" accept="application/json" hidden />
+                        </div>
                     </div>
                 </details>
 
@@ -997,6 +980,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=088"></script>
+    <script src="app.js?v=089"></script>
     </body>
 </html>
