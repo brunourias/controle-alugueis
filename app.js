@@ -79,6 +79,8 @@ const ModalManager = (() => {
     var STORAGE_KEY = "controle-alugueis-v1";
     var LOCK_STORAGE_KEY = "controle-alugueis-lock";
     var SETUP_FLAG_KEY = "controle-alugueis-lock-setup";
+    var OFFLINE_ACCESS_KEY = "controle-alugueis-offline-access";
+    var OFFLINE_ACCESS_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
     var ENTERPRISE_SELECTION_KEY = "controle-alugueis-empreendimento";
     var WORKSPACE_SELECTION_KEY = "controle-alugueis-workspace";
@@ -863,6 +865,26 @@ undefined || item.rent === "" ? null : Number(item.rent);
             expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(),
             expenses: [],
         });
+    }
+
+    function rememberOfflineAccess(user) {
+        if (!user || !navigator.onLine) return;
+        localStorage.setItem(OFFLINE_ACCESS_KEY, JSON.stringify({
+            uid: user.uid || "",
+            email: user.email || "",
+            verifiedAt: Date.now()
+        }));
+    }
+
+    function canUseOfflineMode() {
+        if (navigator.onLine || !lockConfig) return false;
+        try {
+            var access = JSON.parse(localStorage.getItem(OFFLINE_ACCESS_KEY) || "null");
+            return !!(access && access.uid && Number(access.verifiedAt) &&
+                Date.now() - Number(access.verifiedAt) <= OFFLINE_ACCESS_MAX_AGE);
+        } catch (error) {
+            return false;
+        }
     }
 
     function saveState() {
@@ -2512,6 +2534,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 .then(function (acceptedWorkspaceId) {
                     if (acceptedWorkspaceId === null && !cloudAccountApproved) return;
                     if (!firebaseUser || firebaseUser.uid !== user.uid) return;
+                    rememberOfflineAccess(user);
                     bindWorkspaceControls();
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
                     if (acceptedWorkspaceId) return activateWorkspace(acceptedWorkspaceId).then(function () {
@@ -2539,6 +2562,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     });
                 });
         } else {
+            localStorage.removeItem(OFFLINE_ACCESS_KEY);
             cloudAccessChecking = false;
             cloudAccountApproved = false;
             setAccountAccessNotice("");
@@ -2565,10 +2589,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function initFirebase() {
         if (!window.firebase || !firebase.initializeApp) {
+            if (canUseOfflineMode()) {
+                cloudAccessChecking = false;
+                cloudAccountApproved = true;
+                setCloudStatus("Modo offline. Dados deste aparelho disponíveis.");
+                setSyncStatus("Offline — alterações salvas neste aparelho");
+                return;
+            }
             setCloudStatus(
-                "Nuvem indisponível neste carregamento. O modo local continua funcionando."
+                "Nuvem indisponível neste carregamento. Conecte-se à internet para validar o acesso."
             );
-
             return;
         }
 
@@ -3180,7 +3210,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
     function initAuth() {
         // O PIN protege este dispositivo, mas não substitui a autenticação
         // da plataforma. Sem conta liberada, o aplicativo permanece fechado.
-        if (!firebaseUser || !cloudAccountApproved) {
+        var offlineMode = canUseOfflineMode();
+        if ((!firebaseUser || !cloudAccountApproved) && !offlineMode) {
             var restoringSession = !!cloudInitialized && !firebaseUser;
             setAccountGate(true, {
                 title: restoringSession ? "Verificando acesso" : "Acesse sua conta",
@@ -3192,7 +3223,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
             });
             return;
         }
-        
+
+        if (offlineMode) {
+            setAccountGate(false);
+            setCloudStatus("Modo offline. Entre com seu PIN para acessar os dados deste aparelho.");
+            setSyncStatus("Offline — alterações salvas neste aparelho");
+        }
+
         if (lockConfig) {
             openAuthLogin();
             return;
