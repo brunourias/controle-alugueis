@@ -5026,6 +5026,7 @@ function renderSummary() {
                 '<article class="home-snapshot-card ' + (overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(overdueTotal) + '</strong><small>' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</small></article>' +
                 '<article class="home-snapshot-card"><span>Valores gastos</span><strong>' + money(currentExpenses) + '</strong><small>Despesas deste mês</small></article>' +
                 '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
+                '<article class="home-snapshot-card home-snapshot-card-occupancy"><span>Ocupação</span><strong>' + occupancyRate + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades ocupadas</small></article>' +
             '</div>';
     }
 
