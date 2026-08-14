@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=112" />
+        <link rel="stylesheet" href="styles.css?v=113" />
     
 <style>
     /* Histórico de contratos */
@@ -187,7 +187,8 @@
             </div>
 
             <nav id="appNavigation" class="app-navigation" aria-label="Navegação principal">
-                <button class="app-nav-button is-active" type="button" data-app-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10.5 8.5-7 8.5 7v9.5H14v-5.5h-4v5.5H3.5z"></path></svg><span>Início</span></button>
+                <button class="app-nav-button desktop-home-nav is-active" type="button" data-app-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10.5 8.5-7 8.5 7v9.5H14v-5.5h-4v5.5H3.5z"></path></svg><span>Início</span></button>
+                <button class="app-nav-button mobile-only-nav mobile-overview-nav" type="button" data-app-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4zM7.5 9h4M7.5 13h8M7.5 16h5"></path></svg><span>Visão geral</span></button>
                 <button class="app-nav-button mobile-only-nav" type="button" data-app-view="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8 8h3M8 12h3M8 16h3M14 8h2M14 12h2M14 16h2"></path></svg><span>Unidades</span></button>
                 <button class="app-nav-button" type="button" data-app-view="financial"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.2v9.6M14.7 9.3c-.5-.6-1.3-.9-2.4-.9-1.5 0-2.5.7-2.5 1.8 0 2.8 5 1.4 5 4 0 1.1-1 1.9-2.6 1.9-1.1 0-2.1-.4-2.7-1"></path></svg><span>Financeiro</span></button>
                 <button class="app-nav-button" type="button" data-app-view="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5V13M12 19.5V8M19 19.5V4.5"></path></svg><span>Relatórios</span></button>
@@ -205,6 +206,10 @@
                 <section id="actionCenter" class="action-center" aria-label="O que precisa de ação"></section>
                 <section id="homeSnapshot" class="home-snapshot" aria-label="Resumo deste mês"></section>
 
+            </section>
+
+            <section id="overviewView" class="app-view overview-view" data-app-view-panel="overview">
+                <section id="overviewDashboard" class="overview-dashboard" aria-label="Visão geral do empreendimento"></section>
             </section>
 
             <section id="unitsView" class="app-view units-view" data-app-view-panel="units">
@@ -999,6 +1004,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=112"></script>
+    <script src="app.js?v=113"></script>
     </body>
 </html>
