@@ -4041,20 +4041,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (!mobileNavigation && activeAppView === "units") activeAppView = "home";
         var navigation = document.getElementById("appNavigation");
         if (navigation) navigation.classList.toggle("is-launcher", launcherOnly);
+
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
-            // Na abertura mobile, o resumo mensal fica visível junto aos atalhos.
-            // Após escolher uma área, somente a tela escolhida permanece em foco.
-            if (launcherOnly) {
-                panel.hidden = view !== "home";
+            if (mobileNavigation) {
+                // No celular os atalhos são telas exclusivas: nunca deixa conteúdo
+                // de outro atalho visível. Na abertura, ficam somente os botões.
+                panel.hidden = launcherOnly || view !== activeAppView;
                 return;
             }
-            // No desktop, Início mantém o painel mensal e as unidades juntos,
-            // preservando o fluxo já conhecido. No celular, cada atalho tem sua tela.
+            // No desktop, Início mantém o resumo mensal e as unidades juntos.
             panel.hidden = view === "units"
-                ? (mobileNavigation ? activeAppView !== "units" : activeAppView !== "home")
+                ? activeAppView !== "home"
                 : view !== activeAppView;
         });
+
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
             var selected = !launcherOnly && button.dataset.appView === activeAppView;
             button.classList.toggle("is-active", selected);
@@ -8315,17 +8316,9 @@ function saveExpense() {
     document.querySelectorAll("[data-app-view]").forEach(function (button) {
         button.addEventListener("click", function () {
             var requestedView = button.dataset.appView;
-            // Tocar novamente no atalho ativo do celular retorna ao resumo mensal.
-            if (isMobileNavigation() && !mobileLauncherActive && requestedView === activeAppView) {
-                mobileLauncherActive = true;
-                activeAppView = "home";
-                actionCenterExpanded = false;
-                renderAppNavigation();
-                renderActionCenter();
-                scrollPageToTop();
-                return;
-            }
-            if (requestedView === "home") actionCenterExpanded = false;
+            // Todo atalho sempre abre sua própria área; tocar novamente não volta
+            // para uma tela intermediária nem reapresenta conteúdo anterior.
+            actionCenterExpanded = false;
             showAppView(requestedView);
             renderActionCenter();
         });
