@@ -5033,7 +5033,11 @@ function renderSummary() {
 }
     function applySummaryCardsVisibility() {
         var cards = document.getElementById("summaryCards");
+        var container = document.getElementById("summary");
+        // Quando fechado, o próprio contêiner sai do fluxo. Assim não sobra
+        // uma faixa vazia entre o cabeçalho financeiro e os gastos.
         if (cards) cards.hidden = !summaryCardsExpanded;
+        if (container) container.hidden = !summaryCardsExpanded;
         var btn = document.getElementById("toggleSummaryCards");
         if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar indicadores" : "Ver indicadores";
     }
