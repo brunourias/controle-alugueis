@@ -4066,6 +4066,32 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
     }
 
+    function focusCurrentMonthInGrid() {
+        if (!tableWrap || tableWrap.hidden) return;
+
+        var monthHeaders = grid.querySelectorAll("thead th");
+        if (monthHeaders.length < 2) return;
+
+        var currentMonthIndex = new Date().getMonth();
+        var target = grid.querySelector("thead th.month-current") ||
+            monthHeaders[currentMonthIndex + 1];
+        if (!target) return;
+
+        // A primeira coluna é fixa. Centraliza o mês no espaço que sobra à direita dela,
+        // para que ele não fique escondido por baixo das informações da unidade.
+        var frozenColumn = monthHeaders[0];
+        var frozenWidth = frozenColumn ? frozenColumn.getBoundingClientRect().width : 0;
+        var visibleWidth = Math.max(0, tableWrap.clientWidth - frozenWidth);
+        var targetCenter = target.offsetLeft + target.offsetWidth / 2;
+        var scrollLeft = Math.max(
+            0,
+            targetCenter - frozenWidth - visibleWidth / 2
+        );
+        var maxScrollLeft = Math.max(0, tableWrap.scrollWidth - tableWrap.clientWidth);
+        lastGridScrollLeft = Math.min(scrollLeft, maxScrollLeft);
+        tableWrap.scrollTo({ left: lastGridScrollLeft, behavior: "smooth" });
+    }
+
     function showAppView(view) {
         activeAppView = view;
         if (isMobileNavigation()) {
@@ -4074,6 +4100,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             window.setTimeout(function () {
                 var panel = document.querySelector('[data-app-view-panel="' + view + '"]');
                 if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+                if (view === "units") focusCurrentMonthInGrid();
             }, 0);
             return;
         }
