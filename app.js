@@ -8214,7 +8214,9 @@ function saveExpense() {
 
     document.querySelectorAll("[data-app-view]").forEach(function (button) {
         button.addEventListener("click", function () {
+            if (button.dataset.appView === "home") actionCenterExpanded = false;
             showAppView(button.dataset.appView);
+            renderActionCenter();
         });
     });
 
@@ -8230,6 +8232,26 @@ function saveExpense() {
 
     document.getElementById("mobileSettingsNav").addEventListener("click", function () {
         openSettings();
+    });
+
+    document.getElementById("mobileExpensesNav").addEventListener("click", function () {
+        expensesExpanded = true;
+        showAppView("financial");
+        render();
+        window.setTimeout(function () {
+            var expenses = document.getElementById("expensesTitle") || document.getElementById("expensesList");
+            if (expenses) expenses.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+    });
+
+    document.getElementById("mobileTaxNav").addEventListener("click", function () {
+        taxDashboardExpanded = true;
+        showAppView("reports");
+        render();
+        window.setTimeout(function () {
+            var dashboard = document.getElementById("taxDashboard");
+            if (dashboard) dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
     });
 
     window.addEventListener("resize", function () {
