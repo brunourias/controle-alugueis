@@ -162,6 +162,8 @@ const ModalManager = (() => {
     // A tela inicial prioriza a operação diária. Financeiro e relatórios
     // concentram informações de análise, sem poluir a rotina de cobrança.
     var activeAppView = "home";
+    // No celular, o primeiro acesso exibe apenas os atalhos; cada tela abre sob demanda.
+    var mobileLauncherActive = true;
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -4035,28 +4037,32 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var validViews = ["home", "units", "financial", "reports"];
         if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
         var mobileNavigation = isMobileNavigation();
+        var launcherOnly = mobileNavigation && mobileLauncherActive;
         if (!mobileNavigation && activeAppView === "units") activeAppView = "home";
+        var navigation = document.getElementById("appNavigation");
+        if (navigation) navigation.classList.toggle("is-launcher", launcherOnly);
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
             // No desktop, Início mantém o painel mensal e as unidades juntos,
             // preservando o fluxo já conhecido. No celular, cada atalho tem sua tela.
-            panel.hidden = view === "units"
+            panel.hidden = launcherOnly || (view === "units"
                 ? (mobileNavigation ? activeAppView !== "units" : activeAppView !== "home")
-                : view !== activeAppView;
+                : view !== activeAppView);
         });
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
-            var selected = button.dataset.appView === activeAppView;
+            var selected = !launcherOnly && button.dataset.appView === activeAppView;
             button.classList.toggle("is-active", selected);
             button.setAttribute("aria-current", selected ? "page" : "false");
         });
         ["addUnit", "mobileAddUnit"].forEach(function (id) {
             var button = document.getElementById(id);
-            if (button) button.hidden = mobileNavigation ? activeAppView !== "units" : activeAppView !== "home";
+            if (button) button.hidden = launcherOnly || (mobileNavigation ? activeAppView !== "units" : activeAppView !== "home");
         });
     }
 
     function showAppView(view) {
         activeAppView = view;
+        if (isMobileNavigation()) mobileLauncherActive = false;
         renderAppNavigation();
         scrollPageToTop();
     }
