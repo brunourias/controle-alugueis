@@ -8358,6 +8358,22 @@ function saveExpense() {
         }, 0);
     });
 
+    document.getElementById("mobileChargesNav").addEventListener("click", function () {
+        actionCenterExpanded = true;
+        showAppView("home");
+        renderActionCenter();
+        window.setTimeout(function () {
+            var panel = document.getElementById("actionCenter");
+            if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+    });
+
+    document.getElementById("mobileAnnualNav").addEventListener("click", function () {
+        showAppView("reports");
+        render();
+        window.setTimeout(openAnnualReport, 0);
+    });
+
     window.addEventListener("resize", function () {
         renderAppNavigation();
     });
