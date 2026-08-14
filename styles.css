@@ -5736,3 +5736,41 @@ textarea:focus-visible {
         height: 32px;
     }
 }
+
+
+/* Controles do cabeçalho: área de toque mais confortável e engrenagem nítida. */
+.app-header .year-nav .icon-btn,
+.app-header #settingsButton {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+}
+
+.app-header .settings-icon-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-header .settings-glyph {
+    display: block;
+    color: #ecfffb;
+    font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif;
+    font-size: 1.35rem;
+    font-weight: 400;
+    line-height: 1;
+    transform: translateY(-.5px);
+}
+
+@media (max-width: 680px) {
+    .app-header .year-nav .icon-btn,
+    .app-header #settingsButton {
+        flex-basis: 40px;
+        width: 40px;
+        height: 40px;
+    }
+
+    .app-header .settings-glyph {
+        font-size: 1.28rem;
+    }
+}
