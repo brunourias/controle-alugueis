@@ -4125,6 +4125,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
             chargeDate.focus();
             return;
         }
+        // A cobrança registrada trata as parcelas em atraso existentes neste momento.
+        // Novos atrasos futuros continuam aparecendo normalmente como ação pendente.
+        var handledLateKeys = months.reduce(function (keys, _, month) {
+            var key = monthKey(month);
+            var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+            if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") keys.push(key);
+            return keys;
+        }, []);
         var entry = {
             id: "charge-" + Date.now().toString(36),
             createdAt: new Date().toISOString(),
@@ -4132,7 +4140,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
             kind: chargeType.value,
             note: String(chargeNote.value || "").trim().slice(0, 220),
             promisedDate: isValidDateValue(chargePromisedDate.value) ? chargePromisedDate.value : "",
-            nextActionDate: isValidDateValue(chargeNextActionDate.value) ? chargeNextActionDate.value : ""
+            nextActionDate: isValidDateValue(chargeNextActionDate.value) ? chargeNextActionDate.value : "",
+            handledLateKeys: handledLateKeys
         };
         unit.chargeLog = [entry].concat(unit.chargeLog || []).slice(0, 40);
         createVersionedBackup("Registro de cobrança", unit.name + " · " + (unit.tenantName || ""));
@@ -4171,7 +4180,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
             months.forEach(function (_, month) {
                 var key = monthKey(month);
                 var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") {
+                var wasCharged = (unit.chargeLog || []).some(function (entry) {
+                    return Array.isArray(entry.handledLateKeys) && entry.handledLateKeys.indexOf(key) !== -1;
+                });
+                if (!wasCharged && (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open")) {
                     var amount = (ledger[key] === true || ledger[key] === "open") ? historicLateRent(unit, key) : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
                     add(urgent, unit.name + " · parcela em atraso", fullMonths[month] + " · " + money(amount), unit.id, "charge");
                 }
