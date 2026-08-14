@@ -5711,7 +5711,7 @@ textarea:focus-visible {
     background: #fff0f1;
 }
 
-.app-nav-alert > span {
+.app-nav-alert > #actionAlertNavBadge {
     position: absolute;
     top: -6px;
     right: -6px;
@@ -5788,5 +5788,85 @@ textarea:focus-visible {
         flex-basis: 40px;
         width: 40px;
         height: 40px;
+    }
+}
+
+
+/* Atalhos visuais somente no celular: as telas continuam as mesmas. */
+.app-nav-button > svg,
+.action-alert-nav-label {
+    display: none;
+}
+
+@media (max-width: 680px) {
+    .app-navigation {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        gap: 8px;
+        margin: 10px 0 12px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .app-nav-button,
+    .app-nav-alert {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        min-height: 82px;
+        place-items: center;
+        align-content: center;
+        gap: 6px;
+        padding: 9px 8px;
+        border: 1px solid #d4e6e2;
+        border-radius: 14px;
+        color: #155f5a;
+        background: #f8fcfb;
+        box-shadow: 0 5px 14px rgba(15, 77, 73, .06);
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .app-nav-button > svg,
+    .app-nav-alert > svg {
+        display: block;
+        width: 23px;
+        height: 23px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .app-nav-button.is-active {
+        color: #fff;
+        border-color: #0f766e;
+        background: #0f766e;
+        box-shadow: 0 7px 16px rgba(15, 118, 110, .2);
+    }
+
+    .app-nav-alert.is-clear {
+        color: #08705f;
+        background: #f2fbf8;
+    }
+
+    .app-nav-alert.has-alert {
+        color: #a52d3b;
+        border-color: #efc4ca;
+        background: #fff6f7;
+    }
+
+    .action-alert-nav-label {
+        display: block;
+    }
+
+    .app-nav-alert > #actionAlertNavBadge {
+        top: 7px;
+        right: 8px;
     }
 }
