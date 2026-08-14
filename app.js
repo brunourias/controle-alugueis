@@ -4170,8 +4170,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (!container) return;
         var today = new Date(); today.setHours(0, 0, 0, 0);
         var weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
-        var urgent = [], week = [], decisions = [];
+        var urgent = [], week = [], decisions = [], completedCharges = [];
         var currentMonth = today.getMonth();
+        var weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
         function add(list, title, description, unitId, action, recordId, recordType) {
             list.push({
@@ -4202,6 +4204,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 }
             });
             (unit.chargeLog || []).forEach(function (entry) {
+                var registeredAt = chargeLogDate(entry.date) || new Date(entry.createdAt || 0);
+                if (Array.isArray(entry.handledLateKeys) && entry.handledLateKeys.length === 1 &&
+                    !isNaN(registeredAt.getTime()) && registeredAt >= weekStart && registeredAt <= new Date(today.getTime() + 86399999)) {
+                    var installmentKey = entry.handledLateKeys[0];
+                    var installmentMonth = Number(installmentKey.slice(5, 7)) - 1;
+                    add(completedCharges, unit.name + " · cobrança registrada",
+                        (fullMonths[installmentMonth] || "Parcela") + " · " + chargeKindLabel(entry.kind),
+                        unit.id, "", entry.id, "completed-charge");
+                }
                 var date = chargeLogDate(entry.nextActionDate);
                 if (!date) return;
                 var label = unit.name + " · retorno de cobrança";
@@ -4241,8 +4252,10 @@ undefined || item.rent === "" ? null : Number(item.rent);
         function rows(items, empty, tone) {
             if (!items.length) return '<p class="operations-empty">' + empty + '</p>';
             return items.slice(0, 8).map(function (item) {
-                var button = item.recordType === "charge"
-                    ? '<button class="btn btn-ghost" type="button" data-complete-charge-followup="' + escapeHtml(item.unitId) + '" data-charge-record-id="' + escapeHtml(item.recordId) + '">Concluir</button>'
+                var button = item.recordType === "completed-charge"
+                    ? '<span class="action-completed-label">Registrada</span>'
+                    : item.recordType === "charge"
+                        ? '<button class="btn btn-ghost" type="button" data-complete-charge-followup="' + escapeHtml(item.unitId) + '" data-charge-record-id="' + escapeHtml(item.recordId) + '">Concluir</button>'
                     : item.action === "charge" ? '<button class="btn btn-ghost" type="button" data-register-charge="' + escapeHtml(item.unitId) + '" data-charge-month="' + escapeHtml(item.recordId) + '">Cobrar</button>' :
                     item.action === "decision" ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Decidir</button>' :
                     item.action === "tax" ? '<button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button>' :
@@ -4274,9 +4287,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
             ? '<div class="action-count-explainer"><span class="action-alert-badge" aria-hidden="true">' + attentionCount + '</span><span><strong>' + attentionCount + ' ' + (attentionCount === 1 ? 'ação pendente' : 'ações pendentes') + '</strong><small>' + escapeHtml(summaryParts.join(" · ")) + '</small></span></div>'
             : '<span class="action-ok-badge" aria-label="Sem ações pendentes">✓</span>';
         var taskForm = '<form id="operationalTaskForm" class="operational-task-form"><input id="operationalTaskTitle" type="text" maxlength="140" placeholder="Ex.: Cobrar comprovante" required><input id="operationalTaskDue" type="date"><button class="btn btn-primary" type="submit">Adicionar</button></form>';
+        var completedMarkup = completedCharges.length
+            ? '<div class="completed-charge-list"><h4>Cobranças registradas</h4>' + rows(completedCharges, "", "is-completed") + '</div>'
+            : "";
         var detail = '<div class="action-priority-grid">' +
             '<section class="action-priority-section is-urgent"><h3>Urgente hoje</h3>' + rows(urgent, "Nada urgente no momento.", "is-urgent") + '</section>' +
-            '<section class="action-priority-section"><h3>Esta semana</h3>' + rows(week, "Nenhuma ação prevista para os próximos 7 dias.", "is-week") + '</section>' +
+            '<section class="action-priority-section"><h3>Esta semana</h3>' + rows(week, "Nenhuma ação prevista para os próximos 7 dias.", "is-week") + completedMarkup + '</section>' +
             '<section class="action-priority-section"><h3>Decisões de contrato</h3>' + rows(decisions, "Nenhuma decisão de contrato pendente.", "is-decision") + '</section>' +
             '</div><section class="action-tasks-panel"><h3>Tarefas manuais</h3>' + taskForm + '</section>';
 
