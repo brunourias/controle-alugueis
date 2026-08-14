@@ -5342,3 +5342,40 @@ textarea:focus-visible {
         padding: 10px 12px;
     }
 }
+
+
+/* Cabeçalhos de Relatórios no mesmo padrão visual e ritmo de Financeiro. */
+.reports-financial {
+    padding: 17px 18px;
+}
+
+.reports-financial .reports-late-report {
+    margin-top: 12px;
+}
+
+#financialView {
+    gap: 12px;
+}
+
+#financialView > #summary .summary-cards {
+    margin-top: 0;
+}
+
+/* O painel operacional ocupa a largura útil completa da aba Início. */
+#homeView > .action-center {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+@media (max-width: 680px) {
+    .reports-financial {
+        padding: 15px;
+    }
+
+    .reports-financial .financial-dashboard-header {
+        gap: 10px;
+    }
+}
