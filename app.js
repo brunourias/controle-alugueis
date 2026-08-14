@@ -4301,12 +4301,27 @@ undefined || item.rent === "" ? null : Number(item.rent);
             : "Nenhuma pendência agora";
         var shieldIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.2c0 4.8-3.3 8.3-8 9.8-4.7-1.5-8-5-8-9.8V6l8-3Z"></path>' +
             (attentionCount ? '' : '<path d="m8.6 12.1 2.1 2.1 4.7-4.7"></path>') + '</svg>';
-        container.classList.toggle("is-compact", !actionCenterExpanded);
+        var navAlert = document.getElementById("actionAlertNav");
+        var navAlertBadge = document.getElementById("actionAlertNavBadge");
+        if (navAlert) {
+            navAlert.classList.toggle("has-alert", attentionCount > 0);
+            navAlert.classList.toggle("is-clear", attentionCount === 0);
+            navAlert.setAttribute("aria-label", attentionCount ? compactSummary + ". Abrir ações." : "Sem pendências. Abrir ações.");
+            navAlert.title = attentionCount ? compactSummary : "Sem pendências";
+        }
+        if (navAlertBadge) {
+            navAlertBadge.hidden = attentionCount === 0;
+            navAlertBadge.textContent = attentionCount || "";
+        }
+
+        container.classList.remove("is-compact");
+        container.hidden = !actionCenterExpanded;
         container.innerHTML = actionCenterExpanded
             ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="true">Ocultar</button></div></div><div class="action-center-detail">' + detail + '</div>'
-            : '<button class="action-alert-trigger ' + (attentionCount ? 'has-alert' : 'is-clear') + '" id="toggleActionCenter" type="button" aria-expanded="false"><span class="action-alert-shield">' + shieldIcon + (attentionCount ? '<b>' + attentionCount + '</b>' : '') + '</span><span class="action-alert-copy"><strong>O que precisa de ação</strong><small>' + escapeHtml(compactSummary) + '</small></span><span class="action-alert-chevron" aria-hidden="true">›</span></button>';
+            : "";
 
-        document.getElementById("toggleActionCenter").addEventListener("click", function () { actionCenterExpanded = !actionCenterExpanded; renderActionCenter(); });
+        var toggleActionCenter = document.getElementById("toggleActionCenter");
+        if (toggleActionCenter) toggleActionCenter.addEventListener("click", function () { actionCenterExpanded = false; renderActionCenter(); });
         var taskFormElement = document.getElementById("operationalTaskForm");
         if (taskFormElement) taskFormElement.addEventListener("submit", function (event) {
             event.preventDefault();
@@ -8182,6 +8197,16 @@ function saveExpense() {
         button.addEventListener("click", function () {
             showAppView(button.dataset.appView);
         });
+    });
+
+    document.getElementById("actionAlertNav").addEventListener("click", function () {
+        actionCenterExpanded = true;
+        showAppView("home");
+        renderActionCenter();
+        window.setTimeout(function () {
+            var panel = document.getElementById("actionCenter");
+            if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
     });
 
     document.getElementById("nextYear").addEventListener("click", function () {
