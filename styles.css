@@ -5536,3 +5536,34 @@ textarea:focus-visible {
     background: #0f766e;
     box-shadow: 0 4px 10px rgba(15, 118, 110, .25);
 }
+
+
+/* Cobranças concluídas: confirmação visual sem virar nova pendência. */
+.completed-charge-list {
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px dashed #cfe3dc;
+}
+
+.completed-charge-list h4 {
+    margin: 0 0 5px;
+    color: #187464;
+    font-size: .72rem;
+}
+
+.action-priority-row.is-completed {
+    border-color: #cfe9df;
+    background: #f3fbf8;
+}
+
+.action-completed-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 9px;
+    border-radius: 999px;
+    color: #08705f;
+    background: #dff7ef;
+    font-size: .7rem;
+    font-weight: 800;
+}
