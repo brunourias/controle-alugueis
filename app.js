@@ -164,6 +164,8 @@ const ModalManager = (() => {
     var activeAppView = "home";
     // No celular, o primeiro acesso exibe apenas os atalhos; cada tela abre sob demanda.
     var mobileLauncherActive = true;
+    // Identifica qual atalho abriu a tela atual para permitir fechá-la ao tocar novamente.
+    var activeMobileShortcut = "";
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -4091,6 +4093,17 @@ undefined || item.rent === "" ? null : Number(item.rent);
         var maxScrollLeft = Math.max(0, tableWrap.scrollWidth - tableWrap.clientWidth);
         lastGridScrollLeft = Math.min(scrollLeft, maxScrollLeft);
         tableWrap.scrollTo({ left: lastGridScrollLeft, behavior: "smooth" });
+    }
+
+    function closeMobileShortcut() {
+        if (!isMobileNavigation()) return;
+        mobileLauncherActive = true;
+        activeMobileShortcut = "";
+        activeAppView = "home";
+        actionCenterExpanded = false;
+        renderAppNavigation();
+        renderActionCenter();
+        scrollPageToTop();
     }
 
     function showAppView(view) {
@@ -8316,8 +8329,11 @@ function saveExpense() {
     document.querySelectorAll("[data-app-view]").forEach(function (button) {
         button.addEventListener("click", function () {
             var requestedView = button.dataset.appView;
-            // Todo atalho sempre abre sua própria área; tocar novamente não volta
-            // para uma tela intermediária nem reapresenta conteúdo anterior.
+            if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === requestedView) {
+                closeMobileShortcut();
+                return;
+            }
+            activeMobileShortcut = requestedView;
             actionCenterExpanded = false;
             showAppView(requestedView);
             renderActionCenter();
@@ -8325,6 +8341,11 @@ function saveExpense() {
     });
 
     document.getElementById("actionAlertNav").addEventListener("click", function () {
+        if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === "alerts") {
+            closeMobileShortcut();
+            return;
+        }
+        activeMobileShortcut = "alerts";
         actionCenterExpanded = true;
         showAppView("home");
         renderActionCenter();
@@ -8339,6 +8360,11 @@ function saveExpense() {
     });
 
     document.getElementById("mobileExpensesNav").addEventListener("click", function () {
+        if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === "expenses") {
+            closeMobileShortcut();
+            return;
+        }
+        activeMobileShortcut = "expenses";
         expensesExpanded = true;
         showAppView("financial");
         render();
@@ -8349,6 +8375,11 @@ function saveExpense() {
     });
 
     document.getElementById("mobileTaxNav").addEventListener("click", function () {
+        if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === "tax") {
+            closeMobileShortcut();
+            return;
+        }
+        activeMobileShortcut = "tax";
         taxDashboardExpanded = true;
         showAppView("reports");
         render();
@@ -8359,6 +8390,11 @@ function saveExpense() {
     });
 
     document.getElementById("mobileChargesNav").addEventListener("click", function () {
+        if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === "charges") {
+            closeMobileShortcut();
+            return;
+        }
+        activeMobileShortcut = "charges";
         actionCenterExpanded = true;
         showAppView("home");
         renderActionCenter();
