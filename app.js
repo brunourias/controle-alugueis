@@ -4296,7 +4296,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
             '<section class="action-priority-section"><h3>Decisões de contrato</h3>' + rows(decisions, "Nenhuma decisão de contrato pendente.", "is-decision") + '</section>' +
             '</div><section class="action-tasks-panel"><h3>Tarefas manuais</h3>' + taskForm + '</section>';
 
-        container.innerHTML = '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="' + actionCenterExpanded + '">' + (actionCenterExpanded ? "Ocultar" : "Abrir") + '</button></div></div>' + (actionCenterExpanded ? '<div class="action-center-detail">' + detail + '</div>' : '');
+        var compactSummary = attentionCount
+            ? attentionCount + " " + (attentionCount === 1 ? "ação pendente" : "ações pendentes")
+            : "Nenhuma pendência agora";
+        var shieldIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.2c0 4.8-3.3 8.3-8 9.8-4.7-1.5-8-5-8-9.8V6l8-3Z"></path>' +
+            (attentionCount ? '' : '<path d="m8.6 12.1 2.1 2.1 4.7-4.7"></path>') + '</svg>';
+        container.classList.toggle("is-compact", !actionCenterExpanded);
+        container.innerHTML = actionCenterExpanded
+            ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="true">Ocultar</button></div></div><div class="action-center-detail">' + detail + '</div>'
+            : '<button class="action-alert-trigger ' + (attentionCount ? 'has-alert' : 'is-clear') + '" id="toggleActionCenter" type="button" aria-expanded="false"><span class="action-alert-shield">' + shieldIcon + (attentionCount ? '<b>' + attentionCount + '</b>' : '') + '</span><span class="action-alert-copy"><strong>O que precisa de ação</strong><small>' + escapeHtml(compactSummary) + '</small></span><span class="action-alert-chevron" aria-hidden="true">›</span></button>';
 
         document.getElementById("toggleActionCenter").addEventListener("click", function () { actionCenterExpanded = !actionCenterExpanded; renderActionCenter(); });
         var taskFormElement = document.getElementById("operationalTaskForm");
