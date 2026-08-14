@@ -7138,8 +7138,16 @@ function saveExpense() {
         });
     }
 
-    function formatDate(date) {
-        //--------------------------------------------------------------------------------------------
+    function formatDate(value) {
+        // Aceita Date, Timestamp do Firebase, milissegundos e texto ISO/aaaa-mm-dd.
+        var date = value;
+        if (date && typeof date.toDate === "function") date = date.toDate();
+        else if (date && typeof date === "object" && typeof date.seconds === "number") date = new Date(date.seconds * 1000);
+        else if (!(date instanceof Date)) {
+            if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) date = new Date(date + "T12:00:00");
+            else date = new Date(date);
+        }
+        if (!(date instanceof Date) || isNaN(date.getTime())) return "Data não informada";
         return (
             String(date.getDate()).padStart(2, "0") +
             "/" +
