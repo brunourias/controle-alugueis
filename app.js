@@ -276,6 +276,7 @@ var historyRent = document.getElementById("historyRent");
     var chargeNextActionDate = document.getElementById("chargeNextActionDate");
     var chargeNote = document.getElementById("chargeNote");
     var chargeModalUnitId = null;
+    var chargeModalHandledLateKeys = [];
     var expenseModal = document.getElementById("expenseModal");
     var expenseModalTitle = document.getElementById("expenseModalTitle");
     var expenseYm = document.getElementById("expenseYm");
@@ -4112,13 +4113,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }).join("");
     }
 
-    function openChargeModal(unitId) {
+    function openChargeModal(unitId, installmentKey) {
         var unit = state.units.find(function (item) { return item.id === unitId; });
         if (!unit) return;
         chargeModalUnitId = unit.id;
-        var hasLateInstallment = months.some(function (_, month) { return effectiveStatus(unit, month) === "atrasado"; });
+        chargeModalHandledLateKeys = typeof installmentKey === "string" && /^\d{4}-\d{2}$/.test(installmentKey) ? [installmentKey] : [];
+        var hasLateInstallment = chargeModalHandledLateKeys.length > 0;
         chargeModalContext.textContent = unit.name + (unit.tenantName ? " · " + unit.tenantName : "") +
-            (hasLateInstallment ? ". Registre a cobrança. Agende um retorno apenas se quiser ser lembrado depois." : ". Registre o contato e, se necessário, defina um próximo passo.");
+            (hasLateInstallment ? ". Esta cobrança será vinculada somente à parcela selecionada. Agende um retorno apenas se quiser ser lembrado depois." : ". Registre o contato e, se necessário, defina um próximo passo.");
         chargeType.value = "whatsapp";
         chargeDate.value = new Date().toISOString().slice(0, 10);
         chargePromisedDate.value = "";
@@ -4137,7 +4139,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
         // A cobrança registrada trata as parcelas em atraso existentes neste momento.
         // Novos atrasos futuros continuam aparecendo normalmente como ação pendente.
-        var handledLateKeys = lateInstallmentKeysForUnit(unit);
+        var handledLateKeys = chargeModalHandledLateKeys.slice();
         var entry = {
             id: "charge-" + Date.now().toString(36),
             createdAt: new Date().toISOString(),
@@ -4156,6 +4158,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         renderChargeHistory(unit);
         ModalManager.close(chargeModal);
         chargeModalUnitId = null;
+        chargeModalHandledLateKeys = [];
         if (openWhatsapp) {
             var url = chargeUrl(unit);
             if (url) window.open(url, "_blank", "noopener");
@@ -4186,20 +4189,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 var key = monthKey(month);
                 var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
                 var wasCharged = (unit.chargeLog || []).some(function (entry) {
-                    if (Array.isArray(entry.handledLateKeys) && entry.handledLateKeys.indexOf(key) !== -1) return true;
-                    // Registros anteriores à melhoria não tinham a parcela vinculada.
-                    // Um contato feito após o vencimento também trata aquela cobrança.
-                    if (!Array.isArray(entry.handledLateKeys) || !entry.handledLateKeys.length) {
-                        var entryYm = isValidDateValue(entry.date)
-                            ? entry.date.slice(0, 7)
-                            : String(entry.createdAt || "").slice(0, 7);
-                        return /^\d{4}-\d{2}$/.test(entryYm) && entryYm >= key;
-                    }
-                    return false;
+                    // Apenas uma cobrança vinculada a uma única parcela a considera tratada.
+                    // Registros antigos e os registros amplos anteriores voltam a aparecer
+                    // para não esconder parcelas que não foram efetivamente cobradas.
+                    return Array.isArray(entry.handledLateKeys) &&
+                        entry.handledLateKeys.length === 1 &&
+                        entry.handledLateKeys[0] === key;
                 });
                 if (!wasCharged && (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open")) {
                     var amount = (ledger[key] === true || ledger[key] === "open") ? historicLateRent(unit, key) : (updatedAmount(unit, month) === null ? rentForMonth(unit, selectedYear, month) : updatedAmount(unit, month));
-                    add(urgent, unit.name + " · parcela em atraso", fullMonths[month] + " · " + money(amount), unit.id, "charge");
+                    add(urgent, unit.name + " · parcela em atraso", fullMonths[month] + " · " + money(amount), unit.id, "charge", key, "late");
                 }
             });
             (unit.chargeLog || []).forEach(function (entry) {
@@ -4244,7 +4243,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             return items.slice(0, 8).map(function (item) {
                 var button = item.recordType === "charge"
                     ? '<button class="btn btn-ghost" type="button" data-complete-charge-followup="' + escapeHtml(item.unitId) + '" data-charge-record-id="' + escapeHtml(item.recordId) + '">Concluir</button>'
-                    : item.action === "charge" ? '<button class="btn btn-ghost" type="button" data-register-charge="' + escapeHtml(item.unitId) + '">Cobrar</button>' :
+                    : item.action === "charge" ? '<button class="btn btn-ghost" type="button" data-register-charge="' + escapeHtml(item.unitId) + '" data-charge-month="' + escapeHtml(item.recordId) + '">Cobrar</button>' :
                     item.action === "decision" ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Decidir</button>' :
                     item.action === "tax" ? '<button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button>' :
                     item.action && item.action.indexOf("task:") === 0 ? '<button class="btn btn-ghost" type="button" data-task-done="' + escapeHtml(item.action.slice(5)) + '">Concluir</button>' :
@@ -4294,7 +4293,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
             saveState(); render();
         });
         container.querySelectorAll("[data-open-unit]").forEach(function (button) { button.addEventListener("click", function () { openModal(button.dataset.openUnit); }); });
-        container.querySelectorAll("[data-register-charge]").forEach(function (button) { button.addEventListener("click", function () { openChargeModal(button.dataset.registerCharge); }); });
+        container.querySelectorAll("[data-register-charge]").forEach(function (button) { button.addEventListener("click", function () { openChargeModal(button.dataset.registerCharge, button.dataset.chargeMonth || ""); }); });
         container.querySelectorAll("[data-complete-charge-followup]").forEach(function (button) { button.addEventListener("click", function () {
             var unit = state.units.find(function (item) { return item.id === button.dataset.completeChargeFollowup; });
             var entry = unit && (unit.chargeLog || []).find(function (item) { return item.id === button.dataset.chargeRecordId; });
@@ -4761,7 +4760,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
                         date: new Date().toISOString().slice(0, 10),
                         kind: "whatsapp",
                         tenantName: unit.tenantName || "",
-                        handledLateKeys: lateInstallmentKeysForUnit(unit)
+                        handledLateKeys: []
                     });
                     unit.chargeLog = unit.chargeLog.slice(0,40);
                     recordOperation("Cobrança enviada", unit.name + " · WhatsApp");
