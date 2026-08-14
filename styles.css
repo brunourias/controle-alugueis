@@ -4785,7 +4785,7 @@ textarea:focus-visible {
 
 
 /* Painel do administrador da plataforma */
-.platform-account-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
+.platform-account-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
 .platform-account-metrics span { padding: 9px 7px; border: 1px solid #dceae7; border-radius: 10px; color: #647f7d; background: #f6fbfa; font-size: .66rem; text-align: center; }
 .platform-account-metrics strong { display: block; margin-bottom: 2px; color: #075f5b; font-size: 1rem; }
 .platform-account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #dceae7; border-radius: 12px; background: #fbfefd; }
@@ -5206,5 +5206,21 @@ textarea:focus-visible {
         align-items: flex-start;
         flex-direction: column;
         gap: 9px;
+    }
+}
+
+
+/* Coluna fixa mais compacta, preservando leitura dos dados da unidade. */
+.table-wrap thead th:first-child,
+.table-wrap tbody th,
+.table-wrap tfoot th {
+    min-width: 140px;
+}
+
+@media (max-width: 520px) {
+    .table-wrap thead th:first-child,
+    .table-wrap tbody th,
+    .table-wrap tfoot th {
+        min-width: 126px;
     }
 }
