@@ -6064,3 +6064,89 @@ textarea:focus-visible {
         height: 23px;
     }
 }
+
+
+/* Resumo mensal integrado ao cabeçalho somente no celular. */
+.mobile-month-summary {
+    display: none;
+}
+
+@media (max-width: 680px) {
+    .app-header .header-bottom {
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    .app-header .header-bottom .hint {
+        display: none;
+    }
+
+    .mobile-month-summary {
+        display: block;
+    }
+
+    .mobile-month-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+        color: #ecfffb;
+    }
+
+    .mobile-month-heading strong {
+        font-size: .78rem;
+    }
+
+    .mobile-month-heading span {
+        color: #cdeee8;
+        font-size: .64rem;
+    }
+
+    .mobile-month-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+    }
+
+    .mobile-month-metrics > span {
+        min-width: 0;
+        padding: 4px 5px;
+        border: 1px solid rgba(236, 255, 251, .14);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, .07);
+    }
+
+    .mobile-month-metrics small,
+    .mobile-month-metrics b {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-month-metrics small {
+        color: #cdeee8;
+        font-size: .51rem;
+    }
+
+    .mobile-month-metrics b {
+        margin-top: 1px;
+        color: #fff;
+        font-size: .62rem;
+    }
+
+    .mobile-month-metrics > .is-alert {
+        border-color: rgba(255, 213, 220, .42);
+        background: rgba(164, 45, 59, .24);
+    }
+
+    .mobile-month-metrics > .is-alert small,
+    .mobile-month-metrics > .is-alert b {
+        color: #ffe5e9;
+    }
+
+    #homeSnapshot {
+        display: none !important;
+    }
+}
