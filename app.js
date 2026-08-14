@@ -158,6 +158,9 @@ const ModalManager = (() => {
     var summaryCardsExpanded = false;
     var taxDashboardExpanded = false;
     var actionCenterExpanded = false;
+    // A tela inicial prioriza a operação diária. Financeiro e relatórios
+    // concentram informações de análise, sem poluir a rotina de cobrança.
+    var activeAppView = "home";
     var didInitialScroll = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
@@ -4019,8 +4022,32 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (onboardingModal) ModalManager.close(onboardingModal);
     }
 
+    function renderAppNavigation() {
+        var validViews = ["home", "financial", "reports"];
+        if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
+        document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
+            panel.hidden = panel.dataset.appViewPanel !== activeAppView;
+        });
+        document.querySelectorAll("[data-app-view]").forEach(function (button) {
+            var selected = button.dataset.appView === activeAppView;
+            button.classList.toggle("is-active", selected);
+            button.setAttribute("aria-current", selected ? "page" : "false");
+        });
+        ["addUnit", "mobileAddUnit"].forEach(function (id) {
+            var button = document.getElementById(id);
+            if (button) button.hidden = activeAppView !== "home";
+        });
+    }
+
+    function showAppView(view) {
+        activeAppView = view;
+        renderAppNavigation();
+        scrollPageToTop();
+    }
+
     function render() {
         if (tableWrap.scrollLeft > 0) lastGridScrollLeft = tableWrap.scrollLeft;
+        renderAppNavigation();
         //--------------------------------------------------------------------------------------------
         document.getElementById("yearLabel").textContent = selectedYear;
         renderEmpreendimentoFilter();
@@ -4972,7 +4999,22 @@ function renderSummary() {
                 '<section class="dashboard-card-group dashboard-card-group-portfolio"><div class="dashboard-group-heading"><strong>Carteira</strong><span>ocupação atual</span></div><div class="dashboard-group-cards">' +
                     '<article class="summary-card dashboard-card dashboard-card-occupancy"><div class="summary-label">Taxa de ocupação</div><div class="summary-value">' + occupancyRate + '%</div><div class="summary-detail">' + occupied + ' de ' + units.length + ' unidades ocupadas</div></article>' +
                 '</div></section>' +
-            '</div>' + report;
+            '</div>';
+    }
+
+    var lateReport = document.getElementById("lateReport");
+    if (lateReport) lateReport.innerHTML = report;
+
+    var homeSnapshot = document.getElementById("homeSnapshot");
+    if (homeSnapshot) {
+        homeSnapshot.innerHTML =
+            '<div class="home-snapshot-heading"><strong>Este mês</strong><span>' + escapeHtml(monthLabel) + '</span></div>' +
+            '<div class="home-snapshot-grid">' +
+                '<article class="home-snapshot-card"><span>Recebido</span><strong>' + money(received) + '</strong><small>Pagamentos baixados</small></article>' +
+                '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas pendentes</small></article>' +
+                '<article class="home-snapshot-card ' + (overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(overdueTotal) + '</strong><small>' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</small></article>' +
+                '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
+            '</div>';
     }
 
     applySummaryCardsVisibility();
@@ -8048,6 +8090,12 @@ function saveExpense() {
     document.getElementById("prevYear").addEventListener("click", function () {
         selectedYear -= 1;
         render();
+    });
+
+    document.querySelectorAll("[data-app-view]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            showAppView(button.dataset.appView);
+        });
     });
 
     document.getElementById("nextYear").addEventListener("click", function () {
