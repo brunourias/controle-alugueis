@@ -4027,11 +4027,22 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (onboardingModal) ModalManager.close(onboardingModal);
     }
 
+    function isMobileNavigation() {
+        return window.matchMedia && window.matchMedia("(max-width: 680px)").matches;
+    }
+
     function renderAppNavigation() {
-        var validViews = ["home", "financial", "reports"];
+        var validViews = ["home", "units", "financial", "reports"];
         if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
+        var mobileNavigation = isMobileNavigation();
+        if (!mobileNavigation && activeAppView === "units") activeAppView = "home";
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
-            panel.hidden = panel.dataset.appViewPanel !== activeAppView;
+            var view = panel.dataset.appViewPanel;
+            // No desktop, Início mantém o painel mensal e as unidades juntos,
+            // preservando o fluxo já conhecido. No celular, cada atalho tem sua tela.
+            panel.hidden = view === "units"
+                ? (mobileNavigation ? activeAppView !== "units" : activeAppView !== "home")
+                : view !== activeAppView;
         });
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
             var selected = button.dataset.appView === activeAppView;
@@ -4040,7 +4051,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
         ["addUnit", "mobileAddUnit"].forEach(function (id) {
             var button = document.getElementById(id);
-            if (button) button.hidden = activeAppView !== "home";
+            if (button) button.hidden = mobileNavigation ? activeAppView !== "units" : activeAppView !== "home";
         });
     }
 
@@ -8215,6 +8226,14 @@ function saveExpense() {
             var panel = document.getElementById("actionCenter");
             if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 0);
+    });
+
+    document.getElementById("mobileSettingsNav").addEventListener("click", function () {
+        openSettings();
+    });
+
+    window.addEventListener("resize", function () {
+        renderAppNavigation();
     });
 
     document.getElementById("nextYear").addEventListener("click", function () {
