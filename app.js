@@ -8357,9 +8357,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (action === "new-expense") openExpenseModal();
     }
 
-    function showPwaStatus(message, actionLabel, action) {
+    function showPwaStatus(message, actionLabel, action, variant) {
         if (!pwaStatus) return;
         pwaStatus.hidden = false;
+        pwaStatus.classList.remove("is-update");
+        if (variant) pwaStatus.classList.add(variant);
         pwaStatusText.textContent = message || "";
         pwaStatusAction.hidden = !actionLabel;
         pwaStatusAction.textContent = actionLabel || "";
@@ -8376,7 +8378,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         showPwaStatus("Uma atualização está disponível.", "Atualizar agora", function () {
             pwaUpdateAccepted = true;
             registration.waiting.postMessage({ type: "SKIP_WAITING" });
-        });
+        }, "is-update");
     }
 
     window.addEventListener("online", function () {
