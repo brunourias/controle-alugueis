@@ -5870,3 +5870,25 @@ textarea:focus-visible {
         right: 8px;
     }
 }
+
+
+/* Acesso a Unidades e Configurações entra na grade somente no celular. */
+.mobile-only-nav,
+.mobile-settings-nav {
+    display: none;
+}
+
+@media (max-width: 680px) {
+    .mobile-only-nav,
+    .mobile-settings-nav {
+        display: grid;
+    }
+
+    .app-header #settingsButton {
+        display: none !important;
+    }
+
+    .units-view {
+        gap: 12px;
+    }
+}
