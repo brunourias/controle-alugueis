@@ -5184,6 +5184,20 @@ function renderSummary() {
             '</div>';
     }
 
+    var mobileMonthSummary = document.getElementById("mobileMonthSummary");
+    if (mobileMonthSummary) {
+        mobileMonthSummary.innerHTML =
+            '<div class="mobile-month-heading"><strong>Este mês</strong><span>' + escapeHtml(monthLabel) + '</span></div>' +
+            '<div class="mobile-month-metrics">' +
+                '<span><small>Recebido</small><b>' + money(received) + '</b></span>' +
+                '<span><small>A receber</small><b>' + money(pending) + '</b></span>' +
+                '<span class="' + (overdueCount ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(overdueTotal) + '</b></span>' +
+                '<span><small>Gastos</small><b>' + money(currentExpenses) + '</b></span>' +
+                '<span class="' + (currentNet < 0 ? 'is-alert' : '') + '"><small>Líquido</small><b>' + money(currentNet) + '</b></span>' +
+                '<span><small>Ocupação</small><b>' + occupancyRate + '%</b></span>' +
+            '</div>';
+    }
+
     applySummaryCardsVisibility();
 }
     function applySummaryCardsVisibility() {
