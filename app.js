@@ -4117,14 +4117,12 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (!unit) return;
         chargeModalUnitId = unit.id;
         var hasLateInstallment = months.some(function (_, month) { return effectiveStatus(unit, month) === "atrasado"; });
-        var followUp = new Date();
-        followUp.setDate(followUp.getDate() + Number(state.settings.overdueFollowUpDays || 3));
-        var followUpValue = followUp.getFullYear() + "-" + String(followUp.getMonth() + 1).padStart(2, "0") + "-" + String(followUp.getDate()).padStart(2, "0");
-        chargeModalContext.textContent = unit.name + (unit.tenantName ? " · " + unit.tenantName : "") + (hasLateInstallment ? ". A régua sugere retorno em " + Number(state.settings.overdueFollowUpDays || 3) + " dias; ajuste se necessário." : ". Registre o contato e defina o próximo passo.");
+        chargeModalContext.textContent = unit.name + (unit.tenantName ? " · " + unit.tenantName : "") +
+            (hasLateInstallment ? ". Registre a cobrança. Agende um retorno apenas se quiser ser lembrado depois." : ". Registre o contato e, se necessário, defina um próximo passo.");
         chargeType.value = "whatsapp";
         chargeDate.value = new Date().toISOString().slice(0, 10);
         chargePromisedDate.value = "";
-        chargeNextActionDate.value = hasLateInstallment ? followUpValue : "";
+        chargeNextActionDate.value = "";
         chargeNote.value = "";
         ModalManager.open(chargeModal);
     }
@@ -4244,7 +4242,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
         function rows(items, empty, tone) {
             if (!items.length) return '<p class="operations-empty">' + empty + '</p>';
             return items.slice(0, 8).map(function (item) {
-                var button = item.action === "charge" ? '<button class="btn btn-ghost" type="button" data-register-charge="' + escapeHtml(item.unitId) + '">Cobrar</button>' :
+                var button = item.recordType === "charge"
+                    ? '<button class="btn btn-ghost" type="button" data-complete-charge-followup="' + escapeHtml(item.unitId) + '" data-charge-record-id="' + escapeHtml(item.recordId) + '">Concluir</button>'
+                    : item.action === "charge" ? '<button class="btn btn-ghost" type="button" data-register-charge="' + escapeHtml(item.unitId) + '">Cobrar</button>' :
                     item.action === "decision" ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Decidir</button>' :
                     item.action === "tax" ? '<button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button>' :
                     item.action && item.action.indexOf("task:") === 0 ? '<button class="btn btn-ghost" type="button" data-task-done="' + escapeHtml(item.action.slice(5)) + '">Concluir</button>' :
@@ -4259,12 +4259,14 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         var attentionCount = urgent.length + week.length + decisions.length;
-        var chargeCount = urgent.filter(function (item) { return item.action === "charge"; }).length;
+        var chargeCount = urgent.filter(function (item) { return item.action === "charge" && item.recordType !== "charge"; }).length;
+        var followUpCount = urgent.concat(week).filter(function (item) { return item.recordType === "charge"; }).length;
         var taskCount = urgent.filter(function (item) { return item.action && item.action.indexOf("task:") === 0; }).length;
         var fiscalCount = week.filter(function (item) { return item.action === "tax"; }).length;
         var dueCount = week.filter(function (item) { return item.action === "open"; }).length;
         var summaryParts = [];
         if (chargeCount) summaryParts.push(chargeCount + " " + (chargeCount === 1 ? "cobrança" : "cobranças"));
+        if (followUpCount) summaryParts.push(followUpCount + " " + (followUpCount === 1 ? "retorno" : "retornos"));
         if (dueCount) summaryParts.push(dueCount + " " + (dueCount === 1 ? "vencimento" : "vencimentos"));
         if (fiscalCount) summaryParts.push(fiscalCount + " revisão fiscal");
         if (taskCount) summaryParts.push(taskCount + " " + (taskCount === 1 ? "tarefa" : "tarefas"));
@@ -4293,6 +4295,16 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
         container.querySelectorAll("[data-open-unit]").forEach(function (button) { button.addEventListener("click", function () { openModal(button.dataset.openUnit); }); });
         container.querySelectorAll("[data-register-charge]").forEach(function (button) { button.addEventListener("click", function () { openChargeModal(button.dataset.registerCharge); }); });
+        container.querySelectorAll("[data-complete-charge-followup]").forEach(function (button) { button.addEventListener("click", function () {
+            var unit = state.units.find(function (item) { return item.id === button.dataset.completeChargeFollowup; });
+            var entry = unit && (unit.chargeLog || []).find(function (item) { return item.id === button.dataset.chargeRecordId; });
+            if (!entry) return;
+            entry.nextActionDate = "";
+            createVersionedBackup("Retorno de cobrança concluído", unit.name);
+            recordOperation("Retorno de cobrança concluído", unit.name);
+            saveState();
+            render();
+        }); });
         container.querySelectorAll("[data-task-done]").forEach(function (button) { button.addEventListener("click", function () {
             var task = state.tasks.find(function (item) { return item.id === button.dataset.taskDone; });
             if (task) { task.done = true; saveState(); render(); }
