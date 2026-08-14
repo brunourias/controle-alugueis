@@ -4034,7 +4034,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function renderAppNavigation() {
-        var validViews = ["home", "units", "financial", "reports"];
+        var validViews = ["home", "overview", "units", "financial", "reports"];
         if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
         var mobileNavigation = isMobileNavigation();
         var launcherOnly = mobileNavigation && mobileLauncherActive;
@@ -4043,11 +4043,17 @@ undefined || item.rent === "" ? null : Number(item.rent);
         if (navigation) navigation.classList.toggle("is-launcher", launcherOnly);
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
+            // Na abertura mobile, o resumo mensal fica visível junto aos atalhos.
+            // Após escolher uma área, somente a tela escolhida permanece em foco.
+            if (launcherOnly) {
+                panel.hidden = view !== "home";
+                return;
+            }
             // No desktop, Início mantém o painel mensal e as unidades juntos,
             // preservando o fluxo já conhecido. No celular, cada atalho tem sua tela.
-            panel.hidden = launcherOnly || (view === "units"
+            panel.hidden = view === "units"
                 ? (mobileNavigation ? activeAppView !== "units" : activeAppView !== "home")
-                : view !== activeAppView);
+                : view !== activeAppView;
         });
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
             var selected = !launcherOnly && button.dataset.appView === activeAppView;
@@ -4062,7 +4068,15 @@ undefined || item.rent === "" ? null : Number(item.rent);
 
     function showAppView(view) {
         activeAppView = view;
-        if (isMobileNavigation()) mobileLauncherActive = false;
+        if (isMobileNavigation()) {
+            mobileLauncherActive = false;
+            renderAppNavigation();
+            window.setTimeout(function () {
+                var panel = document.querySelector('[data-app-view-panel="' + view + '"]');
+                if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 0);
+            return;
+        }
         renderAppNavigation();
         scrollPageToTop();
     }
@@ -4080,6 +4094,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         empty.hidden = hasUnits;
         filterEmpty.hidden = !hasUnits || visibleUnits.length > 0;
         renderActionCenter();
+        renderOverview();
         renderGrid(visibleUnits);
         renderRolePermissions();
         if (didInitialScroll && visibleUnits.length > 0)
@@ -4180,6 +4195,44 @@ undefined || item.rent === "" ? null : Number(item.rent);
             var url = chargeUrl(unit);
             if (url) window.open(url, "_blank", "noopener");
         }
+    }
+
+    function renderOverview() {
+        var container = document.getElementById("overviewDashboard");
+        if (!container) return;
+        var today = new Date();
+        var currentMonth = today.getMonth();
+        var units = scopedUnits();
+        var occupied = units.filter(function (unit) {
+            return isActive(unit, currentMonth) && String(unit.tenantName || "").trim();
+        }).length;
+        var occupancy = units.length ? Math.round((occupied / units.length) * 100) : 0;
+        var dueSoon = units.filter(function (unit) {
+            var reminder = isActive(unit, currentMonth) ? dueReminder(unit) : null;
+            return reminder !== null && reminder >= 0 && reminder <= 7;
+        }).length;
+        var contractsEnding = units.filter(function (unit) {
+            var end = chargeLogDate(unit.endDate);
+            if (!end) return false;
+            var days = Math.ceil((end - today) / 86400000);
+            return days >= 0 && days <= 60;
+        }).length;
+        var overdue = 0;
+        units.forEach(function (unit) {
+            months.forEach(function (_, month) {
+                var key = monthKey(month);
+                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") overdue += 1;
+            });
+        });
+        container.innerHTML =
+            '<div class="overview-heading"><p>EMPREENDIMENTO</p><h2>Visão geral</h2><span>Acompanhe contratos, ocupação e próximos passos.</span></div>' +
+            '<div class="overview-grid">' +
+                '<article><span>Ocupação</span><strong>' + occupancy + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades</small></article>' +
+                '<article><span>Vencem em 7 dias</span><strong>' + dueSoon + '</strong><small>parcelas para acompanhar</small></article>' +
+                '<article class="' + (overdue ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + overdue + '</strong><small>parcelas em aberto</small></article>' +
+                '<article><span>Contratos a vencer</span><strong>' + contractsEnding + '</strong><small>nos próximos 60 dias</small></article>' +
+            '</div>';
     }
 
     function renderActionCenter() {
@@ -8220,8 +8273,19 @@ function saveExpense() {
 
     document.querySelectorAll("[data-app-view]").forEach(function (button) {
         button.addEventListener("click", function () {
-            if (button.dataset.appView === "home") actionCenterExpanded = false;
-            showAppView(button.dataset.appView);
+            var requestedView = button.dataset.appView;
+            // Tocar novamente no atalho ativo do celular retorna ao resumo mensal.
+            if (isMobileNavigation() && !mobileLauncherActive && requestedView === activeAppView) {
+                mobileLauncherActive = true;
+                activeAppView = "home";
+                actionCenterExpanded = false;
+                renderAppNavigation();
+                renderActionCenter();
+                scrollPageToTop();
+                return;
+            }
+            if (requestedView === "home") actionCenterExpanded = false;
+            showAppView(requestedView);
             renderActionCenter();
         });
     });
