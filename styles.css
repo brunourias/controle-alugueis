@@ -6307,3 +6307,15 @@ textarea:focus-visible {
   .platform-account-actions > label:last-of-type, .platform-limit-editor { grid-column: 1 / -1; }
   .platform-limit-editor > div { grid-template-columns: 1fr; }
 }
+
+/* Novo gasto: painéis compactos no mesmo ritmo dos demais formulários */
+.expense-modal .settings-panel { margin: 8px 0; }
+.expense-modal .settings-panel-content { gap: 7px; padding: 2px 12px 11px; }
+.expense-modal .settings-panel-content > label { gap: 4px; margin: 6px 0; font-size: .78rem; }
+.expense-modal .settings-panel-content .field-help { margin: 3px 0 1px; font-size: .68rem; line-height: 1.35; }
+.expense-modal .recurrence-field > input { margin: 2px 0; }
+.expense-modal .recurrence-field > small { margin-top: 1px; }
+@media (max-width: 520px) {
+  .expense-modal .settings-panel-content { padding: 2px 11px 10px; }
+  .expense-modal .settings-panel-content > label { margin: 5px 0; }
+}
