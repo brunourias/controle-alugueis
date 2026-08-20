@@ -6236,32 +6236,32 @@ textarea:focus-visible {
 /* Grade inicial: aproveita a área livre do celular sem criar conteúdo extra. */
 @media (max-width: 680px) {
     .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, minmax(88px, 1fr));
+        grid-template-rows: repeat(4, 92px);
         grid-auto-rows: unset;
-        min-height: min(456px, calc(100dvh - 250px));
-        align-content: stretch;
+        gap: 7px;
+        min-height: 0;
+        align-content: start;
     }
 
     .app-navigation.is-launcher .app-nav-button {
         min-height: 0;
-        gap: 8px;
-        padding: 12px 9px;
+        gap: 7px;
+        padding: 10px 9px;
     }
 
     .app-navigation.is-launcher .app-nav-button > svg {
-        width: 26px;
-        height: 26px;
+        width: 25px;
+        height: 25px;
     }
 
     .app-navigation.is-launcher .app-nav-button > span {
-        font-size: .82rem;
-        line-height: 1.2;
+        font-size: .81rem;
+        line-height: 1.18;
     }
 }
 
 @media (max-height: 660px) and (max-width: 680px) {
     .app-navigation.is-launcher {
-        min-height: 376px;
-        grid-template-rows: repeat(4, minmax(76px, 1fr));
+        grid-template-rows: repeat(4, 80px);
     }
 }
