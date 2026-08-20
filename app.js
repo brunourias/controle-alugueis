@@ -6690,18 +6690,13 @@ function addContractHistoryEntry() {
         var expense = state.expenses.find(function (item) {
             return item.id === editingExpenseId;
         });
-        var currentMonth = new Date().getMonth() + 1;
-
         expenseModalTitle.textContent = expense ? "Editar gasto" : "Novo gasto";
-        var defaultExpenseDate = new Date(
-            selectedYear,
-            selectedYear === new Date().getFullYear() ? currentMonth - 1 : 0,
-            1
-        );
 
+        // Um novo lançamento deve partir da data real de hoje, inclusive o dia.
+        // A data permanece totalmente editável para registrar despesas anteriores.
         expenseYm.value = expense
             ? expense.date || expense.ym + "-01"
-            : localDateValue(defaultExpenseDate);
+            : localDateValue(new Date());
         populateEmpreendimentoSelect(
             expenseEmpreendimento,
             expense
