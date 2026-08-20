@@ -4083,6 +4083,17 @@ undefined || item.rent === "" ? null : Number(item.rent);
                 : view !== activeAppView;
         });
 
+        var financialView = document.getElementById("financialView");
+        if (financialView) {
+            financialView.classList.toggle(
+                "is-mobile-expenses-focus",
+                mobileNavigation &&
+                    !launcherOnly &&
+                    activeAppView === "financial" &&
+                    activeMobileShortcut === "expenses"
+            );
+        }
+
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
             var selected = !launcherOnly && button.dataset.appView === activeAppView;
             button.classList.toggle("is-active", selected);
