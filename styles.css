@@ -6319,3 +6319,18 @@ textarea:focus-visible {
   .expense-modal .settings-panel-content { padding: 2px 11px 10px; }
   .expense-modal .settings-panel-content > label { margin: 5px 0; }
 }
+
+
+/* Filtro da administração: rótulo e seletor em linhas distintas */
+.platform-filter {
+  display: grid;
+  justify-items: start;
+  align-items: start;
+  gap: 4px;
+  margin: 10px 0 8px;
+  line-height: 1.2;
+}
+.platform-filter select {
+  width: min(100%, 210px);
+  margin: 0;
+}
