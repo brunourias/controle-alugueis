@@ -6167,3 +6167,16 @@ textarea:focus-visible {
         background: #fff;
     }
 }
+
+
+/* O atalho Gastos abre somente o controle de despesas no celular. */
+@media (max-width: 680px) {
+    #financialView.is-mobile-expenses-focus > .financial-dashboard,
+    #financialView.is-mobile-expenses-focus > .financial-summary-cards {
+        display: none !important;
+    }
+
+    #financialView.is-mobile-expenses-focus {
+        align-content: start;
+    }
+}
