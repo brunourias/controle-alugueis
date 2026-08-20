@@ -1172,11 +1172,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function subscriptionDueInfo(value) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return { kind: "none", days: null };
-        var target = new Date(value + "T12:00:00");
+        var match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return { kind: "none", days: null };
+        var target = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
         var today = new Date();
-        today.setHours(12, 0, 0, 0);
-        var days = Math.round((target - today) / 86400000);
+        target.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+        var days = Math.round((target.getTime() - today.getTime()) / 86400000);
         return { kind: days < 0 ? "expired" : days <= 7 ? "soon" : "ok", days: days };
     }
 
@@ -1527,18 +1529,24 @@ undefined || item.rent === "" ? null : Number(item.rent);
                     : isSuspended
                         ? '<button class="btn btn-primary" type="button" data-platform-activate="' + escapeHtml(account.id) + '">Reativar</button>'
                         : '<button class="btn btn-danger" type="button" data-platform-suspend="' + escapeHtml(account.id) + '">Suspender</button>';
+                var dueInfo = subscriptionDueInfo(account.subscriptionDueDate);
+                var dueText = dueInfo.kind === "expired" ? "Vencida" : subscriptionStatusLabel(account.subscriptionStatus);
+                var dueDateText = account.subscriptionDueDate
+                    ? (dueInfo.kind === "expired" ? " · em " : " · vence ") + formatDate(account.subscriptionDueDate)
+                    : "";
                 return '<article class="platform-account-row">' +
                     '<div class="platform-account-main"><strong>' + escapeHtml(account.displayName || account.email) + '</strong>' +
                     '<span>' + escapeHtml(account.email) + ' · desde ' + escapeHtml(date) + '</span>' +
                     '<div class="platform-account-meta"><b class="platform-status platform-status-' + escapeHtml(account.status) + '">' + escapeHtml(platformAccountStatusLabel(account.status)) + '</b>' +
-                    '<b class="subscription-status subscription-' + escapeHtml(subscriptionDueInfo(account.subscriptionDueDate).kind) + '">' + escapeHtml(subscriptionStatusLabel(account.subscriptionStatus)) + (account.subscriptionDueDate ? ' · vence ' + escapeHtml(formatDate(account.subscriptionDueDate)) : '') + '</b>' +
+                    '<b class="subscription-status subscription-' + escapeHtml(dueInfo.kind) + '">' + escapeHtml(dueText) + escapeHtml(dueDateText) + '</b>' +
                     '<span>' + account.workspaces + ' área(s)</span>' +
                     '<span>limite: ' + Number(account.limits.units || 0) + ' unidades · ' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + ' empreendimentos · ' + Number(account.limits.users || 0) + ' usuários</span></div></div>' +
-                    '<div class="platform-account-actions"><label>Plano<select data-account-plan="' + escapeHtml(account.id) + '">' +
+                    '<div class="platform-account-quick-actions"><button class="btn btn-ghost" type="button" data-renew-subscription="' + escapeHtml(account.id) + '">Renovar 30 dias</button>' + primaryAction + '</div>' +
+                    '<details class="platform-account-manage"><summary>Gerenciar acesso e limites</summary><div class="platform-account-actions"><label>Plano<select data-account-plan="' + escapeHtml(account.id) + '">' +
                     platformPlans().map(function (plan) {
                         return '<option value="' + escapeHtml(plan.id) + '"' + (plan.id === account.plan ? " selected" : "") + '>' + escapeHtml(plan.name) + '</option>';
                     }).join("") + '</select></label><label>Assinatura<select data-subscription-status="' + escapeHtml(account.id) + '">' +
-                    ["trial", "active", "overdue", "canceled"].map(function (status) { return '<option value="' + status + '"' + (status === account.subscriptionStatus ? " selected" : "") + '>' + subscriptionStatusLabel(status) + '</option>'; }).join("") + '</select></label><label>Vence em<input type="date" data-subscription-due="' + escapeHtml(account.id) + '" value="' + escapeHtml(account.subscriptionDueDate || "") + '"></label><details class="platform-limit-editor"><summary>Limites</summary><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></details><button class="btn btn-ghost" type="button" data-renew-subscription="' + escapeHtml(account.id) + '">+30 dias</button>' + primaryAction + '</div></article>';
+                    ["trial", "active", "overdue", "canceled"].map(function (status) { return '<option value="' + status + '"' + (status === account.subscriptionStatus ? " selected" : "") + '>' + subscriptionStatusLabel(status) + '</option>'; }).join("") + '</select></label><label>Vence em<input type="date" data-subscription-due="' + escapeHtml(account.id) + '" value="' + escapeHtml(account.subscriptionDueDate || "") + '"></label><div class="platform-limit-editor"><strong>Limites personalizados</strong><div><label>Unidades<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="units" value="' + Number(account.limits.units || 0) + '"></label><label>Empreendimentos<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="enterprises" value="' + Number(account.limits.enterprises == null ? 1 : account.limits.enterprises) + '"></label><label>Usuários<input type="number" min="0" data-account-limit="' + escapeHtml(account.id) + '" data-limit-key="users" value="' + Number(account.limits.users || 0) + '"></label></div></div></div></details></article>';
             }).join("") : '<p class="settings-note">Nenhuma conta cadastrada ainda.</p>');
 
             platformApprovalsList.querySelectorAll("[data-platform-activate]").forEach(function (button) {
