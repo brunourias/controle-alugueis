@@ -259,8 +259,7 @@ service cloud.firestore {
       match /units/{unitId} {
         allow read: if member(workspaceId);
         allow create, delete: if contractManager(workspaceId);
-        allow update: if contractManager(workspaceId) ||
-          paymentFieldsOnly(workspaceId) || collectionFieldsOnly(workspaceId);
+        allow update: if contractManager(workspaceId);
 
         match /contracts/{contractId} {
           allow read: if member(workspaceId);
@@ -271,6 +270,18 @@ service cloud.firestore {
       match /expenses/{expenseId} {
         allow read: if member(workspaceId);
         allow create, update, delete: if expenseOperator(workspaceId);
+      }
+
+      // Registros financeiros separados da unidade permitem permissões
+      // reais de cobrança/financeiro sem expor campos de contrato.
+      match /payments/{unitId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if paymentOperator(workspaceId);
+      }
+
+      match /charges/{unitId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if collectionOperator(workspaceId);
       }
 
       match /{document=**} {
