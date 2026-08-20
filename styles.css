@@ -6197,3 +6197,37 @@ textarea:focus-visible {
         display: none !important;
     }
 }
+
+
+/* Resumo anual: mantém toda a primeira coluna visível na rolagem horizontal. */
+@media (max-width: 720px) {
+    .annual-report-body .ar-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .annual-report-body .ar-table thead th:first-child,
+    .annual-report-body .ar-table tbody td:first-child,
+    .annual-report-body .ar-table tfoot td:first-child {
+        position: sticky;
+        left: 0;
+        min-width: 126px;
+        box-shadow: 5px 0 10px rgba(15, 77, 73, .08);
+    }
+
+    .annual-report-body .ar-table thead th:first-child {
+        z-index: 4;
+        background: #f4faf8;
+    }
+
+    .annual-report-body .ar-table tbody td:first-child {
+        z-index: 2;
+        background: #fff;
+    }
+
+    .annual-report-body .ar-table tfoot td:first-child,
+    .annual-report-body .ar-table .ar-total-row td:first-child {
+        z-index: 3;
+        background: #eef8f5 !important;
+    }
+}
