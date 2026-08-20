@@ -6350,3 +6350,9 @@ textarea:focus-visible {
 
 /* Administração: lista de contas só é exibida quando o bloco for aberto */
 .platform-approvals.platform-section-disclosure > .platform-section-content { margin-top: 8px; }
+
+/* Mantém as três seções da administração no mesmo eixo visual */
+.platform-approvals.platform-section-disclosure {
+  margin-top: 10px;
+  padding: 10px 12px;
+}
