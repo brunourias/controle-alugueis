@@ -4061,11 +4061,13 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function renderAppNavigation() {
-        var validViews = ["home", "overview", "units", "financial", "reports"];
+        var validViews = ["home", "overview", "units", "financial", "reports", "tax"];
         if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
         var mobileNavigation = isMobileNavigation();
         var launcherOnly = mobileNavigation && mobileLauncherActive;
-        if (!mobileNavigation && activeAppView === "units") activeAppView = "home";
+        if (!mobileNavigation && (activeAppView === "units" || activeAppView === "tax")) {
+            activeAppView = "home";
+        }
         var navigation = document.getElementById("appNavigation");
         if (navigation) navigation.classList.toggle("is-launcher", launcherOnly);
 
@@ -8434,7 +8436,7 @@ function saveExpense() {
         }
         activeMobileShortcut = "tax";
         taxDashboardExpanded = true;
-        showAppView("reports");
+        showAppView("tax");
         render();
         window.setTimeout(function () {
             var dashboard = document.getElementById("taxDashboard");
