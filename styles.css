@@ -6334,3 +6334,16 @@ textarea:focus-visible {
   width: min(100%, 210px);
   margin: 0;
 }
+
+/* Campo de filtro: rótulo separado do seletor para evitar sobreposição */
+.platform-filter > span {
+  display: block;
+  min-height: 14px;
+  color: #647f7d;
+  font-size: .7rem;
+  font-weight: 700;
+}
+.platform-filter > select {
+  display: block;
+  margin: 0;
+}
