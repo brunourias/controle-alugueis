@@ -4095,10 +4095,21 @@ undefined || item.rent === "" ? null : Number(item.rent);
         }
 
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
-            var selected = !launcherOnly && button.dataset.appView === activeAppView;
+            var selected = mobileNavigation
+                ? !launcherOnly && button.dataset.appNavKey === activeMobileShortcut
+                : !launcherOnly && button.dataset.appView === activeAppView;
             button.classList.toggle("is-active", selected);
             button.setAttribute("aria-current", selected ? "page" : "false");
         });
+
+        if (mobileNavigation) {
+            document.querySelectorAll("[data-app-nav-key]").forEach(function (button) {
+                var selected = !launcherOnly &&
+                    button.dataset.appNavKey === activeMobileShortcut;
+                button.classList.toggle("is-active", selected);
+                button.setAttribute("aria-current", selected ? "page" : "false");
+            });
+        }
         ["addUnit", "mobileAddUnit"].forEach(function (id) {
             var button = document.getElementById(id);
             if (button) button.hidden = launcherOnly || (mobileNavigation ? activeAppView !== "units" : activeAppView !== "home");
@@ -6955,6 +6966,10 @@ function saveExpense() {
 
     function closeSettings() {
         ModalManager.close(settingsModal);
+        if (isMobileNavigation() && activeMobileShortcut === "settings") {
+            activeMobileShortcut = "";
+            renderAppNavigation();
+        }
     }
 
     function saveSettings() {
@@ -8392,6 +8407,8 @@ function saveExpense() {
     });
 
     document.getElementById("mobileSettingsNav").addEventListener("click", function () {
+        activeMobileShortcut = "settings";
+        if (isMobileNavigation()) renderAppNavigation();
         openSettings();
     });
 
@@ -8438,12 +8455,6 @@ function saveExpense() {
             var panel = document.getElementById("actionCenter");
             if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 0);
-    });
-
-    document.getElementById("mobileAnnualNav").addEventListener("click", function () {
-        showAppView("reports");
-        render();
-        window.setTimeout(openAnnualReport, 0);
     });
 
     window.addEventListener("resize", function () {
