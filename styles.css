@@ -6265,3 +6265,45 @@ textarea:focus-visible {
         grid-template-rows: repeat(4, 80px);
     }
 }
+
+
+/* Administração: leitura rápida e edição sob demanda */
+.platform-admin-modal { width: min(calc(100vw - 36px), 980px); }
+.platform-admin-modal .settings-heading { margin-bottom: 10px; }
+.platform-admin-modal .workspace-section { margin-top: 10px; }
+.platform-account-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 8px 0; }
+.platform-account-metrics span { padding: 7px 6px; }
+.platform-account-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px 12px; padding: 11px 12px; }
+.platform-account-main { min-width: 0; }
+.platform-account-quick-actions { display: flex; align-items: center; gap: 7px; }
+.platform-account-quick-actions .btn { min-height: 32px; padding: 5px 9px; font-size: .68rem; white-space: nowrap; }
+.platform-account-manage { grid-column: 1 / -1; border-top: 1px dashed #cfe3df; }
+.platform-account-manage summary, .platform-section-disclosure summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0 0; color: #075f5b; cursor: pointer; font-size: .72rem; font-weight: 800; list-style: none; }
+.platform-account-manage summary::-webkit-details-marker, .platform-section-disclosure summary::-webkit-details-marker { display: none; }
+.platform-account-manage summary::after, .platform-section-disclosure summary::after { content: "›"; color: #0c7773; font-size: 1.2rem; line-height: 1; transform: rotate(90deg); transition: transform .18s ease; }
+.platform-account-manage[open] summary::after, .platform-section-disclosure[open] summary::after { transform: rotate(-90deg); }
+.platform-account-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 9px; }
+.platform-account-actions > label { min-width: 0; }
+.platform-account-actions select, .platform-account-actions input { width: 100%; }
+.platform-limit-editor { grid-column: 1 / -1; margin: 0; padding: 8px 0 0; border-top: 1px dashed #cfe3df; }
+.platform-limit-editor > strong { display: block; color: #075f5b; font-size: .7rem; }
+.platform-limit-editor > div { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 6px; }
+.platform-section-disclosure { display: block; }
+.platform-section-disclosure summary { padding: 0; }
+.platform-section-disclosure summary span { display: grid; gap: 2px; }
+.platform-section-disclosure summary strong { color: #075f5b; font-size: .82rem; }
+.platform-section-disclosure summary small { color: #647f7d; font-size: .69rem; font-weight: 400; }
+.platform-section-content { margin-top: 10px; }
+.platform-catalog, .platform-audit { margin-top: 10px; padding: 10px 12px; }
+@media (max-width: 640px) {
+  .platform-admin-modal { width: calc(100vw - 20px); padding: 14px; }
+  .platform-account-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .platform-account-metrics span { padding: 7px 3px; font-size: .59rem; }
+  .platform-account-metrics strong { font-size: .86rem; }
+  .platform-account-row { grid-template-columns: 1fr; gap: 8px; }
+  .platform-account-quick-actions { width: 100%; }
+  .platform-account-quick-actions .btn { flex: 1; }
+  .platform-account-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .platform-account-actions > label:last-of-type, .platform-limit-editor { grid-column: 1 / -1; }
+  .platform-limit-editor > div { grid-template-columns: 1fr; }
+}
