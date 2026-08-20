@@ -213,6 +213,17 @@
 
             <section id="overviewView" class="app-view overview-view" data-app-view-panel="overview">
                 <section id="overviewDashboard" class="overview-dashboard" aria-label="Visão geral do empreendimento"></section>
+            <section id="financialReportPanel" class="summary-bar reports-financial" aria-labelledby="lateReportTitle">
+                <header class="financial-dashboard-header">
+                    <div>
+                        <p class="financial-eyebrow">Acompanhamento</p>
+                        <h2 id="lateReportTitle">Atrasos</h2>
+                        <p class="financial-summary-description">Parcelas em aberto e pagamentos realizados após o vencimento.</p>
+                    </div>
+                    <button id="toggleFinancialReport" class="btn btn-ghost" type="button">Mostrar</button>
+                </header>
+                <div id="lateReport" class="reports-late-report" aria-live="polite" hidden></div>
+            </section>
             </section>
 
             <section id="unitsView" class="app-view units-view" data-app-view-panel="units">
@@ -324,23 +335,18 @@
                     <div>
                         <p class="financial-eyebrow">Análises e conferências</p>
                         <h2 id="reportsTitle">Relatórios</h2>
-                        <p class="financial-summary-description">Acompanhe o histórico anual e organize a conferência fiscal quando precisar.</p>
+                        <p class="financial-summary-description">Consulte e exporte o resumo consolidado do ano.</p>
                     </div>
                     <button id="printAnnual" class="btn btn-ghost" type="button">Resumo do ano</button>
                 </section>
 
-            <section id="financialReportPanel" class="summary-bar reports-financial">
-                <header class="financial-dashboard-header">
-                    <div>
-                        <p class="financial-eyebrow">Análises e conferências</p>
-                        <h2>Controle financeiro</h2>
-                        <p class="financial-summary-description">Atrasos em aberto e pagamentos realizados após o vencimento.</p>
-                    </div>
-                    <button id="toggleFinancialReport" class="btn btn-ghost" type="button">Mostrar</button>
-                </header>
-                <div id="lateReport" class="reports-late-report" aria-live="polite" hidden></div>
+
+
+
+
             </section>
 
+            <section id="taxView" class="app-view tax-view" data-app-view-panel="tax" hidden>
             <section id="taxDashboard" class="summary-bar tax-dashboard" aria-labelledby="taxDashboardTitle">
                 <header class="tax-dashboard-header">
                     <div>
@@ -352,7 +358,6 @@
                 </header>
                 <div id="taxDashboardDetail" hidden></div>
             </section>
-
             </section>
         </main>
 
