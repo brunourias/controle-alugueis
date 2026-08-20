@@ -14,6 +14,7 @@ function collapseRetractablePanels() {
 const ModalManager = (() => {
 
     const stack = [];
+    const focusOrigins = new WeakMap();
 
     function getOpenModal() {
         return document.querySelector(".modal-backdrop:not([hidden])");
@@ -23,16 +24,30 @@ const ModalManager = (() => {
         collapseRetractablePanels();
     }
 
+    function focusableElements(container) {
+        return Array.prototype.slice.call(container.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter(function (element) { return !element.hidden && element.offsetParent !== null; });
+    }
+
     function open(modal) {
         if (!modal || !modal.hidden) return;
 
         closeExpandablePanels();
+        focusOrigins.set(modal, document.activeElement);
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
         modal.hidden = false;
         document.body.classList.add("modal-open");
 
         if (!stack.includes(modal)) {
             stack.push(modal);
         }
+
+        window.requestAnimationFrame(function () {
+            var first = focusableElements(modal)[0];
+            if (first) first.focus({ preventScroll: true });
+        });
 
         history.pushState({
             modal: true,
@@ -57,10 +72,34 @@ const ModalManager = (() => {
 
         if (!hasModalOpen) {
             document.body.classList.remove("modal-open");
+            var origin = focusOrigins.get(target);
+            if (origin && document.contains(origin) && typeof origin.focus === "function") {
+                origin.focus({ preventScroll: true });
+            }
         }
 
         return true;
     }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key !== "Tab") return;
+        var modal = getOpenModal();
+        if (!modal) return;
+        var focusable = focusableElements(modal);
+        if (!focusable.length) {
+            event.preventDefault();
+            return;
+        }
+        var current = document.activeElement;
+        var index = focusable.indexOf(current);
+        if (event.shiftKey && (index <= 0 || current === modal)) {
+            event.preventDefault();
+            focusable[focusable.length - 1].focus();
+        } else if (!event.shiftKey && index === focusable.length - 1) {
+            event.preventDefault();
+            focusable[0].focus();
+        }
+    });
 
     window.addEventListener("popstate", () => {
 
@@ -8487,7 +8526,11 @@ function saveExpense() {
         render();
     });
 
-    unitSearch.addEventListener("input", render);
+    var unitSearchRenderTimer = null;
+    unitSearch.addEventListener("input", function () {
+        clearTimeout(unitSearchRenderTimer);
+        unitSearchRenderTimer = setTimeout(render, 120);
+    });
 
     statusFilter.addEventListener("change", render);
 
