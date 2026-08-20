@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=139" />
+        <link rel="stylesheet" href="styles.css?v=140" />
     
 <style>
     /* Histórico de contratos */
@@ -729,12 +729,13 @@
                         <p>Gerencie cadastros, planos, limites e acesso dos clientes.</p>
                     </div>
                 </div>
-                <section id="platformApprovalsSection" class="workspace-section platform-approvals" hidden>
-                    <h3>Contas e assinaturas</h3>
-                    <p class="settings-note">Aprove acessos, defina o plano, acompanhe vencimentos e ajuste exceções.</p>
-                    <div class="platform-filter"><span>Mostrar</span><select id="platformSubscriptionFilter" aria-label="Mostrar contas por situação"><option value="all">Todas as contas</option><option value="trial">Em teste</option><option value="active">Assinatura ativa</option><option value="overdue">Pagamento vencido</option><option value="canceled">Cancelada</option><option value="pending">Aguardando aprovação</option><option value="suspended">Acesso suspenso</option></select></div>
-                    <div id="platformApprovalsList" class="platform-approvals-list"></div>
-                </section>
+                <details id="platformApprovalsSection" class="workspace-section platform-approvals platform-section-disclosure" hidden>
+                    <summary><span><strong>Contas e assinaturas</strong><small>Aprove acessos, defina planos e acompanhe os clientes.</small></span></summary>
+                    <div class="platform-section-content">
+                        <div class="platform-filter"><span>Mostrar</span><select id="platformSubscriptionFilter" aria-label="Mostrar contas por situação"><option value="all">Todas as contas</option><option value="trial">Em teste</option><option value="active">Assinatura ativa</option><option value="overdue">Pagamento vencido</option><option value="canceled">Cancelada</option><option value="pending">Aguardando aprovação</option><option value="suspended">Acesso suspenso</option></select></div>
+                        <div id="platformApprovalsList" class="platform-approvals-list"></div>
+                    </div>
+                </details>
                 <section class="workspace-section platform-catalog">
                     <details class="platform-section-disclosure">
                         <summary><span><strong>Catálogo de planos</strong><small>Preços e limites disponíveis para novas contas.</small></span></summary>
@@ -1016,6 +1017,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=139"></script>
+    <script src="app.js?v=140"></script>
     </body>
 </html>
