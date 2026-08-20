@@ -5,6 +5,12 @@
 // Gerenciador de Modais
 // ===============================
 
+function collapseRetractablePanels() {
+    document.querySelectorAll("details[open]").forEach(function (panel) {
+        panel.open = false;
+    });
+}
+
 const ModalManager = (() => {
 
     const stack = [];
@@ -13,16 +19,14 @@ const ModalManager = (() => {
         return document.querySelector(".modal-backdrop:not([hidden])");
     }
 
-    function closeExpandablePanels(modal) {
-        modal.querySelectorAll("details[open]").forEach(function (panel) {
-            panel.open = false;
-        });
+    function closeExpandablePanels() {
+        collapseRetractablePanels();
     }
 
     function open(modal) {
         if (!modal || !modal.hidden) return;
 
-        closeExpandablePanels(modal);
+        closeExpandablePanels();
         modal.hidden = false;
         document.body.classList.add("modal-open");
 
@@ -75,6 +79,16 @@ const ModalManager = (() => {
     };
 
 })();
+
+
+
+// Mantém a navegação previsível: qualquer ação de botão recolhe painéis expansíveis.
+// O próprio botão pode abrir sua tela/modal em seguida, sempre a partir do estado limpo.
+document.addEventListener("click", function (event) {
+    var button = event.target.closest("button");
+    if (!button || button.disabled) return;
+    collapseRetractablePanels();
+}, true);
 
     var STORAGE_KEY = "controle-alugueis-v1";
     var LOCK_STORAGE_KEY = "controle-alugueis-lock";
@@ -4164,6 +4178,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function showAppView(view) {
+        collapseRetractablePanels();
         activeAppView = view;
         if (isMobileNavigation()) {
             mobileLauncherActive = false;
@@ -6892,6 +6907,7 @@ function saveExpense() {
     function openSettings() {
         finePercent.value = state.settings.finePercent;
         dailyInterestPercent.value = state.settings.dailyInterestPercent;
+        reminderDays.value = state.settings.reminderDays;
         overdueFollowUpDays.value = state.settings.overdueFollowUpDays;
         defaultAdjustmentPercent.value = state.settings.defaultAdjustmentPercent;
 
