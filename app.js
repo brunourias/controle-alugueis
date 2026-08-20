@@ -2484,14 +2484,24 @@ undefined || item.rent === "" ? null : Number(item.rent);
     }
 
     function chooseLocalData() {
-        cloudReconcile.hidden = true;
-        cloudPendingRemote = null;
-
-        cloudUpdatedAt = Date.now();
-
-        scheduleCloudWrite();
-
-        subscribeCloud();
+        // A escolha explícita pelo aparelho atualiza a base de comparação.
+        // Assim a próxima gravação não sobrescreve uma alteração remota sem confirmação.
+        var localState = state;
+        return readGranularState().then(function (remote) {
+            cloudGranularBaseline = remote
+                ? granularSnapshot(remote)
+                : { meta: null, units: {}, expenses: {}, contracts: {} };
+            state = localState;
+            expenseCategories = state.expenseCategories;
+            cloudReconcile.hidden = true;
+            cloudBanner.hidden = true;
+            cloudPendingRemote = null;
+            cloudUpdatedAt = Date.now();
+            scheduleCloudWrite();
+            subscribeCloud();
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+        });
     }
 
     function updateCloudUi() {
@@ -9644,6 +9654,59 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
         return operations;
     }
+    function granularConflictError() {
+        var error = new Error("Os dados foram alterados por outra pessoa.");
+        error.code = "app/cloud-conflict";
+        return error;
+    }
+
+    function verifyGranularWriteBase(current, force) {
+        if (force) return Promise.resolve();
+        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, contracts: {} };
+        var checks = [];
+
+        function check(ref, expected, read) {
+            if (!ref) return;
+            checks.push(ref.get().then(function (snapshot) {
+                var remote = snapshot.exists ? read(snapshot.data() || {}) : null;
+                if (!granularEqual(remote, expected || null)) throw granularConflictError();
+            }));
+        }
+
+        if (!granularEqual(current.meta, baseline.meta || {})) {
+            check(granularMetaRef(), baseline.meta || null, function (data) { return data.payload || null; });
+        }
+        ["units", "expenses"].forEach(function (kind) {
+            var ids = {};
+            Object.keys(current[kind] || {}).forEach(function (id) { ids[id] = true; });
+            Object.keys(baseline[kind] || {}).forEach(function (id) { ids[id] = true; });
+            Object.keys(ids).forEach(function (id) {
+                var now = current[kind][id] || null;
+                var before = (baseline[kind] || {})[id] || null;
+                if (!granularEqual(now, before)) {
+                    var ref = kind === "units" ? granularUnitsRef().doc(id) : granularExpensesRef().doc(id);
+                    check(ref, before, function (data) { return data; });
+                }
+            });
+        });
+        var contractKeys = {};
+        Object.keys(current.contracts || {}).forEach(function (key) { contractKeys[key] = true; });
+        Object.keys(baseline.contracts || {}).forEach(function (key) { contractKeys[key] = true; });
+        Object.keys(contractKeys).forEach(function (key) {
+            var now = current.contracts[key] ? current.contracts[key].data : null;
+            var before = baseline.contracts[key] ? baseline.contracts[key].data : null;
+            if (!granularEqual(now, before)) {
+                var source = current.contracts[key] || baseline.contracts[key];
+                check(granularUnitsRef().doc(source.unitId).collection("contracts").doc(source.id), before, function (data) {
+                    var copy = granularClone(data);
+                    delete copy.order;
+                    return copy;
+                });
+            }
+        });
+        return Promise.all(checks);
+    }
+
     function commitGranularOperations(operations) {
         if (!operations.length) return Promise.resolve();
         var index = 0;
@@ -9661,9 +9724,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function writeGranularState(force) {
         if (!firebaseDb || !firebaseUser || !cloudWorkspaceId) return Promise.resolve();
         var current = granularSnapshot(state);
-        return commitGranularOperations(granularWriteOperations(current, !!force)).then(function () {
-            cloudGranularBaseline = current;
-        });
+        return verifyGranularWriteBase(current, !!force)
+            .then(function () { return commitGranularOperations(granularWriteOperations(current, !!force)); })
+            .then(function () { cloudGranularBaseline = current; });
     }
 
     function readGranularState() {
@@ -9766,7 +9829,18 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             setCloudStatus("Conta conectada. Sincronização automática ativa.");
             setSyncStatus(cloudHasPendingWrite ? "Sincronizando..." : "Sincronizado");
         }).catch(function (error) {
-            cloudHasPendingWrite = true; setCloudError(cloudErrorMessage(error));
+            cloudHasPendingWrite = true;
+            if (error && error.code === "app/cloud-conflict") {
+                return readGranularState().then(function (remote) {
+                    if (remote) {
+                        cloudPendingRemote = remote;
+                        setCloudReconcilePrompt(remote);
+                    }
+                    setCloudError("Outra pessoa alterou estes dados antes da sincronização. Escolha qual versão deseja manter.");
+                    setSyncStatus("Conflito de sincronização — escolha uma versão");
+                });
+            }
+            setCloudError(cloudErrorMessage(error));
             setSyncStatus("Não sincronizado — salvo localmente");
         }).then(function () {
             cloudWriteInFlight = false;
