@@ -1,27 +1,34 @@
 # Segurança do Firestore
 
-As regras em `firestore.rules` protegem dados por área de trabalho e perfil:
+O arquivo `firestore.rules` é a fonte versionada das regras de acesso do sistema. Ele protege os dados por área de trabalho, assinatura e perfil:
 
 - **owner/admin:** gestão da área, equipe e permissões;
-- **operator:** contratos, unidades, cobranças e gastos;
-- **billing:** leitura; a baixa de pagamento continua dependente da futura separação dos pagamentos em documentos próprios;
-- **finance:** gastos e leitura;
+- **operator:** unidades, contratos, cobranças, pagamentos e gastos;
+- **billing:** somente campos de cobrança e pagamento permitidos;
+- **finance:** pagamentos e gastos, sem alterar contratos;
 - **viewer:** somente leitura.
 
-## Antes de publicar
+As regras também bloqueiam escrita de contas com assinatura vencida e exigem que convites sejam aceitos pelo mesmo e-mail convidado.
 
-1. No Firebase Authentication, copie o **UID** da conta administradora.
-2. No Firestore, crie manualmente o documento `platformAdmins/{UID}` com, por exemplo:
+## Publicar uma alteração
 
-```json
-{ "active": true, "createdAt": 0 }
-```
+1. Revise a alteração em `firestore.rules`.
+2. No Firebase Console, abra **Firestore Database → Rules**.
+3. Cole o conteúdo do arquivo e clique em **Publicar**.
+4. Teste uma conta de cada perfil em uma área de trabalho de teste.
 
-3. No Console do Firebase, abra **Firestore Database → Rules**, cole o conteúdo de `firestore.rules` e publique.
-4. Faça um teste com: proprietário, operador, financeiro, cobrança e consulta.
+> A administração global atual está protegida pelo e-mail definido na função `platformAdmin()`. Se o administrador mudar, atualize esse e-mail nas regras e em `app.js`, publique os dois e teste o painel antes de remover o acesso anterior.
 
-> Não publique as regras sem cadastrar o administrador. O painel de Administração da plataforma precisa desse documento para continuar acessando contas, planos e auditoria.
+## Checklist de validação
 
-## Próxima evolução de permissões
+- Uma conta sem aprovação não cria área pessoal.
+- Um visitante não lê outra área de trabalho.
+- Um perfil de consulta não grava nenhum dado.
+- Cobrança não altera contrato, gastos ou configurações.
+- Financeiro não altera contrato.
+- Convite vencido, revogado ou aberto com outro e-mail é recusado.
+- Assinatura vencida permite leitura, mas bloqueia escrita.
 
-Pagamentos e cobranças ainda fazem parte do documento da unidade. Para restringir no servidor que o perfil de cobrança altere somente pagamentos — sem poder alterar o contrato — será preciso mover pagamentos para uma subcoleção própria. As regras atuais mantêm esse perfil em leitura nesses documentos para não conceder permissão excessiva.
+## Próxima evolução
+
+Migrar pagamentos e cobranças para documentos próprios reduzirá o tamanho da unidade e deixará as permissões de baixa ainda mais simples de auditar.
