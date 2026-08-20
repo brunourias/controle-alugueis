@@ -55,10 +55,15 @@ const ModalManager = (() => {
         }, "");
     }
 
-    function close(modal = null) {
+    function close(modal = null, options = {}) {
         const target = modal || stack[stack.length - 1] || getOpenModal();
 
         if (!target) return false;
+
+        // Fechamentos por botão não devem deixar uma entrada "modal" órfã no Voltar.
+        if (!options.fromHistory && history.state && history.state.modal && history.state.id === (target.id || null)) {
+            history.replaceState(Object.assign({}, history.state, { modal: false, id: null }), "");
+        }
 
         target.hidden = true;
 
@@ -101,14 +106,24 @@ const ModalManager = (() => {
         }
     });
 
-    window.addEventListener("popstate", () => {
-
+    // Botão Voltar: fecha primeiro o conteúdo sobreposto; na raiz, deixa o sistema sair do app.
+    window.addEventListener("popstate", (event) => {
         const opened = getOpenModal();
+        const annualReport = document.getElementById("annualReportModal");
 
-        if (!opened) return;
+        if (opened) {
+            close(opened, { fromHistory: true });
+            return;
+        }
 
-        close(opened);
+        // O Resumo do Ano possui seu próprio manipulador logo abaixo.
+        if (annualReport && annualReport.style.display !== "none") return;
 
+        if (event.state && event.state.controleAlugueisRoot) {
+            window.setTimeout(function () {
+                if (!getOpenModal()) history.back();
+            }, 0);
+        }
     });
 
     return {
@@ -119,6 +134,10 @@ const ModalManager = (() => {
 
 })();
 
+// Marca a entrada principal sem criar uma tela extra no histórico.
+if (!history.state || !history.state.controleAlugueisRoot) {
+    history.replaceState(Object.assign({}, history.state || {}, { controleAlugueisRoot: true }), "");
+}
 
 
 // Mantém a navegação previsível: qualquer ação de botão recolhe painéis expansíveis.
@@ -7601,14 +7620,24 @@ function saveExpense() {
         reportContainer.innerHTML = buildAnnualReportHtml();
         reportModal.style.display = "flex";
         document.body.classList.add("modal-open");
+        history.pushState({ modal: true, id: "annualReportModal" }, "");
     }
 
-    function closeAnnualReport() {
+    function closeAnnualReport(fromHistory) {
         var reportModal = document.getElementById("annualReportModal");
         if (!reportModal) return;
         reportModal.style.display = "none";
         document.body.classList.remove("modal-open");
+
+        if (!fromHistory && history.state && history.state.modal && history.state.id === "annualReportModal") {
+            history.replaceState(Object.assign({}, history.state, { modal: false, id: null }), "");
+        }
     }
+
+    window.addEventListener("popstate", function () {
+        var reportModal = document.getElementById("annualReportModal");
+        if (reportModal && reportModal.style.display !== "none") closeAnnualReport(true);
+    });
 
     function printAnnualReport() {
         var reportHtml = buildAnnualReportHtml();
