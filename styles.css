@@ -6173,6 +6173,12 @@ textarea:focus-visible {
 
 /* O atalho Gastos abre somente o controle de despesas no celular. */
 @media (max-width: 680px) {
+    /* Financeiro é reservado ao painel e seus indicadores. */
+    #financialView:not(.is-mobile-expenses-focus) > .expenses-dashboard {
+        display: none !important;
+    }
+
+    /* Gastos é uma tela exclusiva de despesas. */
     #financialView.is-mobile-expenses-focus > .financial-dashboard,
     #financialView.is-mobile-expenses-focus > .financial-summary-cards {
         display: none !important;
