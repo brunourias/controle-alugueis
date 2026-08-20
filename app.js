@@ -8978,6 +8978,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     var cloudGranularUnsubscribes = [];
     var cloudGranularReloadTimer = null;
     var cloudGranularBaseline = null;
+    var cloudFinancialMigrationNeeded = false;
 
     function granularMetaRef() {
         var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
@@ -8991,6 +8992,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
         return workspace ? workspace.collection("expenses") : null;
     }
+    function granularPaymentsRef() {
+        var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return workspace ? workspace.collection("payments") : null;
+    }
+    function granularChargesRef() {
+        var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return workspace ? workspace.collection("charges") : null;
+    }
     function granularClone(value) { return JSON.parse(JSON.stringify(value)); }
     function stableContractId(contract, index) {
         if (contract && typeof contract.id === "string" && contract.id && contract.id.indexOf("/") < 0) return contract.id;
@@ -9003,12 +9012,25 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
     function granularSnapshot(value) {
         var copy = granularClone(normalizeState(value));
-        var snapshot = { meta: granularClone(copy), units: {}, expenses: {}, contracts: {} };
+        var snapshot = { meta: granularClone(copy), units: {}, expenses: {}, contracts: {}, payments: {}, charges: {} };
         delete snapshot.meta.units; delete snapshot.meta.expenses;
         (copy.units || []).forEach(function (unit) {
             if (!unit || typeof unit.id !== "string" || !unit.id) return;
             var unitCopy = granularClone(unit), history = Array.isArray(unitCopy.contractHistory) ? unitCopy.contractHistory : [];
-            delete unitCopy.contractHistory; snapshot.units[unit.id] = unitCopy;
+            snapshot.payments[unit.id] = {
+                status: granularClone(unitCopy.status || {}),
+                paidLate: granularClone(unitCopy.paidLate || {}),
+                lateLedger: granularClone(unitCopy.lateLedger || {}),
+                paymentHistory: granularClone(unitCopy.paymentHistory || {})
+            };
+            snapshot.charges[unit.id] = { chargeLog: granularClone(unitCopy.chargeLog || []) };
+            delete unitCopy.contractHistory;
+            delete unitCopy.status;
+            delete unitCopy.paidLate;
+            delete unitCopy.lateLedger;
+            delete unitCopy.paymentHistory;
+            delete unitCopy.chargeLog;
+            snapshot.units[unit.id] = unitCopy;
             history.forEach(function (contract, index) {
                 var data = granularClone(contract), id = stableContractId(data, index);
                 data.id = id; data.order = index;
@@ -9025,19 +9047,25 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function granularWriteOperations(current, force) {
-        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, contracts: {} };
+        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, contracts: {}, payments: {}, charges: {} };
         var operations = [];
         if (force || !granularEqual(current.meta, baseline.meta || {})) {
             operations.push({ type: "set", ref: granularMetaRef(), data: { payload: current.meta, updatedAt: Date.now(), schemaVersion: 3 } });
         }
-        ["units", "expenses"].forEach(function (kind) {
-            Object.keys(current[kind]).forEach(function (id) {
+        var roots = {
+            units: granularUnitsRef,
+            expenses: granularExpensesRef,
+            payments: granularPaymentsRef,
+            charges: granularChargesRef
+        };
+        ["units", "expenses", "payments", "charges"].forEach(function (kind) {
+            Object.keys(current[kind] || {}).forEach(function (id) {
                 if (force || !granularEqual(current[kind][id], (baseline[kind] || {})[id])) {
-                    operations.push({ type: "set", ref: kind === "units" ? granularUnitsRef().doc(id) : granularExpensesRef().doc(id), data: current[kind][id] });
+                    operations.push({ type: "set", ref: roots[kind]().doc(id), data: current[kind][id] });
                 }
             });
             Object.keys(baseline[kind] || {}).forEach(function (id) {
-                if (!current[kind][id]) operations.push({ type: "delete", ref: kind === "units" ? granularUnitsRef().doc(id) : granularExpensesRef().doc(id) });
+                if (!current[kind][id]) operations.push({ type: "delete", ref: roots[kind]().doc(id) });
             });
         });
         Object.keys(current.contracts).forEach(function (key) {
@@ -9062,7 +9090,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function verifyGranularWriteBase(current, force) {
         if (force) return Promise.resolve();
-        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, contracts: {} };
+        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, contracts: {}, payments: {}, charges: {} };
         var checks = [];
 
         function check(ref, expected, read) {
@@ -9076,7 +9104,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!granularEqual(current.meta, baseline.meta || {})) {
             check(granularMetaRef(), baseline.meta || null, function (data) { return data.payload || null; });
         }
-        ["units", "expenses"].forEach(function (kind) {
+        var roots = {
+            units: granularUnitsRef,
+            expenses: granularExpensesRef,
+            payments: granularPaymentsRef,
+            charges: granularChargesRef
+        };
+        ["units", "expenses", "payments", "charges"].forEach(function (kind) {
             var ids = {};
             Object.keys(current[kind] || {}).forEach(function (id) { ids[id] = true; });
             Object.keys(baseline[kind] || {}).forEach(function (id) { ids[id] = true; });
@@ -9084,8 +9118,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 var now = current[kind][id] || null;
                 var before = (baseline[kind] || {})[id] || null;
                 if (!granularEqual(now, before)) {
-                    var ref = kind === "units" ? granularUnitsRef().doc(id) : granularExpensesRef().doc(id);
-                    check(ref, before, function (data) { return data; });
+                    check(roots[kind]().doc(id), before, function (data) { return data; });
                 }
             });
         });
@@ -9130,15 +9163,37 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function readGranularState() {
+        cloudFinancialMigrationNeeded = false;
         var meta = granularMetaRef(), units = granularUnitsRef(), expenses = granularExpensesRef();
-        if (!meta || !units || !expenses) return Promise.resolve(null);
-        return Promise.all([meta.get(), units.get(), expenses.get()]).then(function (results) {
+        var payments = granularPaymentsRef(), charges = granularChargesRef();
+        if (!meta || !units || !expenses || !payments || !charges) return Promise.resolve(null);
+        return Promise.all([meta.get(), units.get(), expenses.get(), payments.get(), charges.get()]).then(function (results) {
             var metaSnapshot = results[0], unitsSnapshot = results[1], expensesSnapshot = results[2];
+            var paymentsSnapshot = results[3], chargesSnapshot = results[4];
             if (!metaSnapshot.exists || !(metaSnapshot.data() || {}).payload) return null;
             var base = granularClone((metaSnapshot.data() || {}).payload);
             base.units = []; base.expenses = [];
+            var unitsById = {};
             unitsSnapshot.forEach(function (item) {
-                var unit = granularClone(item.data() || {}); unit.id = unit.id || item.id; base.units.push(unit);
+                var raw = item.data() || {};
+                if (raw.status || raw.paidLate || raw.lateLedger || raw.paymentHistory || raw.chargeLog) {
+                    cloudFinancialMigrationNeeded = true;
+                }
+                var unit = granularClone(raw); unit.id = unit.id || item.id;
+                base.units.push(unit); unitsById[unit.id] = unit;
+            });
+            paymentsSnapshot.forEach(function (item) {
+                var unit = unitsById[item.id];
+                if (!unit) return;
+                var data = item.data() || {};
+                unit.status = granularClone(data.status || {});
+                unit.paidLate = granularClone(data.paidLate || {});
+                unit.lateLedger = granularClone(data.lateLedger || {});
+                unit.paymentHistory = granularClone(data.paymentHistory || {});
+            });
+            chargesSnapshot.forEach(function (item) {
+                var unit = unitsById[item.id];
+                if (unit) unit.chargeLog = granularClone((item.data() || {}).chargeLog || []);
             });
             expensesSnapshot.forEach(function (item) {
                 var expense = granularClone(item.data() || {}); expense.id = expense.id || item.id; base.expenses.push(expense);
@@ -9163,6 +9218,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         cloudGranularBaseline = granularSnapshot(state);
         renderEmpreendimentoFilter(); render();
         cloudApplyingRemote = false;
+    }
+
+    function migrateSeparatedFinancialDataIfNeeded() {
+        if (!cloudFinancialMigrationNeeded) return Promise.resolve();
+        cloudFinancialMigrationNeeded = false;
+        return writeGranularState(true);
     }
     function migrateLegacyCloudState() {
         return granularMetaRef().get().then(function (meta) {
@@ -9196,7 +9257,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             clearTimeout(cloudGranularReloadTimer);
             cloudGranularReloadTimer = setTimeout(reloadGranularState, 180);
         }
-        [granularMetaRef(), granularUnitsRef(), granularExpensesRef()].forEach(function (ref) {
+        [granularMetaRef(), granularUnitsRef(), granularExpensesRef(), granularPaymentsRef(), granularChargesRef()].forEach(function (ref) {
             cloudGranularUnsubscribes.push(ref.onSnapshot(scheduleReload, function (error) { setCloudError(cloudErrorMessage(error)); }));
         });
     }
@@ -9208,10 +9269,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 cloudHasPendingWrite = false; subscribeCloud(); setSyncStatus("Sincronizado");
             });
             if (cloudStatesEqual(state, remote)) {
-                applyRemoteState(remote); finishCloudReconciliation(); updateConnectionStatus(); return;
+                applyRemoteState(remote);
+                return migrateSeparatedFinancialDataIfNeeded().then(function () {
+                    finishCloudReconciliation(); updateConnectionStatus();
+                });
             }
             if (state.units.length === 0 && state.expenses.length === 0) {
-                applyRemoteState(remote); finishCloudReconciliation(); updateConnectionStatus(); return;
+                applyRemoteState(remote);
+                return migrateSeparatedFinancialDataIfNeeded().then(function () {
+                    finishCloudReconciliation(); updateConnectionStatus();
+                });
             }
             cloudPendingRemote = remote; setCloudReconcilePrompt(remote); setSyncStatus("Aguardando escolha");
         }).catch(function (error) {
@@ -9273,8 +9340,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }).then(function (remote) {
             if (!remote) throw new Error("Esta área ainda não possui dados sincronizados.");
             applyRemoteState(remote);
-            saveWorkspaceSelection();
-            subscribeCloud();
+            return migrateSeparatedFinancialDataIfNeeded().then(function () {
+                saveWorkspaceSelection();
+                subscribeCloud();
+            });
             setSyncStatus("Sincronizado");
             renderWorkspaceControls();
         });
