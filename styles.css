@@ -6347,3 +6347,6 @@ textarea:focus-visible {
   display: block;
   margin: 0;
 }
+
+/* Administração: lista de contas só é exibida quando o bloco for aberto */
+.platform-approvals.platform-section-disclosure > .platform-section-content { margin-top: 8px; }
