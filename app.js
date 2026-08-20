@@ -805,22 +805,7 @@ var historyRent = document.getElementById("historyRent");
                 return index === 0 || change.fromYm !== list[index - 1].fromYm;
             });
     }
-	
-	function normalizeContractHistory(list) {
-  if (!Array.isArray(list)) return [];
-  return list.map(function (item) {
-    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
-    var tenantName = typeof item.tenantName === "string" ? item.tenantName.trim() : "";
-    var startYm = isValidStartYm(item.startYm) ? item.startYm : null;
-    var endYm = isValidStartYm(item.endYm) ? item.endYm : null;
-    var rentValue = item.rent === null || item.rent ===
-undefined || item.rent === "" ? null : Number(item.rent);
-    var rent = rentValue !== null && Number.isFinite(rentValue)
-&& rentValue >= 0 ? rentValue : null;
-    if (!tenantName && !startYm && !endYm && rent === null) return null;
-    return { tenantName: tenantName, startYm: startYm, endYm: endYm, rent: rent };
-  }).filter(function (item) { return item !== null; });
-}
+
 
     function contractDateValue(value, fallbackYm, isEnd) {
         if (isValidDateValue(value)) return value;
@@ -1936,43 +1921,7 @@ undefined || item.rent === "" ? null : Number(item.rent);
         });
     }
 
-    function flushWorkspaceState() {
-        if (!cloudHasPendingWrite || !cloudDocRef()) return Promise.resolve();
-        var updatedAt = Date.now();
-        return cloudDocRef().set({ payload: JSON.parse(JSON.stringify(state)), updatedAt: updatedAt })
-            .then(function () {
-                cloudHasPendingWrite = false;
-                cloudUpdatedAt = updatedAt;
-            });
-    }
 
-    function activateWorkspace(workspaceId) {
-        if (!firebaseUser || !workspaceId) return Promise.resolve();
-        if (!cloudWorkspaces.some(function (item) { return item.id === workspaceId; })) {
-            return Promise.reject(new Error("Você não tem acesso a esta área de trabalho."));
-        }
-
-        return flushWorkspaceState().then(function () {
-            if (firebaseUnsubscribe) {
-                firebaseUnsubscribe();
-                firebaseUnsubscribe = null;
-            }
-            cloudWorkspaceId = workspaceId;
-            cloudUpdatedAt = 0;
-            return updateWorkspaceRole();
-        }).then(function () {
-            return cloudDocRef().get();
-        }).then(function (snapshot) {
-            var remote = snapshot.exists ? snapshot.data() || {} : {};
-            if (!remote.payload) throw new Error("Esta área ainda não possui dados sincronizados.");
-            cloudUpdatedAt = Number(remote.updatedAt) || 0;
-            applyRemoteState(remote.payload);
-            saveWorkspaceSelection();
-            subscribeCloud();
-            setSyncStatus("Sincronizado");
-            renderWorkspaceControls();
-        });
-    }
 
     function newInviteToken() {
         if (window.crypto && window.crypto.getRandomValues) {
@@ -2289,135 +2238,8 @@ undefined || item.rent === "" ? null : Number(item.rent);
         cloudWriteTimer = setTimeout(writeCloudState, 800);
     }
 
-    function writeCloudState() {
-        var ref = cloudDocRef();
 
-        if (!ref || !cloudHasPendingWrite) return;
 
-        if (!navigator.onLine) {
-            setSyncStatus("Offline — alterações salvas localmente");
-            return;
-        }
-
-        if (cloudWriteInFlight) {
-            cloudWriteQueued = true;
-            return;
-        }
-
-        var revision = cloudWriteRevision;
-        var updatedAt = Date.now();
-        var payload = JSON.parse(JSON.stringify(state));
-
-        cloudWriteInFlight = true;
-        cloudWriteQueued = false;
-        cloudUpdatedAt = Math.max(cloudUpdatedAt, updatedAt);
-
-        ref.set({
-            payload: payload,
-            updatedAt: updatedAt,
-        })
-            .then(function () {
-                cloudUpdatedAt = updatedAt;
-                cloudPendingRemote = null;
-                cloudHasPendingWrite = revision < cloudWriteRevision;
-
-                cloudReconcile.hidden = true;
-                cloudBanner.hidden = true;
-
-                setCloudStatus(
-                    "Conta conectada. Sincronização automática ativa."
-                );
-                setSyncStatus(
-                    cloudHasPendingWrite ? "Sincronizando..." : "Sincronizado"
-                );
-            })
-            .catch(function (error) {
-                // Mantém a alteração pendente para uma nova tentativa ao reconectar.
-                cloudHasPendingWrite = true;
-                setCloudError(cloudErrorMessage(error));
-
-                setSyncStatus(
-                    navigator.onLine
-                        ? "Não sincronizado — salvo localmente"
-                        : "Offline — alterações salvas localmente"
-                );
-            })
-            .then(function () {
-                cloudWriteInFlight = false;
-
-                if (cloudWriteQueued || cloudWriteRevision > revision) {
-                    cloudWriteQueued = false;
-                    clearTimeout(cloudWriteTimer);
-                    cloudWriteTimer = setTimeout(writeCloudState, 0);
-                }
-            });
-    }
-
-    function applyRemoteState(payload) {
-        cloudApplyingRemote = true;
-
-        state = normalizeState(payload);
-
-        expenseCategories = state.expenseCategories;
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-
-        renderEmpreendimentoFilter();
-
-        render();
-
-        cloudApplyingRemote = false;
-    }
-
-    function subscribeCloud() {
-        if (firebaseUnsubscribe) firebaseUnsubscribe();
-
-        var ref = cloudDocRef();
-
-        if (!ref) return;
-
-        firebaseUnsubscribe = ref.onSnapshot(
-            function (snapshot) {
-                if (!snapshot.exists) return;
-
-                var data = snapshot.data() || {};
-
-                var remoteUpdatedAt = Number(data.updatedAt) || 0;
-
-                if (remoteUpdatedAt <= cloudUpdatedAt || !data.payload) return;
-
-                /*
-                 * Outra sessão/aparelho alterou a nuvem enquanto este ainda
-                 * possui uma alteração local pendente. Não sobrescrevemos
-                 * nada silenciosamente: o usuário escolhe qual versão manter.
-                 */
-                if (
-                    cloudHasPendingWrite &&
-                    !cloudStatesEqual(state, data.payload)
-                ) {
-                    cloudPendingRemote = normalizeState(data.payload);
-                    setCloudReconcilePrompt(cloudPendingRemote);
-                    setSyncStatus("Aguardando escolha");
-                    return;
-                }
-
-                cloudUpdatedAt = remoteUpdatedAt;
-
-                applyRemoteState(data.payload);
-
-                setSyncStatus(
-                    navigator.onLine
-                        ? "Sincronizado"
-                        : "Offline — alterações salvas localmente"
-                );
-            },
-            function (error) {
-                setCloudError(cloudErrorMessage(error));
-
-                setSyncStatus("Não sincronizado — salvo localmente");
-            }
-        );
-    }
 
     function finishCloudReconciliation() {
         cloudReconcile.hidden = true;
@@ -2426,47 +2248,6 @@ undefined || item.rent === "" ? null : Number(item.rent);
         subscribeCloud();
     }
 
-    function reconcileCloud() {
-        var ref = cloudDocRef();
-        if (!ref) return;
-        updateConnectionStatus();
-        ref.get()
-            .then(function (snapshot) {
-                var data = snapshot.exists ? snapshot.data() || {} : null;
-                var remoteState =
-                    data && data.payload ? normalizeState(data.payload) : null;
-                cloudUpdatedAt = data ? Number(data.updatedAt) || 0 : 0;
-                if (!remoteState) {
-                    scheduleCloudWrite();
-                    subscribeCloud();
-                    return;
-                }
-                var localEmpty =
-                    state.units.length === 0 && state.expenses.length === 0;
-                if (localEmpty) {
-                    applyRemoteState(remoteState);
-                    finishCloudReconciliation();
-
-                    updateConnectionStatus();
-
-                    return;
-                }
-                if (cloudStatesEqual(state, remoteState)) {
-                    finishCloudReconciliation();
-
-                    updateConnectionStatus();
-
-                    return;
-                }
-                cloudPendingRemote = remoteState;
-                setCloudReconcilePrompt(remoteState);
-                setSyncStatus("Aguardando escolha");
-            })
-            .catch(function (error) {
-                setCloudError(cloudErrorMessage(error));
-                setSyncStatus("Não sincronizado - salvo localmente");
-            });
-    }
 
     function chooseCloudData() {
         if (!cloudPendingRemote) return;
@@ -3580,102 +3361,9 @@ undefined || item.rent === "" ? null : Number(item.rent);
     // Quando um contrato é arquivado, os pagamentos já registrados
     // precisam continuar disponíveis para as somatórias anuais.
     // ==========================================================
-    function getPaymentRecord(unit, year, month) {
-        if (!unit) return null;
 
-        var history =
-            unit.paymentHistory &&
-            typeof unit.paymentHistory === "object"
-                ? unit.paymentHistory
-                : {};
 
-        return history[monthKey(month)] || null;
-    }
 
-    function historicalReceivedAmount(unit, year, month) {
-        /*
-         * REGRA DO TOTAL RECEBIDO:
-         * somente "Pago" e "Pago atrasado" entram na soma.
-         *
-         * Internamente os dois usam status = "pago"; o segundo é
-         * diferenciado por paidLate[key] = true.
-         *
-         * Portanto, um registro em paymentHistory sozinho NÃO significa
-         * que houve recebimento. O status do mês continua sendo a fonte
-         * de verdade para a soma.
-         */
-        var storedStatus = statusFor(unit, month);
-
-        if (storedStatus !== "pago") {
-            return 0;
-        }
-
-        var payment = getPaymentRecord(unit, year, month);
-
-        // Pagamento já salvo: mantém exatamente o valor registrado.
-        if (
-            payment &&
-            Number.isFinite(Number(payment.rentAmount))
-        ) {
-            return Math.max(0, Number(payment.rentAmount));
-        }
-
-        // Contrato ainda ativo, mas pagamento antigo sem paymentHistory.
-        if (isActive(unit, month)) {
-            return Math.max(
-                0,
-                Number(rentForMonth(unit, year, month)) || 0
-            );
-        }
-
-        // Contrato já arquivado antes da criação do paymentHistory.
-        var archived = archivedContractForMonth(unit, month);
-
-        if (
-            archived &&
-            Number.isFinite(Number(archived.rent))
-        ) {
-            return Math.max(0, Number(archived.rent));
-        }
-
-        return 0;
-    }
-
-    function historicalInterestAmount(unit, year, month) {
-        /*
-         * Juros só existem para um pagamento que foi efetivamente
-         * registrado como "Pago atrasado".
-         *
-         * É importante NÃO olhar apenas paymentHistory:
-         * o histórico pode conter um valor salvo, mas isso não significa
-         * que o mês tenha juros. O marcador paidLate é a confirmação de
-         * que aquele pagamento foi feito com atraso.
-         *
-         * Também não usamos isPaidLate() aqui porque ela exige contrato
-         * ativo. Contratos arquivados precisam continuar mostrando os
-         * juros históricos.
-         */
-        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
-
-        if (
-            statusFor(unit, month) !== "pago" ||
-            !unit.paidLate ||
-            unit.paidLate[key] !== true
-        ) {
-            return 0;
-        }
-
-        var payment = getPaymentRecord(unit, year, month);
-
-        if (
-            payment &&
-            Number.isFinite(Number(payment.interestAmount))
-        ) {
-            return Math.max(0, Number(payment.interestAmount));
-        }
-
-        return 0;
-    }
 
     function hasHistoricalPayment(unit, month) {
         var payment = getPaymentRecord(unit, selectedYear, month);
@@ -5878,91 +5566,7 @@ function openPaymentAdjust(id, month) {
     );
 }
 
-function updatePaymentAdjustTotal() {
-    var rent =
-        Number(document.getElementById("paymentAdjustRent").value) || 0;
 
-    var interest =
-        Number(
-            document.getElementById("paymentAdjustInterest").value
-        ) || 0;
-
-    document.getElementById("paymentAdjustTotal").value =
-        (rent + interest).toFixed(2);
-}
-
-function savePaymentAdjust() {
-    if (!requireWorkspacePermission("managePayments")) return;
-    if (!paymentAdjustContext) return;
-
-    var unit = state.units.find(function (item) {
-        return item.id === paymentAdjustContext.unitId;
-    });
-
-    if (!unit) return;
-
-    var key = paymentAdjustContext.key;
-
-    unit.paymentHistory =
-        unit.paymentHistory &&
-        typeof unit.paymentHistory === "object"
-            ? unit.paymentHistory
-            : {};
-
-    var payment = unit.paymentHistory[key];
-
-    if (!payment) {
-        alert("Pagamento não encontrado.");
-        return;
-    }
-
-    var dateValue =
-        document.getElementById("paymentAdjustDate").value;
-
-    var rent =
-        Number(document.getElementById("paymentAdjustRent").value) || 0;
-
-    var interest =
-        Number(
-            document.getElementById("paymentAdjustInterest").value
-        ) || 0;
-
-    if (!dateValue) {
-        alert("Informe a data real do pagamento.");
-        return;
-    }
-
-    if (rent < 0 || interest < 0) {
-        alert("Os valores não podem ser negativos.");
-        return;
-    }
-
-    // Converte a data escolhida para ISO sem alterar o dia
-    var parts = dateValue.split("-");
-
-    var paidAt = new Date(
-        Number(parts[0]),
-        Number(parts[1]) - 1,
-        Number(parts[2]),
-        12,
-        0,
-        0
-    ).toISOString();
-
-    payment.paidAt = paidAt;
-    payment.rentAmount = rent;
-    payment.interestAmount = interest;
-    payment.totalAmount = rent + interest;
-
-    saveState();
-    render();
-
-    ModalManager.close(
-        document.getElementById("paymentAdjustModal")
-    );
-
-    paymentAdjustContext = null;
-}
 
 document
     .getElementById("paymentAdjustRent")
@@ -6214,200 +5818,9 @@ document
         rentChangeAbsolute.setCustomValidity("");
         renderRentChanges();
     }
-	
-	function renderContractHistory() {
 
-  if (!pendingContractHistory.length) {
 
-    contractHistoryList.innerHTML = "<p class=\"rent-changes-empty\">Nenhum contrato encerrado registrado.</p>";
 
-    return;
-
-  }
-
-  contractHistoryList.innerHTML = pendingContractHistory.map(function (contract, index) {
-
-    var period = (contract.startYm ? ymLabel(contract.startYm) : "início?") +
-
-      " até " + (contract.endYm ? ymLabel(contract.endYm) : "sem fim");
-
-    if (contract.rent !== null) period += " · " + money(contract.rent);
-
-    return "<div class=\"rent-change-row\"><div><strong>" +
-
-      escapeHtml(contract.tenantName || "Sem nome") + "</strong><span>" +
-
-      escapeHtml(period) + "</span></div><button class=\"btn btn-danger rent-change-remove\" type=\"button\" data-history-index=\"" +
-
-      index + "\">Remover</button></div>";
-
-  }).join("");
-
-  contractHistoryList.querySelectorAll("[data-history-index]").forEach(function (button) {
-
-    button.addEventListener("click", function () {
-
-      pendingContractHistory.splice(Number(button.dataset.historyIndex), 1);
-
-      renderContractHistory();
-
-    });
-
-  });
-
-}
-
- 
-
-function archiveCurrentContract() {
-    var archivedTenant = tenantName.value.trim();
-    var archivedStart = unitStartYm.value || null;
-    var archivedEnd = unitEndYm.value || null;
-    var archivedRentValue = Number(unitRent.value);
-
-    /*
-     * Se o contrato estava aberto/sem fim e está sendo arquivado agora,
-     * o mês atual é o último mês possível desse contrato.
-     * Assim, meses futuros ficam como "Sem contrato".
-     */
-    if (!archivedEnd) {
-        var now = new Date();
-        archivedEnd =
-            now.getFullYear() +
-            "-" +
-            String(now.getMonth() + 1).padStart(2, "0");
-    }
-
-    if (!archivedTenant && !archivedStart && !archivedEnd) {
-        tenantName.focus();
-        return;
-    }
-
-    /*
-     * ==========================================================
-     * PRESERVA O FINANCEIRO ANTES DE ENCERRAR O CONTRATO
-     *
-     * O contrato pode deixar de ser "ativo", mas pagamentos de
-     * meses anteriores continuam sendo registros financeiros
-     * daquele ano. Por isso, criamos paymentHistory para qualquer
-     * mês já marcado como pago que ainda não tenha um registro.
-     * ==========================================================
-     */
-    var existingUnit = editingId
-        ? state.units.find(function (item) {
-              return item.id === editingId;
-          })
-        : null;
-
-    if (existingUnit) {
-        existingUnit.paymentHistory =
-            existingUnit.paymentHistory &&
-            typeof existingUnit.paymentHistory === "object"
-                ? existingUnit.paymentHistory
-                : {};
-
-        months.forEach(function (_, month) {
-            var key = monthKey(month);
-            var status = statusFor(existingUnit, month);
-
-            // Converte atrasos calculados automaticamente em um status persistido
-            // antes de limpar os dados do contrato. Sem isso, o vencimento some
-            // ao encerrar a unidade e a dívida deixa de aparecer no resumo.
-            if (effectiveStatus(existingUnit, month) === "atrasado") {
-                existingUnit.status[key] = "atrasado";
-                status = "atrasado";
-            }
-
-            if (status !== "pago") return;
-
-            if (existingUnit.paymentHistory[key]) return;
-
-            var rentAtPayment =
-                rentForMonth(
-                    existingUnit,
-                    selectedYear,
-                    month
-                );
-
-            existingUnit.paymentHistory[key] = {
-                paidAt: null,
-                rentAmount: rentAtPayment,
-                fineAmount: 0,
-                interestAmount: 0,
-                chargesAmount: 0,
-                totalAmount: rentAtPayment
-            };
-        });
-    }
-
-    // Guarda o contrato encerrado no histórico temporário.
-    pendingContractHistory.push({
-        tenantName: archivedTenant,
-        startYm: archivedStart,
-        endYm: archivedEnd,
-        rent:
-            Number.isFinite(archivedRentValue) && archivedRentValue >= 0
-                ? archivedRentValue
-                : null
-    });
-
-    // Limpa COMPLETAMENTE o contrato atual.
-    tenantName.value = "";
-    tenantPhone.value = "";
-    tenantEmail.value = "";
-    tenantNotes.value = "";
-
-    unitRent.value = "";
-    unitDueDay.value = "";
-    unitStartYm.value = "";
-    unitEndYm.value = "";
-
-    // Reajustes pertencem ao contrato encerrado.
-    pendingRentChanges = [];
-    renderRentChanges();
-
-    // Não cria automaticamente o início do próximo contrato.
-    renderContractHistory();
-    tenantName.focus();
-}
-
- 
-
-function addContractHistoryEntry() {
-
-  var name = historyTenant.value.trim();
-
-  var startYm = historyStart.value || null;
-
-  var endYm = historyEnd.value || null;
-
-  var rentValue = Number(historyRent.value);
-
-  if (!name && !startYm && !endYm) return;
-
-  pendingContractHistory.push({
-
-    tenantName: name,
-
-    startYm: startYm,
-
-    endYm: endYm,
-
-    rent: Number.isFinite(rentValue) && rentValue >= 0 ? rentValue : null
-
-  });
-
-  historyTenant.value = "";
-
-  historyStart.value = "";
-
-  historyEnd.value = "";
-
-  historyRent.value = "";
-
-  renderContractHistory();
-
-}
 	
 	
 	
@@ -6416,11 +5829,11 @@ function addContractHistoryEntry() {
     var editingHistoryIndex = null;
     function newContractHistoryId(){return "contract-"+Date.now().toString(36)+Math.random().toString(36).slice(2)}
     function normalizeContractHistoryStatus(value){return ["encerrado","rescisao","pendente"].indexOf(value)>=0?value:"encerrado"}
-    function normalizeContractHistory(list){if(!Array.isArray(list))return [];return list.map(function(item){if(!item||typeof item!=="object"||Array.isArray(item))return null;var name=typeof item.tenantName==="string"?item.tenantName.trim():"",start=isValidStartYm(item.startYm)?item.startYm:null,end=isValidStartYm(item.endYm)?item.endYm:null,amount=item.rent===null||item.rent===undefined||item.rent===""?null:Number(item.rent),rent=amount!==null&&Number.isFinite(amount)&&amount>=0?amount:null;if(!name&&!start&&!end&&rent===null)return null;return{id:typeof item.id==="string"&&item.id.trim()?item.id:newContractHistoryId(),tenantName:name,startYm:start,endYm:end,rent:rent,status:normalizeContractHistoryStatus(item.status),reason:typeof item.reason==="string"?item.reason.trim():""}}).filter(function(item){return item!==null})}
+
     function contractHistoryStatusInfo(value){return{encerrado:["Encerrado normalmente","is-closed"],rescisao:["Rescisão antecipada","is-ended"],pendente:["Encerrado com pendências","is-pending"]}[normalizeContractHistoryStatus(value)]}
     function contractHistoryPeriod(contract){return(contract.startYm?ymLabel(contract.startYm):"Início não informado")+" até "+(contract.endYm?ymLabel(contract.endYm):"fim não informado")}
     function resetHistoryForm(){editingHistoryIndex=null;historyTenant.value="";historyStart.value="";historyEnd.value="";historyRent.value="";historyStatus.value="encerrado";historyReason.value="";addContractHistory.textContent="Adicionar ao histórico"}
-    function renderContractHistory(){var active=tenantName.value.trim(),current=active?'<article class="contract-timeline-card is-current"><div class="contract-timeline-heading"><strong>'+escapeHtml(active)+'</strong><span class="contract-status">Contrato atual</span></div><p>'+escapeHtml(contractHistoryPeriod({startYm:unitStartYm.value||null,endYm:unitEndYm.value||null}))+(unitRent.value!==""?" · "+money(Number(unitRent.value)):"")+"</p></article>":'<p class="rent-changes-empty">Nenhum contrato atual cadastrado.</p>',records=pendingContractHistory.map(function(contract,index){return{contract:contract,index:index}}).sort(function(a,b){return(b.contract.endYm||b.contract.startYm||"").localeCompare(a.contract.endYm||a.contract.startYm||"")}),cards=records.length?records.map(function(item){var c=item.contract,s=contractHistoryStatusInfo(c.status);return'<article class="contract-timeline-card '+s[1]+'"><div class="contract-timeline-heading"><strong>'+escapeHtml(c.tenantName||"Inquilino não informado")+'</strong><span class="contract-status">'+s[0]+"</span></div><p>"+escapeHtml(contractHistoryPeriod(c))+(c.rent!==null?" · "+money(c.rent):"")+"</p>"+(c.reason?'<p class="contract-history-reason">'+escapeHtml(c.reason)+"</p>":"")+'<div class="contract-history-actions"><button class="btn btn-ghost" type="button" data-history-edit="'+item.index+'">Editar</button><button class="btn btn-ghost" type="button" data-history-reactivate="'+item.index+'">Reativar</button><button class="btn btn-danger" type="button" data-history-remove="'+item.index+'">Remover</button></div></article>'}).join(""):'<p class="rent-changes-empty">Nenhum contrato encerrado registrado.</p>';contractHistoryList.innerHTML='<div class="contract-timeline">'+current+cards+"</div>";contractHistoryList.querySelectorAll("[data-history-edit]").forEach(function(button){button.addEventListener("click",function(){var i=Number(button.dataset.historyEdit),c=pendingContractHistory[i];if(!c)return;editingHistoryIndex=i;historyTenant.value=c.tenantName||"";historyStart.value=c.startYm||"";historyEnd.value=c.endYm||"";historyRent.value=c.rent===null?"":c.rent;historyStatus.value=normalizeContractHistoryStatus(c.status);historyReason.value=c.reason||"";addContractHistory.textContent="Salvar alterações";historyManual.open=true;historyTenant.focus()})});contractHistoryList.querySelectorAll("[data-history-reactivate]").forEach(function(button){button.addEventListener("click",function(){var i=Number(button.dataset.historyReactivate),c=pendingContractHistory[i];if(!c||(tenantName.value.trim()&&!window.confirm("Substituir os dados do contrato atual por este contrato?")))return;tenantName.value=c.tenantName||"";unitStartYm.value=c.startYm||"";unitEndYm.value="";unitRent.value=c.rent===null?"":c.rent;pendingContractHistory.splice(i,1);resetHistoryForm();renderRentChanges();renderContractHistory();tenantName.focus()})});contractHistoryList.querySelectorAll("[data-history-remove]").forEach(function(button){button.addEventListener("click",function(){var i=Number(button.dataset.historyRemove);if(!window.confirm("Remover este contrato do histórico?"))return;pendingContractHistory.splice(i,1);resetHistoryForm();renderContractHistory()})})}
+
     function addContractHistoryEntry(){var name=historyTenant.value.trim(),start=historyStart.value||null,end=historyEnd.value||null,amount=Number(historyRent.value);if(!name&&!start&&!end){historyTenant.focus();return}if(start&&end&&end<start){historyEnd.setCustomValidity("O fim deve ser igual ou posterior ao início.");historyEnd.reportValidity();historyEnd.focus();return}historyEnd.setCustomValidity("");var c={id:editingHistoryIndex!==null&&pendingContractHistory[editingHistoryIndex]?pendingContractHistory[editingHistoryIndex].id:newContractHistoryId(),tenantName:name,startYm:start,endYm:end,rent:Number.isFinite(amount)&&amount>=0?amount:null,status:normalizeContractHistoryStatus(historyStatus.value),reason:historyReason.value.trim()};if(editingHistoryIndex!==null)pendingContractHistory[editingHistoryIndex]=c;else pendingContractHistory.push(c);resetHistoryForm();historyManual.open=false;renderContractHistory()}
     //--------------------------------------------------------------------------------------------
     function setCategoryStatus(message, isError) {
@@ -7358,19 +6771,6 @@ function saveExpense() {
         render();
     }
 
-    function deleteUnit() {
-        if (
-            !editingId ||
-            !window.confirm("Excluir esta unidade e seus registros?")
-        )
-            return;
-        state.units = state.units.filter(function (unit) {
-            return unit.id !== editingId;
-        });
-        saveState();
-        closeModal();
-        render();
-    }
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, function (character) {
