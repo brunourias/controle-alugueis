@@ -6182,3 +6182,12 @@ textarea:focus-visible {
         align-content: start;
     }
 }
+
+
+/* A entrada mobile tem oito áreas exclusivas; alertas e resumo anual foram
+   incorporados, respectivamente, em Cobranças e Relatórios. */
+@media (max-width: 680px) {
+    .desktop-action-alert {
+        display: none !important;
+    }
+}
