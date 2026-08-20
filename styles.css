@@ -6356,3 +6356,17 @@ textarea:focus-visible {
   margin-top: 10px;
   padding: 10px 12px;
 }
+
+/* Com qualquer modal aberto, somente o próprio modal pode rolar. */
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.modal-backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+.modal {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
