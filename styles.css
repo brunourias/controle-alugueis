@@ -6583,3 +6583,15 @@ body.modal-open {
         line-height: 1.15;
     }
 }
+
+
+/* Administração: o indicador de Gerenciar acesso acompanha o estado real da seção. */
+details.platform-account-manage > summary::after {
+    content: "⌄";
+    transform: none;
+}
+
+details.platform-account-manage[open] > summary::after {
+    content: "⌃";
+    transform: none;
+}
