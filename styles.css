@@ -6515,3 +6515,31 @@ body.modal-open {
         min-height: 96px;
     }
 }
+
+
+/* Tamanho compacto de referência para os oito atalhos do menu inicial. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 54px);
+        gap: 5px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 54px;
+        padding: 6px 8px;
+        gap: 3px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button > svg,
+    .app-navigation.is-launcher .app-nav-alert > svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button > span,
+    .app-navigation.is-launcher .action-alert-nav-label {
+        font-size: .68rem;
+        line-height: 1.1;
+    }
+}
