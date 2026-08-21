@@ -3424,7 +3424,7 @@ var historyRent = document.getElementById("historyRent");
 
     var DUE_SOON_DAYS = 5;
 
-    function dueReminder(unit) {
+    function dueReminder(unit, limitDays) {
         if (selectedYear !== new Date().getFullYear()) return null;
         var m = new Date().getMonth();
         if (!isActive(unit, m) || statusFor(unit, m) !== "pendente")
@@ -3435,7 +3435,10 @@ var historyRent = document.getElementById("historyRent");
         var today = new Date();
         today.setHours(0, 0, 0, 0);
         var days = Math.round((due - today) / 86400000);
-        if (days < 0 || days > Number(state.settings.reminderDays || DUE_SOON_DAYS)) return null;
+        var windowDays = Number.isInteger(Number(limitDays))
+            ? Number(limitDays)
+            : Number(state.settings.reminderDays || DUE_SOON_DAYS);
+        if (days < 0 || days > windowDays) return null;
         return days;
     }
 
@@ -4075,7 +4078,7 @@ var historyRent = document.getElementById("historyRent");
         }).length;
         var occupancy = units.length ? Math.round((occupied / units.length) * 100) : 0;
         var dueSoon = units.filter(function (unit) {
-            var reminder = isActive(unit, currentMonth) ? dueReminder(unit) : null;
+            var reminder = isActive(unit, currentMonth) ? dueReminder(unit, 7) : null;
             return reminder !== null && reminder >= 0 && reminder <= 7;
         }).length;
         var contractsEnding = units.filter(function (unit) {
