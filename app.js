@@ -8506,6 +8506,33 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
      * - A receber: parcelas ativas com status Pendente.
      * - Em atraso: parcelas com status Atrasado, ativas ou encerradas.
      */
+    // Recupera o principal de uma parcela atrasada, inclusive de dados legados
+    // cujo contrato histórico não possui mais período completo.
+    function lateRentForRecord(unit, year, month) {
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        var payment = getPaymentRecord(unit, year, month);
+        if (payment && Number.isFinite(Number(payment.rentAmount)) && Number(payment.rentAmount) > 0) {
+            return Number(payment.rentAmount);
+        }
+
+        var history = Array.isArray(unit && unit.contractHistory) ? unit.contractHistory : [];
+        var matching = history.slice().reverse().find(function (contract) {
+            if (!contract) return false;
+            var start = contract.startYm || contractMonthValue(contract.startDate);
+            var end = contract.endYm || contractMonthValue(contract.endDate);
+            return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end &&
+                Number.isFinite(Number(contract.rent)) && Number(contract.rent) > 0;
+        });
+        if (matching) return Number(matching.rent);
+
+        var lastKnown = history.slice().reverse().find(function (contract) {
+            return contract && Number.isFinite(Number(contract.rent)) && Number(contract.rent) > 0;
+        });
+        if (lastKnown) return Number(lastKnown.rent);
+
+        return Math.max(0, Number(historicLateRent(unit, key)) || Number(unit && unit.rent) || 0);
+    }
+
     function monthlyFinancialMetrics(units, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var metrics = {
@@ -8518,7 +8545,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         };
 
         function addOpenLate(rent) {
-            if (!rent) return;
+            // O marcador "Atrasado" é a fonte de verdade para a quantidade.
+            // Se um registro legado não tiver valor recuperável, ele ainda
+            // aparece na contagem para nunca passar despercebido.
+            rent = Math.max(0, Number(rent) || 0);
             metrics.overdueCount += 1;
             metrics.overdueBase += rent;
             metrics.overdueWithCharges += rent;
@@ -8597,12 +8627,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
              * Essa marca é suficiente para a parcela aparecer na foto de
              * inadimplência, mesmo sem ledger/contrato histórico completo.
              */
-            if (!activeLateCounted && !historicLateCounted && statusFor(unit, month) === "atrasado") {
-                var legacyLateRent = Math.max(0, Number(historicLateRent(unit, key)) || 0);
-                if (!legacyLateRent && active) {
-                    legacyLateRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
-                }
-                addOpenLate(legacyLateRent);
+            if (!activeLateCounted && !historicLateCounted &&
+                (statusFor(unit, month) === "atrasado" || ledgerStatus === true || ledgerStatus === "open")) {
+                // O status aberto é suficiente para contar a parcela; o valor
+                // é buscado em todas as fontes disponíveis do contrato.
+                addOpenLate(lateRentForRecord(unit, year, month));
             }
         });
 
