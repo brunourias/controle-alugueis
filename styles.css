@@ -6463,3 +6463,11 @@ body.modal-open {
         overflow: visible;
     }
 }
+
+
+/* Central de ações: o painel de tarefas mantém o mesmo respiro dos blocos acima. */
+@media (max-width: 760px) {
+    .action-tasks-panel {
+        margin-top: 10px;
+    }
+}
