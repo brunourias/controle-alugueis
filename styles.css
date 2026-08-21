@@ -6438,3 +6438,28 @@ body.modal-open {
         gap: 5px;
     }
 }
+
+
+/* Pendências na navegação desktop: mantém o escudo inteiro dentro da área de toque. */
+@media (min-width: 681px) {
+    .app-navigation {
+        min-height: 44px;
+        align-items: center;
+        overflow: visible;
+    }
+
+    .app-navigation .desktop-action-alert {
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        line-height: 1;
+    }
+
+    .app-navigation .desktop-action-alert svg {
+        display: block;
+        width: 20px;
+        height: 20px;
+        overflow: visible;
+    }
+}
