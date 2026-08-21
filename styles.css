@@ -6471,3 +6471,21 @@ body.modal-open {
         margin-top: 10px;
     }
 }
+
+
+/* Menu inicial: cartões mais altos e colunas mais próximas. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 108px);
+        column-gap: 3px;
+        row-gap: 5px;
+    }
+}
+
+@media (max-height: 660px) and (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 94px);
+        column-gap: 3px;
+        row-gap: 5px;
+    }
+}
