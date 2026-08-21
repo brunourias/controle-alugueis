@@ -5020,7 +5020,7 @@ function renderSummary() {
             '<div class="home-snapshot-grid">' +
                 '<article class="home-snapshot-card"><span>Recebido</span><strong>' + money(received) + '</strong><small>Pagamentos baixados</small></article>' +
                 '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas ainda no prazo</small></article>' +
-                '<article class="home-snapshot-card ' + (currentMetrics.overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(currentMetrics.overdueBase) + '</strong><small>' + currentMetrics.overdueCount + ' parcela' + (currentMetrics.overdueCount === 1 ? '' : 's') + ' deste mês</small></article>' +
+                '<article class="home-snapshot-card ' + (overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(overdueTotal) + '</strong><small>' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</small></article>' +
                 '<article class="home-snapshot-card"><span>Valores gastos</span><strong>' + money(currentExpenses) + '</strong><small>Despesas deste mês</small></article>' +
                 '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
                 '<article class="home-snapshot-card home-snapshot-card-occupancy"><span>Ocupação</span><strong>' + occupancyRate + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades ocupadas</small></article>' +
@@ -5034,7 +5034,7 @@ function renderSummary() {
             '<div class="mobile-month-metrics">' +
                 '<span><small>Recebido</small><b>' + money(received) + '</b></span>' +
                 '<span><small>A receber</small><b>' + money(pending) + '</b></span>' +
-                '<span class="' + (currentMetrics.overdueCount ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(currentMetrics.overdueBase) + '</b></span>' +
+                '<span class="' + (overdueCount ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(overdueTotal) + '</b></span>' +
                 '<span><small>Gastos</small><b>' + money(currentExpenses) + '</b></span>' +
                 '<span class="' + (currentNet < 0 ? 'is-alert' : '') + '"><small>Líquido</small><b>' + money(currentNet) + '</b></span>' +
                 '<span><small>Ocupação</small><b>' + occupancyRate + '%</b></span>' +
