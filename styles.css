@@ -6416,3 +6416,25 @@ body.modal-open {
         line-height: 1.25;
     }
 }
+
+
+/* Grade inicial mobile: alvos de toque mais altos e ritmo visual mais fechado. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 98px);
+        gap: 5px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 0;
+        padding: 11px 9px;
+    }
+}
+
+@media (max-height: 660px) and (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 86px);
+        gap: 5px;
+    }
+}
