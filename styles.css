@@ -6372,70 +6372,41 @@ body.modal-open {
 }
 
 
-/* No celular, os dois atalhos principais do Financeiro usam a mesma grade
-   compacta da Visão geral. No desktop o fluxo continua em uma coluna. */
+
+/* Financeiro: painéis em coluna e indicadores compactos, em duas colunas,
+   seguindo a leitura da Visão geral no celular. */
 @media (max-width: 680px) {
     #financialView {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: start;
-        gap: 8px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
     }
 
     #financialView > .financial-dashboard,
     #financialView > .expenses-dashboard {
+        padding: 15px;
+    }
+
+    #financialView > #summary .enterprise-dashboard-cards,
+    #financialView > #summary .dashboard-group-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    #financialView > #summary .dashboard-card {
         min-width: 0;
-        padding: 12px;
+        padding: 10px;
     }
 
-    #financialView > .financial-dashboard .financial-dashboard-header,
-    #financialView > .expenses-dashboard .expenses-dashboard-header {
-        display: block;
+    #financialView > #summary .dashboard-card .summary-label {
+        font-size: .64rem;
     }
 
-    #financialView > .financial-dashboard .financial-summary-description,
-    #financialView > .expenses-dashboard .summary-report-intro {
-        display: none;
+    #financialView > #summary .dashboard-card .summary-value {
+        font-size: .94rem;
     }
 
-    #financialView > .financial-dashboard h2,
-    #financialView > .expenses-dashboard h2 {
-        font-size: .9rem;
-        line-height: 1.2;
-    }
-
-    #financialView > .financial-dashboard .financial-dashboard-actions,
-    #financialView > .expenses-dashboard .expenses-dashboard-actions {
-        margin-top: 10px;
-        display: block;
-    }
-
-    #financialView > .financial-dashboard .btn,
-    #financialView > .expenses-dashboard .btn {
-        width: 100%;
-        min-height: 34px;
-        padding: 7px 8px;
-        font-size: .68rem;
-    }
-
-    #financialView > .expenses-dashboard .expenses-overview {
-        display: block;
-        margin-top: 9px;
-    }
-
-    #financialView > .expenses-dashboard .expenses-total-card {
-        min-width: 0;
-        padding: 8px;
-    }
-
-    #financialView > .expenses-dashboard .expenses-total-card strong {
-        font-size: .9rem;
-    }
-
-    #financialView > .expenses-dashboard .expenses-metrics {
-        display: none;
-    }
-
-    #financialView > #summary {
-        grid-column: 1 / -1;
+    #financialView > #summary .dashboard-card .summary-detail {
+        font-size: .61rem;
+        line-height: 1.25;
     }
 }
