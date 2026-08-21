@@ -4938,6 +4938,8 @@ function renderSummary() {
     var overdueTotal = monthlyMetrics.reduce(function (sum, metric) {
         return sum + metric.overdueWithCharges;
     }, 0);
+    // O card inicial é uma foto da carteira inteira, não apenas do ano da grade.
+    var openLateSnapshot = openLateSnapshotMetrics(units);
 
     var reportRows = units.map(function (unit) {
         var openLate = 0;
@@ -5020,7 +5022,7 @@ function renderSummary() {
             '<div class="home-snapshot-grid">' +
                 '<article class="home-snapshot-card"><span>Recebido</span><strong>' + money(received) + '</strong><small>Pagamentos baixados</small></article>' +
                 '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas ainda no prazo</small></article>' +
-                '<article class="home-snapshot-card ' + (overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(overdueTotal) + '</strong><small>' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</small></article>' +
+                '<article class="home-snapshot-card ' + (openLateSnapshot.count ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(openLateSnapshot.total) + '</strong><small>' + openLateSnapshot.count + ' parcela' + (openLateSnapshot.count === 1 ? '' : 's') + ' em aberto</small></article>' +
                 '<article class="home-snapshot-card"><span>Valores gastos</span><strong>' + money(currentExpenses) + '</strong><small>Despesas deste mês</small></article>' +
                 '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
                 '<article class="home-snapshot-card home-snapshot-card-occupancy"><span>Ocupação</span><strong>' + occupancyRate + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades ocupadas</small></article>' +
@@ -5034,7 +5036,7 @@ function renderSummary() {
             '<div class="mobile-month-metrics">' +
                 '<span><small>Recebido</small><b>' + money(received) + '</b></span>' +
                 '<span><small>A receber</small><b>' + money(pending) + '</b></span>' +
-                '<span class="' + (overdueCount ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(overdueTotal) + '</b></span>' +
+                '<span class="' + (openLateSnapshot.count ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(openLateSnapshot.total) + '</b></span>' +
                 '<span><small>Gastos</small><b>' + money(currentExpenses) + '</b></span>' +
                 '<span class="' + (currentNet < 0 ? 'is-alert' : '') + '"><small>Líquido</small><b>' + money(currentNet) + '</b></span>' +
                 '<span><small>Ocupação</small><b>' + occupancyRate + '%</b></span>' +
@@ -8531,6 +8533,28 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (lastKnown) return Number(lastKnown.rent);
 
         return Math.max(0, Number(historicLateRent(unit, key)) || Number(unit && unit.rent) || 0);
+    }
+
+    // Foto atual: todas as parcelas que continuam marcadas como Atrasado,
+    // sem limitar o resultado ao ano que está sendo visualizado na grade.
+    function openLateSnapshotMetrics(units) {
+        var snapshot = { count: 0, total: 0 };
+        (units || []).forEach(function (unit) {
+            var statuses = unit && unit.status && typeof unit.status === "object" ? unit.status : {};
+            var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+            var keys = {};
+            Object.keys(statuses).forEach(function (key) { keys[key] = true; });
+            Object.keys(ledger).forEach(function (key) { keys[key] = true; });
+
+            Object.keys(keys).forEach(function (key) {
+                if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(key)) return;
+                if (statuses[key] !== "atrasado" && ledger[key] !== true && ledger[key] !== "open") return;
+                var parts = key.split("-").map(Number);
+                snapshot.count += 1;
+                snapshot.total += lateRentForRecord(unit, parts[0], parts[1] - 1);
+            });
+        });
+        return snapshot;
     }
 
     function monthlyFinancialMetrics(units, year, month) {
