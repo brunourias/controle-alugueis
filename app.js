@@ -638,9 +638,7 @@ var historyRent = document.getElementById("historyRent");
 		var now = new Date();
 		var refMonth = selectedYear === now.getFullYear() ? now.getMonth() : 11;
 		var units = scopedUnits();
-		var total = units.reduce(function (sum, unit) {
-		  return sum + (isActive(unit, refMonth) ? rentForMonth(unit, selectedYear, refMonth) : 0);
-		}, 0);
+		var total = monthlyFinancialMetrics(units, selectedYear, refMonth).expected;
 		var enterpriseCount = state.empreendimentos.length;
 		var unitLabel = units.length === 1 ? "unidade" : "unidades";
 		var enterpriseLabel = enterpriseCount === 1 ? "empreendimento" : "empreendimentos";
@@ -4896,42 +4894,25 @@ function suggestAdjustment() {
 }
 function renderSummary() {
     var units = scopedUnits();
-    var annual = units.reduce(function (sum, unit) {
-        return sum + months.reduce(function (monthSum, _, i) {
-            return monthSum + historicalReceivedAmount(unit, selectedYear, i);
-        }, 0);
-    }, 0);
-
     var now = new Date();
     var current = now.getFullYear() === selectedYear ? now.getMonth() : -1;
     var monthLabel = current < 0 ? "Visualizando outro ano" : months[current] + " de " + selectedYear;
 
-    // Pagamentos confirmados, inclusive de contratos já encerrados.
-    var received = current < 0 ? 0 : units.reduce(function (sum, unit) {
-        return sum + historicalReceivedAmount(unit, selectedYear, current);
+    // Cada mês usa a mesma regra, incluindo contratos encerrados no período.
+    var monthlyMetrics = months.map(function (_, month) {
+        return monthlyFinancialMetrics(units, selectedYear, month);
+    });
+    var currentMetrics = current < 0
+        ? { expected: 0, received: 0, pending: 0, overdueBase: 0, overdueWithCharges: 0, overdueCount: 0 }
+        : monthlyMetrics[current];
+    var annual = monthlyMetrics.reduce(function (sum, metric) {
+        return sum + metric.received;
     }, 0);
-
-    var expected = current < 0 ? 0 : units.reduce(function (sum, unit) {
-        return sum + (isActive(unit, current) ? Number(rentForMonth(unit, selectedYear, current)) || 0 : 0);
-    }, 0);
-
-    // "A receber" representa somente parcelas que continuam dentro do prazo.
-    // Após o vencimento, effectiveStatus passa a ser "atrasado" e o valor
-    // compõe exclusivamente a inadimplência — sem duplicar a previsão.
-    var pending = current < 0 ? 0 : units.reduce(function (sum, unit) {
-        return sum + (isActive(unit, current) && effectiveStatus(unit, current) === "pendente"
-            ? rentForMonth(unit, selectedYear, current)
-            : 0);
-    }, 0);
-
-    // Projeção anual baseada em todos os contratos cadastrados para cada mês do ano.
-    // Não presume novas locações após o fim de um contrato.
-    var annualRevenueForecast = units.reduce(function (sum, unit) {
-        return sum + months.reduce(function (monthSum, _, month) {
-            return monthSum + (isActive(unit, month)
-                ? Number(rentForMonth(unit, selectedYear, month)) || 0
-                : 0);
-        }, 0);
+    var received = currentMetrics.received;
+    var expected = currentMetrics.expected;
+    var pending = currentMetrics.pending;
+    var annualRevenueForecast = monthlyMetrics.reduce(function (sum, metric) {
+        return sum + metric.expected;
     }, 0);
 
     var annualExpenses = scopedExpenses().reduce(function (sum, expense) {
@@ -4949,21 +4930,14 @@ function renderSummary() {
     }).length;
     var occupancyRate = units.length ? Math.round((occupied / units.length) * 100) : 0;
 
-    var overdueCount = 0;
-    var overdueTotal = 0;
-    units.forEach(function (unit) {
-        var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-        months.forEach(function (_, i) {
-            var key = monthKey(i);
-            var isHistoricalOpenLate = lateLedger[key] === true || lateLedger[key] === "open";
-            if (effectiveStatus(unit, i) === "atrasado" || statusFor(unit, i) === "atrasado" || isHistoricalOpenLate) {
-                overdueCount += 1;
-                overdueTotal += isHistoricalOpenLate
-                    ? historicLateRent(unit, key)
-                    : (updatedAmount(unit, i) === null ? rentForMonth(unit, selectedYear, i) : updatedAmount(unit, i));
-            }
-        });
-    });
+    // A inadimplência anual usa os encargos estimados; o bloco "Este mês"
+    // exibe somente o principal daquele mês para manter a conciliação visível.
+    var overdueCount = monthlyMetrics.reduce(function (sum, metric) {
+        return sum + metric.overdueCount;
+    }, 0);
+    var overdueTotal = monthlyMetrics.reduce(function (sum, metric) {
+        return sum + metric.overdueWithCharges;
+    }, 0);
 
     var reportRows = units.map(function (unit) {
         var openLate = 0;
@@ -5046,7 +5020,7 @@ function renderSummary() {
             '<div class="home-snapshot-grid">' +
                 '<article class="home-snapshot-card"><span>Recebido</span><strong>' + money(received) + '</strong><small>Pagamentos baixados</small></article>' +
                 '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas ainda no prazo</small></article>' +
-                '<article class="home-snapshot-card ' + (overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(overdueTotal) + '</strong><small>' + overdueCount + ' parcela' + (overdueCount === 1 ? '' : 's') + ' em aberto</small></article>' +
+                '<article class="home-snapshot-card ' + (currentMetrics.overdueCount ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(currentMetrics.overdueBase) + '</strong><small>' + currentMetrics.overdueCount + ' parcela' + (currentMetrics.overdueCount === 1 ? '' : 's') + ' deste mês</small></article>' +
                 '<article class="home-snapshot-card"><span>Valores gastos</span><strong>' + money(currentExpenses) + '</strong><small>Despesas deste mês</small></article>' +
                 '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
                 '<article class="home-snapshot-card home-snapshot-card-occupancy"><span>Ocupação</span><strong>' + occupancyRate + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades ocupadas</small></article>' +
@@ -5060,7 +5034,7 @@ function renderSummary() {
             '<div class="mobile-month-metrics">' +
                 '<span><small>Recebido</small><b>' + money(received) + '</b></span>' +
                 '<span><small>A receber</small><b>' + money(pending) + '</b></span>' +
-                '<span class="' + (overdueCount ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(overdueTotal) + '</b></span>' +
+                '<span class="' + (currentMetrics.overdueCount ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(currentMetrics.overdueBase) + '</b></span>' +
                 '<span><small>Gastos</small><b>' + money(currentExpenses) + '</b></span>' +
                 '<span class="' + (currentNet < 0 ? 'is-alert' : '') + '"><small>Líquido</small><b>' + money(currentNet) + '</b></span>' +
                 '<span><small>Ocupação</small><b>' + occupancyRate + '%</b></span>' +
@@ -7498,27 +7472,17 @@ function saveExpense() {
         }).length;
 
         var monthly = months.map(function (_, i) {
-            var received = 0, expected = 0, overdue = 0;
-            units.forEach(function (unit) {
-                received += historicalReceivedAmount(unit, selectedYear, i);
-                if (isActive(unit, i)) expected += Number(rentForMonth(unit, selectedYear, i)) || 0;
-
-                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-                var key = monthKey(i);
-                var recordedOpenLate = ledger[key] === true || ledger[key] === "open";
-                if (effectiveStatus(unit, i) === "atrasado" || statusFor(unit, i) === "atrasado" || recordedOpenLate) {
-                    overdue += recordedOpenLate
-                        ? historicLateRent(unit, key)
-                        : (updatedAmount(unit, i) === null ? rentForMonth(unit, selectedYear, i) : updatedAmount(unit, i));
-                }
-            });
+            var metrics = monthlyFinancialMetrics(units, selectedYear, i);
+            var received = metrics.received;
+            var expected = metrics.expected;
+            var overdue = metrics.overdueWithCharges;
             var spent = expenses.reduce(function (sum, expense) {
                 return sum + (expense.ym === monthKey(i) ? expense.amount : 0);
             }, 0);
             annualReceived += received;
             annualExpected += expected;
             annualOverdue += overdue;
-            if (overdue > 0) annualOverdueCount += 1;
+            annualOverdueCount += metrics.overdueCount;
             return { received: received, expected: expected, overdue: overdue, expenses: spent, net: received - spent };
         });
 
@@ -7545,7 +7509,7 @@ function saveExpense() {
                     paid += 1;
                 }
                 if ((getPaymentRecord(unit, selectedYear, i) && Number(getPaymentRecord(unit, selectedYear, i).interestAmount) > 0) || isPaidLate(unit, i) || recordedLate === "paid") paidLate += 1;
-                if (isActive(unit, i)) expected += Number(rentForMonth(unit, selectedYear, i)) || 0;
+                expected += scheduledRentForMonth(unit, selectedYear, i);
 
                 if (effectiveStatus(unit, i) === "atrasado" || statusFor(unit, i) === "atrasado" || recordedOpenLate) {
                     overdueMonths += 1;
@@ -8489,6 +8453,76 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return Number.isFinite(parts[0]) && Number.isFinite(parts[1])
             ? Math.max(0, Number(rentForMonth(unit, parts[0], parts[1] - 1)) || 0)
             : 0;
+    }
+
+    /*
+     * Fonte única dos indicadores financeiros mensais.
+     * Todos os valores de receita abaixo representam apenas o principal do aluguel:
+     * multa e juros são acompanhados separadamente e não distorcem a conciliação.
+     */
+    function scheduledRentForMonth(unit, year, month) {
+        if (!unit) return 0;
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+
+        if (isActive(unit, month)) {
+            return Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+        }
+
+        var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
+        var contract = history.slice().reverse().find(function (item) {
+            if (!item) return false;
+            var start = item.startYm || contractMonthValue(item.startDate);
+            var end = item.endYm || contractMonthValue(item.endDate);
+            return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
+        });
+
+        return contract ? Math.max(0, Number(contract.rent) || 0) : 0;
+    }
+
+    function monthlyFinancialMetrics(units, year, month) {
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        var metrics = {
+            expected: 0,
+            received: 0,
+            pending: 0,
+            overdueBase: 0,
+            overdueWithCharges: 0,
+            overdueCount: 0
+        };
+
+        (units || []).forEach(function (unit) {
+            var scheduled = scheduledRentForMonth(unit, year, month);
+            if (!scheduled) return;
+
+            metrics.expected += scheduled;
+
+            var payment = getPaymentRecord(unit, year, month);
+            var isPaid = paymentIsConfirmedForTotals(unit, key, payment) ||
+                (isActive(unit, month) && statusFor(unit, month) === "pago");
+
+            if (isPaid) {
+                metrics.received += historicalReceivedAmount(unit, year, month);
+                return;
+            }
+
+            var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+            var recordedOpenLate = ledger[key] === true || ledger[key] === "open";
+            var isLate = recordedOpenLate ||
+                (isActive(unit, month) &&
+                    (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado"));
+
+            if (isLate) {
+                metrics.overdueCount += 1;
+                metrics.overdueBase += scheduled;
+                // Encargos estimados existem somente para o contrato ainda ativo.
+                var updated = isActive(unit, month) ? updatedAmount(unit, month) : null;
+                metrics.overdueWithCharges += updated === null ? scheduled : Math.max(scheduled, updated);
+            } else {
+                metrics.pending += scheduled;
+            }
+        });
+
+        return metrics;
     }
 
     function recordedInterestAmount(payment) {
