@@ -1,9 +1,9 @@
-const CACHE_NAME = "controle-alugueis-v159";
+const CACHE_NAME = "controle-alugueis-v160";
 
 const APP_SHELL = [
   "./index.html",
-  "./styles.css?v=159",
-  "./app.js?v=159",
+  "./styles.css?v=160",
+  "./app.js?v=160",
   "./manifest.json"
 ];
 
