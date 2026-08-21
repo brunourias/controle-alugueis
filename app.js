@@ -8423,15 +8423,35 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
 
-        if (paymentIsConfirmedForTotals(unit, key, payment)) {
-            return Math.max(0, Number(payment.rentAmount) || 0);
+        // Parcela atual: só soma quando o status visível é Pago.
+        if (isActive(unit, month) && statusFor(unit, month) === "pago") {
+            var activeRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+            var paidDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+            var startDate = isValidDateValue(unit.startDate)
+                ? new Date(unit.startDate + "T00:00:00")
+                : null;
+            var currentPayment = payment && !payment.historicContractId &&
+                (!startDate || (paidDate && !isNaN(paidDate.getTime()) && paidDate >= startDate));
+            return currentPayment
+                ? Math.max(0, Number(payment.rentAmount) || activeRent)
+                : activeRent;
         }
 
-        // Compatibilidade para pagamentos antigos sem histórico financeiro.
-        if (year !== selectedYear || statusFor(unit, month) !== "pago") return 0;
-        if (isActive(unit, month)) return Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+        // Parcela de contrato encerrado: respeita o status histórico "pago".
+        var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        var activeStart = isActive(unit, month) && isValidDateValue(unit.startDate)
+            ? new Date(unit.startDate + "T00:00:00")
+            : null;
+        var historicPaymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+        var paidBeforeNewContract = activeStart && historicPaymentDate &&
+            !isNaN(historicPaymentDate.getTime()) && historicPaymentDate < activeStart;
+        var historicPaid = ledger[key] === "paid" ||
+            (payment && payment.historicContractId) ||
+            paidBeforeNewContract ||
+            (!isActive(unit, month) && paymentIsConfirmedForTotals(unit, key, payment));
+        if (!historicPaid) return 0;
         var archived = archivedContractForMonth(unit, month);
-        return archived && Number.isFinite(Number(archived.rent)) ? Math.max(0, Number(archived.rent)) : 0;
+        return Math.max(0, Number(payment && payment.rentAmount) || Number(archived && archived.rent) || 0);
     }
 
     // Valor base de uma parcela histórica ainda em aberto.
@@ -8479,6 +8499,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return contract ? Math.max(0, Number(contract.rent) || 0) : 0;
     }
 
+    /*
+     * Regras do painel:
+     * - Previsto: aluguéis de contratos ativos no mês.
+     * - Recebido: parcelas com status Pago.
+     * - A receber: parcelas ativas com status Pendente.
+     * - Em atraso: parcelas com status Atrasado, ativas ou encerradas.
+     */
     function monthlyFinancialMetrics(units, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var metrics = {
@@ -8490,112 +8517,79 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             overdueCount: 0
         };
 
-        function addHistoricInstallment(contract, payment, ledgerState) {
-            if (!contract) return;
-            var rent = Math.max(0, Number(contract.rent) || 0);
-            if (!rent) return;
-
-            var isOpenLate = ledgerState === true || ledgerState === "open";
-            var isPaidLate = ledgerState === "paid";
-            var isPaid = isPaidLate || !!payment;
-            if (!isOpenLate && !isPaid) return;
-
-            // Um contrato encerrado só entra no mês quando deixou parcela
-            // registrada (paga ou em atraso). Assim não cria previsão falsa.
-            metrics.expected += rent;
-            if (isPaid) {
-                metrics.received += Math.max(0, Number(payment && payment.rentAmount) || rent);
-            } else {
-                metrics.overdueCount += 1;
-                metrics.overdueBase += rent;
-                metrics.overdueWithCharges += rent;
-            }
-        }
-
         (units || []).forEach(function (unit) {
-            var activeContract = isActive(unit, month);
+            var active = isActive(unit, month);
             var payment = getPaymentRecord(unit, year, month);
             var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-            var ledgerState = ledger[key];
+            var ledgerStatus = ledger[key];
+
+            // Contrato ativo: o status da própria parcela define a categoria.
+            if (active) {
+                var activeRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+                var activeStatus = statusFor(unit, month);
+                metrics.expected += activeRent;
+
+                if (activeStatus === "pago") {
+                    /*
+                     * O status Pago é a fonte de verdade. Havendo ajuste
+                     * registrado para o contrato atual, usa-se o principal
+                     * informado; sem ajuste, usa-se o aluguel do mês.
+                     */
+                    var paymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+                    var contractStart = isValidDateValue(unit.startDate)
+                        ? new Date(unit.startDate + "T00:00:00")
+                        : null;
+                    var currentPayment = payment && !payment.historicContractId &&
+                        (!contractStart || (paymentDate && !isNaN(paymentDate.getTime()) && paymentDate >= contractStart));
+                    metrics.received += currentPayment
+                        ? Math.max(0, Number(payment.rentAmount) || activeRent)
+                        : activeRent;
+                } else if (activeStatus === "atrasado") {
+                    metrics.overdueCount += 1;
+                    metrics.overdueBase += activeRent;
+                    metrics.overdueWithCharges += activeRent;
+                } else {
+                    // Qualquer parcela ativa ainda não baixada é pendente.
+                    metrics.pending += activeRent;
+                }
+            }
+
+            /*
+             * Contratos encerrados entram exclusivamente quando possuem
+             * parcela registrada no histórico: "open" = Atrasado;
+             * "paid" = Pago. Nunca entram em "A receber".
+             */
             var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
-            var historicContracts = history.filter(function (contract) {
-                if (!contract) return false;
+            history.forEach(function (contract) {
+                if (!contract) return;
                 var start = contract.startYm || contractMonthValue(contract.startDate);
                 var end = contract.endYm || contractMonthValue(contract.endDate);
-                return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
-            });
+                if (!isValidStartYm(start) || !isValidStartYm(end) || key < start || key > end) return;
 
-            // 1) Parcela do contrato atualmente ativo.
-            if (activeContract) {
-                var scheduled = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
-                var activePaid = statusFor(unit, month) === "pago" ||
-                    (unit.paidLate && unit.paidLate[key] === true);
+                var rent = Math.max(0, Number(contract.rent) || 0);
+                if (!rent) return;
 
-                if (scheduled) {
-                    metrics.expected += scheduled;
-                    if (activePaid) {
-                        var paymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
-                        var contractStart = isValidDateValue(unit.startDate)
-                            ? new Date(unit.startDate + "T00:00:00")
-                            : null;
-                        var paymentBelongsToActiveContract = payment &&
-                            !payment.historicContractId &&
-                            (!contractStart || (paymentDate && !isNaN(paymentDate.getTime()) && paymentDate >= contractStart));
-
-                        metrics.received += paymentBelongsToActiveContract
-                            ? Math.max(0, Number(payment.rentAmount) || scheduled)
-                            : scheduled;
-                    } else if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado") {
-                        metrics.overdueCount += 1;
-                        metrics.overdueBase += scheduled;
-                        var updated = updatedAmount(unit, month);
-                        metrics.overdueWithCharges += updated === null ? scheduled : Math.max(scheduled, updated);
-                    } else {
-                        metrics.pending += scheduled;
-                    }
-                }
-            }
-
-            /*
-             * 2) Parcelas de contratos já encerrados. Elas são independentes
-             * do contrato ativo e precisam continuar visíveis mesmo quando
-             * houve troca de inquilino no mesmo mês.
-             */
-            historicContracts.forEach(function (contract) {
-                var historicalPaymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
-                var activeStartDate = activeContract && isValidDateValue(unit.startDate)
+                var historicPaymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+                var activeStartDate = active && isValidDateValue(unit.startDate)
                     ? new Date(unit.startDate + "T00:00:00")
                     : null;
-                var paymentBeforeActiveContract = activeStartDate &&
-                    historicalPaymentDate &&
-                    !isNaN(historicalPaymentDate.getTime()) &&
-                    historicalPaymentDate < activeStartDate;
+                var paidBeforeNewContract = activeStartDate &&
+                    historicPaymentDate &&
+                    !isNaN(historicPaymentDate.getTime()) &&
+                    historicPaymentDate < activeStartDate;
+                var historicPaid = ledgerStatus === "paid" ||
+                    (payment && payment.historicContractId === contract.id) ||
+                    paidBeforeNewContract ||
+                    (!active && paymentIsConfirmedForTotals(unit, key, payment));
 
-                var historicPayment = payment && (
-                    payment.historicContractId === contract.id ||
-                    paymentBeforeActiveContract ||
-                    (!activeContract && paymentIsConfirmedForTotals(unit, key, payment))
-                ) ? payment : null;
-
-                // Quando há novo contrato no mesmo mês, o ledger pertence ao
-                // contrato anterior se ele ainda estiver em aberto.
-                var historicLedger = ledgerState;
-                if (!activeContract && !historicLedger && unit.paidLate && unit.paidLate[key] === true) {
-                    historicLedger = "paid";
+                if (ledgerStatus === true || ledgerStatus === "open") {
+                    metrics.overdueCount += 1;
+                    metrics.overdueBase += rent;
+                    metrics.overdueWithCharges += rent;
+                } else if (historicPaid) {
+                    metrics.received += Math.max(0, Number(payment && payment.rentAmount) || rent);
                 }
-
-                addHistoricInstallment(contract, historicPayment, historicLedger);
             });
-
-            /*
-             * Unidades sem contrato ativo ainda podem ter um pagamento
-             * histórico antigo sem vínculo de contrato (legado).
-             */
-            if (!activeContract && !historicContracts.length && paymentIsConfirmedForTotals(unit, key, payment)) {
-                var legacyRent = Math.max(0, Number(payment && payment.rentAmount) || 0);
-                metrics.expected += legacyRent;
-                metrics.received += legacyRent;
-            }
         });
 
         return metrics;
@@ -8647,19 +8641,23 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function historicalInterestAmount(unit, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
+        var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
 
-        /*
-         * Juros existem somente em uma parcela confirmada como paga com
-         * atraso. Um campo de juros eventualmente salvo em uma parcela
-         * normal (formato legado) não pode contaminar o total.
-         */
-        if (
-            !paymentIsConfirmedForTotals(unit, key, payment) ||
-            !paymentWasLate(unit, key)
-        ) {
-            return 0;
-        }
+        // Só há juros recebidos quando a parcela está efetivamente paga com atraso.
+        var paidLateCurrent = isActive(unit, month) &&
+            statusFor(unit, month) === "pago" &&
+            unit.paidLate && unit.paidLate[key] === true;
+        var historicPaymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+        var activeStart = isActive(unit, month) && isValidDateValue(unit.startDate)
+            ? new Date(unit.startDate + "T00:00:00")
+            : null;
+        var paidBeforeNewContract = activeStart && historicPaymentDate &&
+            !isNaN(historicPaymentDate.getTime()) && historicPaymentDate < activeStart;
+        var paidLateHistoric = ledger[key] === "paid" ||
+            (payment && payment.historicContractId && paymentWasLate(unit, key)) ||
+            paidBeforeNewContract && paymentWasLate(unit, key);
 
+        if (!payment || (!paidLateCurrent && !paidLateHistoric)) return 0;
         return recordedInterestAmount(payment);
     }
 
