@@ -8517,64 +8517,66 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             overdueCount: 0
         };
 
+        function addOpenLate(rent) {
+            if (!rent) return;
+            metrics.overdueCount += 1;
+            metrics.overdueBase += rent;
+            metrics.overdueWithCharges += rent;
+        }
+
         (units || []).forEach(function (unit) {
             var active = isActive(unit, month);
             var payment = getPaymentRecord(unit, year, month);
             var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
             var ledgerStatus = ledger[key];
+            var activeLateCounted = false;
+            var historicLateCounted = false;
 
-            // Contrato ativo: o status da própria parcela define a categoria.
+            // Contrato ativo: previsto, pago, pendente ou atrasado conforme o status da parcela.
             if (active) {
                 var activeRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
                 var activeStatus = statusFor(unit, month);
                 metrics.expected += activeRent;
 
                 if (activeStatus === "pago") {
-                    /*
-                     * O status Pago é a fonte de verdade. Havendo ajuste
-                     * registrado para o contrato atual, usa-se o principal
-                     * informado; sem ajuste, usa-se o aluguel do mês.
-                     */
-                    var paymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+                    var paidDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
                     var contractStart = isValidDateValue(unit.startDate)
                         ? new Date(unit.startDate + "T00:00:00")
                         : null;
                     var currentPayment = payment && !payment.historicContractId &&
-                        (!contractStart || (paymentDate && !isNaN(paymentDate.getTime()) && paymentDate >= contractStart));
+                        (!contractStart || (paidDate && !isNaN(paidDate.getTime()) && paidDate >= contractStart));
                     metrics.received += currentPayment
                         ? Math.max(0, Number(payment.rentAmount) || activeRent)
                         : activeRent;
                 } else if (activeStatus === "atrasado") {
-                    metrics.overdueCount += 1;
-                    metrics.overdueBase += activeRent;
-                    metrics.overdueWithCharges += activeRent;
+                    addOpenLate(activeRent);
+                    activeLateCounted = true;
                 } else {
-                    // Qualquer parcela ativa ainda não baixada é pendente.
                     metrics.pending += activeRent;
                 }
             }
 
             /*
-             * Contratos encerrados entram exclusivamente quando possuem
-             * parcela registrada no histórico: "open" = Atrasado;
-             * "paid" = Pago. Nunca entram em "A receber".
+             * Contratos encerrados: só entram se a parcela foi registrada
+             * como paga ("paid") ou atrasada ("open"). Isso conserva o
+             * histórico sem colocá-lo em "A receber".
              */
             var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
             history.forEach(function (contract) {
                 if (!contract) return;
-                var start = contract.startYm || contractMonthValue(contract.startDate);
-                var end = contract.endYm || contractMonthValue(contract.endDate);
-                if (!isValidStartYm(start) || !isValidStartYm(end) || key < start || key > end) return;
+                var contractStartYm = contract.startYm || contractMonthValue(contract.startDate);
+                var contractEndYm = contract.endYm || contractMonthValue(contract.endDate);
+                if (!isValidStartYm(contractStartYm) || !isValidStartYm(contractEndYm) ||
+                    key < contractStartYm || key > contractEndYm) return;
 
-                var rent = Math.max(0, Number(contract.rent) || 0);
-                if (!rent) return;
+                var historicRent = Math.max(0, Number(contract.rent) || 0);
+                if (!historicRent) return;
 
                 var historicPaymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
                 var activeStartDate = active && isValidDateValue(unit.startDate)
                     ? new Date(unit.startDate + "T00:00:00")
                     : null;
-                var paidBeforeNewContract = activeStartDate &&
-                    historicPaymentDate &&
+                var paidBeforeNewContract = activeStartDate && historicPaymentDate &&
                     !isNaN(historicPaymentDate.getTime()) &&
                     historicPaymentDate < activeStartDate;
                 var historicPaid = ledgerStatus === "paid" ||
@@ -8583,18 +8585,29 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                     (!active && paymentIsConfirmedForTotals(unit, key, payment));
 
                 if (ledgerStatus === true || ledgerStatus === "open") {
-                    metrics.overdueCount += 1;
-                    metrics.overdueBase += rent;
-                    metrics.overdueWithCharges += rent;
+                    addOpenLate(historicRent);
+                    historicLateCounted = true;
                 } else if (historicPaid) {
-                    metrics.received += Math.max(0, Number(payment && payment.rentAmount) || rent);
+                    metrics.received += Math.max(0, Number(payment && payment.rentAmount) || historicRent);
                 }
             });
+
+            /*
+             * Dados legados podem ter somente status[ano-mês] = "atrasado".
+             * Essa marca é suficiente para a parcela aparecer na foto de
+             * inadimplência, mesmo sem ledger/contrato histórico completo.
+             */
+            if (!activeLateCounted && !historicLateCounted && statusFor(unit, month) === "atrasado") {
+                var legacyLateRent = Math.max(0, Number(historicLateRent(unit, key)) || 0);
+                if (!legacyLateRent && active) {
+                    legacyLateRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+                }
+                addOpenLate(legacyLateRent);
+            }
         });
 
         return metrics;
     }
-
 
     function recordedInterestAmount(payment) {
         if (!payment || typeof payment !== "object") return 0;
