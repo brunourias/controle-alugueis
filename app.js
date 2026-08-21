@@ -8497,11 +8497,38 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             metrics.expected += scheduled;
 
             var payment = getPaymentRecord(unit, year, month);
-            var isPaid = paymentIsConfirmedForTotals(unit, key, payment) ||
-                (isActive(unit, month) && statusFor(unit, month) === "pago");
+            var activeContract = isActive(unit, month);
+
+            /*
+             * Em uma troca de inquilino no mesmo mês, paymentHistory pode
+             * conter a baixa do contrato anterior. Para o contrato ativo,
+             * só o status/baixa atual confirma o recebimento. O registro
+             * histórico continua sendo considerado quando analisamos o
+             * contrato já encerrado.
+             */
+            var isPaid = activeContract
+                ? (statusFor(unit, month) === "pago" ||
+                    (unit.paidLate && unit.paidLate[key] === true))
+                : paymentIsConfirmedForTotals(unit, key, payment);
 
             if (isPaid) {
-                metrics.received += historicalReceivedAmount(unit, year, month);
+                if (activeContract) {
+                    var paymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+                    var contractStart = isValidDateValue(unit.startDate)
+                        ? new Date(unit.startDate + "T00:00:00")
+                        : null;
+                    var paymentBelongsToActiveContract = payment &&
+                        !payment.historicContractId &&
+                        (!contractStart || (paymentDate && !isNaN(paymentDate.getTime()) && paymentDate >= contractStart));
+
+                    // Sem ajuste vinculado ao contrato atual, a baixa vale o
+                    // aluguel contratado — nunca o pagamento do inquilino anterior.
+                    metrics.received += paymentBelongsToActiveContract
+                        ? Math.max(0, Number(payment.rentAmount) || 0)
+                        : scheduled;
+                } else {
+                    metrics.received += historicalReceivedAmount(unit, year, month);
+                }
                 return;
             }
 
