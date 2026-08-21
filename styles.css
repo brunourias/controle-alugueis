@@ -6543,3 +6543,16 @@ body.modal-open {
         line-height: 1.1;
     }
 }
+
+
+/* Altura ampliada em 50% a partir da referência compacta. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 81px);
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 81px;
+    }
+}
