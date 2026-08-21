@@ -6370,3 +6370,22 @@ body.modal-open {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+
+/* Aba Financeiro: painéis principais lado a lado no desktop, como Visão geral. */
+@media (min-width: 681px) {
+    #financialView {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
+    #financialView > .financial-dashboard,
+    #financialView > .expenses-dashboard {
+        min-width: 0;
+        height: 100%;
+    }
+
+    #financialView > #summary {
+        grid-column: 1 / -1;
+    }
+}
