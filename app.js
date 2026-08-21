@@ -8646,7 +8646,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             // Contrato ativo: previsto, pago, pendente ou atrasado conforme o status da parcela.
             if (active) {
                 var activeRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
-                var activeStatus = statusFor(unit, month);
+                // A mesma classificação usada pela grade: uma parcela
+                // Pendente cujo vencimento passou já é Atrasado, não "A receber".
+                var activeStatus = effectiveStatus(unit, month);
                 metrics.expected += activeRent;
 
                 if (activeStatus === "pago") {
