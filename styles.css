@@ -6489,3 +6489,29 @@ body.modal-open {
         row-gap: 5px;
     }
 }
+
+
+/* Grade inicial uniforme: vãos iguais e cartões próximos de quadrados. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 112px);
+        gap: 5px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 112px;
+    }
+}
+
+@media (max-height: 660px) and (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 96px);
+        gap: 5px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 96px;
+    }
+}
