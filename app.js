@@ -3897,30 +3897,42 @@ var historyRent = document.getElementById("historyRent");
         });
     }
 
+    function centerGridMonthCell(target, behavior) {
+        if (!target || !tableWrap) return;
+        var frozenColumn = grid.querySelector("thead th:first-child");
+        var wrapRect = tableWrap.getBoundingClientRect();
+        var targetRect = target.getBoundingClientRect();
+        var frozenWidth = frozenColumn ? frozenColumn.getBoundingClientRect().width : 0;
+        var usableWidth = Math.max(0, wrapRect.width - frozenWidth);
+        if (!usableWidth) return;
+
+        // Trabalha com a posição efetivamente renderizada: é mais confiável
+        // com coluna sticky, zoom e larguras diferentes de tela.
+        var desiredCenter = wrapRect.left + frozenWidth + usableWidth / 2;
+        var currentCenter = targetRect.left + targetRect.width / 2;
+        var maxScrollLeft = Math.max(0, tableWrap.scrollWidth - tableWrap.clientWidth);
+        lastGridScrollLeft = Math.max(0, Math.min(
+            maxScrollLeft,
+            tableWrap.scrollLeft + currentCenter - desiredCenter
+        ));
+        tableWrap.scrollTo({ left: lastGridScrollLeft, behavior: behavior || "auto" });
+    }
+
     function focusCurrentMonthInGrid() {
         if (!tableWrap || tableWrap.hidden) return;
-
         var monthHeaders = grid.querySelectorAll("thead th");
         if (monthHeaders.length < 2) return;
-
         var currentMonthIndex = new Date().getMonth();
         var target = grid.querySelector("thead th.month-current") ||
             monthHeaders[currentMonthIndex + 1];
         if (!target) return;
 
-        // A primeira coluna é fixa. Centraliza o mês no espaço que sobra à direita dela,
-        // para que ele não fique escondido por baixo das informações da unidade.
-        var frozenColumn = monthHeaders[0];
-        var frozenWidth = frozenColumn ? frozenColumn.getBoundingClientRect().width : 0;
-        var visibleWidth = Math.max(0, tableWrap.clientWidth - frozenWidth);
-        var targetCenter = target.offsetLeft + target.offsetWidth / 2;
-        var scrollLeft = Math.max(
-            0,
-            targetCenter - frozenWidth - visibleWidth / 2
-        );
-        var maxScrollLeft = Math.max(0, tableWrap.scrollWidth - tableWrap.clientWidth);
-        lastGridScrollLeft = Math.min(scrollLeft, maxScrollLeft);
-        tableWrap.scrollTo({ left: lastGridScrollLeft, behavior: "smooth" });
+        // Aguarda a abertura da tela e a coluna fixa receber sua largura final.
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+                centerGridMonthCell(target, "smooth");
+            });
+        });
     }
 
     function closeMobileShortcut() {
@@ -4829,7 +4841,9 @@ var historyRent = document.getElementById("historyRent");
         didInitialScroll = true;
 
         window.requestAnimationFrame(function () {
-            scrollToCurrentMonth(currentMonth);
+            window.requestAnimationFrame(function () {
+                scrollToCurrentMonth(currentMonth);
+            });
         });
     }
 }
@@ -4839,19 +4853,7 @@ var historyRent = document.getElementById("historyRent");
             tableWrap.scrollLeft = 0;
             return;
         }
-        var currentCell = grid.querySelector("thead th.month-current");
-        var firstColumn = grid.querySelector("thead th:first-child");
-        if (!currentCell || !firstColumn) return;
-        var stickyWidth = firstColumn.offsetWidth;
-        var visibleWidth = tableWrap.clientWidth - stickyWidth;
-        var currentCenter =
-            currentCell.offsetLeft + currentCell.offsetWidth / 2;
-        var visibleCenter =
-            firstColumn.offsetLeft + stickyWidth + visibleWidth / 2;
-        var targetScroll = currentCenter - visibleCenter;
-        var maxScroll = tableWrap.scrollWidth - tableWrap.clientWidth;
-        tableWrap.scrollLeft = Math.max(0, Math.min(maxScroll, targetScroll));
-        lastGridScrollLeft = tableWrap.scrollLeft;
+        centerGridMonthCell(grid.querySelector("thead th.month-current"), "auto");
     }
 
     function overdueTenantName(unit) {
