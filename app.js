@@ -8535,6 +8535,40 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return Math.max(0, Number(historicLateRent(unit, key)) || Number(unit && unit.rent) || 0);
     }
 
+    function lateUpdatedTotalForRecord(unit, key, year, month) {
+        var rent = lateRentForRecord(unit, year, month);
+        var history = Array.isArray(unit && unit.contractHistory) ? unit.contractHistory : [];
+        var contract = history.slice().reverse().find(function (item) {
+            if (!item) return false;
+            var start = item.startYm || contractMonthValue(item.startDate);
+            var end = item.endYm || contractMonthValue(item.endDate);
+            return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
+        });
+        var dueDay = contract && Number.isInteger(contract.dueDay)
+            ? contract.dueDay
+            : unit && Number.isInteger(unit.dueDay) ? unit.dueDay : null;
+        var startDate = contract && isValidDateValue(contract.startDate)
+            ? contract.startDate
+            : unit && isValidDateValue(unit.startDate) ? unit.startDate : "";
+        var dueDate = null;
+
+        if (startDate && startDate.slice(0, 7) === key) {
+            dueDate = new Date(startDate + "T00:00:00");
+        } else if (Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31) {
+            dueDate = new Date(year, month, Math.min(dueDay, new Date(year, month + 1, 0).getDate()));
+        }
+        if (!dueDate || isNaN(dueDate.getTime())) return rent;
+
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var days = Math.floor((today - dueDate) / 86400000);
+        if (days <= 0) return rent;
+
+        var fineRate = Math.max(0, Number(state.settings.finePercent) || 0) / 100;
+        var dailyInterestRate = Math.max(0, Number(state.settings.dailyInterestPercent) || 0) / 100 / 30;
+        return rent + (rent * fineRate) + (rent * dailyInterestRate * days);
+    }
+
     // Foto atual: todas as parcelas que continuam marcadas como Atrasado,
     // sem limitar o resultado ao ano que está sendo visualizado na grade.
     function openLateSnapshotMetrics(units) {
@@ -8546,7 +8580,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             if (seen[marker]) return;
             seen[marker] = true;
             snapshot.count += 1;
-            snapshot.total += lateRentForRecord(unit, year, month);
+            snapshot.total += lateUpdatedTotalForRecord(unit, key, year, month);
         }
 
         (units || []).forEach(function (unit) {
