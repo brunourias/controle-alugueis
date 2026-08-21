@@ -8539,6 +8539,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     // sem limitar o resultado ao ano que está sendo visualizado na grade.
     function openLateSnapshotMetrics(units) {
         var snapshot = { count: 0, total: 0 };
+        var seen = {};
+
+        function add(unit, key, year, month) {
+            var marker = String(unit && unit.id || "") + "|" + key;
+            if (seen[marker]) return;
+            seen[marker] = true;
+            snapshot.count += 1;
+            snapshot.total += lateRentForRecord(unit, year, month);
+        }
+
         (units || []).forEach(function (unit) {
             var statuses = unit && unit.status && typeof unit.status === "object" ? unit.status : {};
             var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
@@ -8546,17 +8556,33 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             Object.keys(statuses).forEach(function (key) { keys[key] = true; });
             Object.keys(ledger).forEach(function (key) { keys[key] = true; });
 
+            // Atrasos efetivamente registrados, inclusive dos contratos encerrados
+            // e de anos anteriores.
             Object.keys(keys).forEach(function (key) {
                 if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(key)) return;
                 if (statuses[key] !== "atrasado" && ledger[key] !== true && ledger[key] !== "open") return;
                 var parts = key.split("-").map(Number);
-                snapshot.count += 1;
-                snapshot.total += lateRentForRecord(unit, parts[0], parts[1] - 1);
+                add(unit, key, parts[0], parts[1] - 1);
+            });
+
+            // Mantém a mesma regra usada pela grade: uma parcela pendente cujo
+            // vencimento já passou aparece visualmente como Atrasado e precisa
+            // entrar na foto financeira, mesmo antes de existir um registro no ledger.
+            months.forEach(function (_, month) {
+                var key = monthKey(month);
+                var recordedLate = ledger[key];
+                if (
+                    effectiveStatus(unit, month) === "atrasado" ||
+                    statusFor(unit, month) === "atrasado" ||
+                    recordedLate === true ||
+                    recordedLate === "open"
+                ) {
+                    add(unit, key, selectedYear, month);
+                }
             });
         });
         return snapshot;
     }
-
     function monthlyFinancialMetrics(units, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var metrics = {
