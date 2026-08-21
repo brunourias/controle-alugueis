@@ -4067,6 +4067,34 @@ var historyRent = document.getElementById("historyRent");
         }
     }
 
+    // Indicador independente da grade: parcelas pendentes que vencem nos
+    // próximos dias do calendário, inclusive o primeiro vencimento do contrato.
+    function upcomingInstallmentDays(unit, limitDays) {
+        if (!unit || !String(unit.tenantName || "").trim()) return null;
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var year = today.getFullYear();
+        var month = today.getMonth();
+        var ym = String(year) + "-" + String(month + 1).padStart(2, "0");
+        var startYm = unit.startYm || contractMonthValue(unit.startDate);
+        var endYm = unit.endYm || contractMonthValue(unit.endDate);
+        if (isValidStartYm(startYm) && ym < startYm) return null;
+        if (isValidStartYm(endYm) && ym > endYm) return null;
+
+        var statuses = unit.status && typeof unit.status === "object" ? unit.status : {};
+        if (statuses[ym] && statuses[ym] !== "pendente") return null;
+
+        var due = null;
+        if (isValidDateValue(unit.startDate) && unit.startDate.slice(0, 7) === ym) {
+            due = new Date(unit.startDate + "T00:00:00");
+        } else if (Number.isInteger(unit.dueDay) && unit.dueDay >= 1 && unit.dueDay <= 31) {
+            due = new Date(year, month, Math.min(unit.dueDay, new Date(year, month + 1, 0).getDate()));
+        }
+        if (!due || isNaN(due.getTime())) return null;
+        var days = Math.round((due - today) / 86400000);
+        return days >= 0 && days <= limitDays ? days : null;
+    }
+
     function renderOverview() {
         var container = document.getElementById("overviewDashboard");
         if (!container) return;
@@ -4078,8 +4106,8 @@ var historyRent = document.getElementById("historyRent");
         }).length;
         var occupancy = units.length ? Math.round((occupied / units.length) * 100) : 0;
         var dueSoon = units.filter(function (unit) {
-            var reminder = isActive(unit, currentMonth) ? dueReminder(unit, 7) : null;
-            return reminder !== null && reminder >= 0 && reminder <= 7;
+            var reminder = upcomingInstallmentDays(unit, 7);
+            return reminder !== null;
         }).length;
         var contractsEnding = units.filter(function (unit) {
             var end = chargeLogDate(unit.endDate);
