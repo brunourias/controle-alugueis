@@ -6556,3 +6556,30 @@ body.modal-open {
         min-height: 81px;
     }
 }
+
+
+/* Menu móvel: mantém o mesmo tamanho antes e depois de abrir um atalho. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-rows: repeat(4, 76px);
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 76px;
+        padding: 9px 8px;
+        gap: 6px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button > svg,
+    .app-navigation.is-launcher .app-nav-alert > svg {
+        width: 23px;
+        height: 23px;
+    }
+
+    .app-navigation.is-launcher .app-nav-button > span,
+    .app-navigation.is-launcher .action-alert-nav-label {
+        font-size: .78rem;
+        line-height: 1.15;
+    }
+}
