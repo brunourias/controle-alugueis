@@ -4662,16 +4662,13 @@ var historyRent = document.getElementById("historyRent");
         '<tr><th scope="row">Total recebido</th>' +
         months
             .map(function (_, i) {
-                var total = scopedUnits().reduce(function (sum, unit) {
-                    return (
-                        sum +
-                        historicalReceivedAmount(
-                            unit,
-                            selectedYear,
-                            i
-                        )
-                    );
-                }, 0);
+                // A tabela e o dashboard precisam usar exatamente a mesma regra:
+                // apenas parcelas com status Pago entram em "Recebido".
+                var total = monthlyFinancialMetrics(
+                    scopedUnits(),
+                    selectedYear,
+                    i
+                ).received;
 
                 return "<td>" + money(total) + "</td>";
             })
