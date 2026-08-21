@@ -6386,7 +6386,13 @@ body.modal-open {
         padding: 15px;
     }
 
-    #financialView > #summary .enterprise-dashboard-cards,
+    /* Cada período permanece em sua própria linha. */
+    #financialView > #summary .enterprise-dashboard-cards {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    /* Somente os cartões dentro de cada período ficam lado a lado. */
     #financialView > #summary .dashboard-group-cards {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 7px;
