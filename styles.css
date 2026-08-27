@@ -6595,3 +6595,12 @@ details.platform-account-manage[open] > summary::after {
     content: "⌃";
     transform: none;
 }
+
+
+/* Vencimento no dia: destaque inequívoco antes de virar atraso. */
+.due-soon.is-today {
+    color: #a52d3b;
+    background: #fff0f2;
+    border: 1px solid #f3c4cb;
+    box-shadow: 0 2px 5px rgba(165, 45, 59, .10);
+}
