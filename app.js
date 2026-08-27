@@ -5482,6 +5482,18 @@ function renderSummary() {
         unit.status[key] =
             next === "pago" ? "pago" : next;
 
+        // A baixa comum também precisa ter sua própria data. Assim, um
+        // registro de um contrato anterior na mesma competência não é
+        // reutilizado pelo recibo do inquilino atual.
+        if (next === "pago") {
+            unit.activePaymentDates =
+                unit.activePaymentDates &&
+                typeof unit.activePaymentDates === "object"
+                    ? unit.activePaymentDates
+                    : {};
+            unit.activePaymentDates[key] = new Date().toISOString();
+        }
+
         unit.paidLate =
             unit.paidLate &&
             typeof unit.paidLate === "object"
@@ -6852,12 +6864,45 @@ function saveExpense() {
 		var aluguel = rentForMonth(unit, selectedYear, month);
 		var key = monthKey(month);
 
-		// Recupera o histórico do pagamento, se existir
+		// Recupera o histórico do pagamento, se existir.
+		// A data da baixa ativa fica separada porque a mesma competência
+		// pode também conter um pagamento de um contrato já encerrado.
 		var payment =
 			unit.paymentHistory &&
 			typeof unit.paymentHistory === "object"
 				? unit.paymentHistory[key]
 				: null;
+		var activePaymentDates =
+			unit.activePaymentDates &&
+			typeof unit.activePaymentDates === "object"
+				? unit.activePaymentDates
+				: {};
+		var activePaidAt = activePaymentDates[key] || "";
+		var startDate = isValidDateValue(unit.startDate)
+			? new Date(unit.startDate + "T00:00:00")
+			: null;
+		var historicPaidAt = payment && payment.paidAt
+			? new Date(payment.paidAt)
+			: null;
+		var belongsToPreviousContract =
+			!!payment &&
+			!!startDate &&
+			!!historicPaidAt &&
+			!isNaN(historicPaidAt.getTime()) &&
+			historicPaidAt < startDate;
+
+		// Corrige apenas a data do recibo atual, sem apagar o lançamento
+		// histórico que continua necessário para relatórios anteriores.
+		if (
+			!activePaidAt &&
+			status === "pago" &&
+			belongsToPreviousContract
+		) {
+			activePaidAt = new Date().toISOString();
+			unit.activePaymentDates = activePaymentDates;
+			unit.activePaymentDates[key] = activePaidAt;
+			saveState();
+		}
 
 		var multa = 0;
 		var juros = 0;
@@ -6914,8 +6959,9 @@ function saveExpense() {
 			// Total efetivamente pago
 			totalAmount: totalAtualizado,
 
-			// Data real em que o pagamento foi registrado
-			paidAt: payment ? payment.paidAt : null,
+			// A baixa do contrato ativo prevalece sobre qualquer registro
+			// antigo da mesma competência.
+			paidAt: activePaidAt || (!belongsToPreviousContract && payment ? payment.paidAt : null),
 		};
 	}
 
