@@ -6604,3 +6604,20 @@ details.platform-account-manage[open] > summary::after {
     border: 1px solid #f3c4cb;
     box-shadow: 0 2px 5px rgba(165, 45, 59, .10);
 }
+
+
+/* Central de ações: a segunda linha usa exatamente o mesmo vão da grade superior. */
+.action-center-detail {
+    display: grid;
+    gap: 14px;
+}
+
+.action-center-detail > .action-tasks-panel {
+    margin-top: 0;
+}
+
+@media (max-width: 760px) {
+    .action-center-detail {
+        gap: 10px;
+    }
+}
