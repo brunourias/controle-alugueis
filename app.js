@@ -3433,6 +3433,20 @@ var historyRent = document.getElementById("historyRent");
 
         var m = today.getMonth();
         var status = String(statusFor(unit, m) || "").toLowerCase();
+        var dueDay = Number(unit && unit.dueDay);
+
+        // Para o próprio dia exibido no cartão ("Vence dia X"), a parcela
+        // pendente deve ser sinalizada mesmo se dados antigos de início/fim
+        // do contrato estiverem incompletos. Esse é o alerta operacional.
+        if (
+            String(unit && unit.tenantName || "").trim() &&
+            status === "pendente" &&
+            Number.isInteger(dueDay) &&
+            dueDay === today.getDate()
+        ) {
+            return 0;
+        }
+
         if (!isActive(unit, m) || status !== "pendente") return null;
         if (daysOverdue(unit, m) !== null) return null;
 
