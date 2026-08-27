@@ -3412,14 +3412,13 @@ var historyRent = document.getElementById("historyRent");
     function dueDateFor(unit, month) {
         var firstDueDate = firstContractDueDate(unit);
         if (firstDueDate && monthKey(month) === unit.startYm) return firstDueDate;
-        if (
-            !Number.isInteger(unit.dueDay) ||
-            unit.dueDay < 1 ||
-            unit.dueDay > 31
-        )
+        // Registros antigos podem ter o dia salvo como texto (ex.: "27").
+        // Converte antes de calcular para que o aviso de vencimento não suma.
+        var dueDay = Number(unit.dueDay);
+        if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31)
             return null;
         var lastDay = new Date(selectedYear, month + 1, 0).getDate();
-        return new Date(selectedYear, month, Math.min(unit.dueDay, lastDay));
+        return new Date(selectedYear, month, Math.min(dueDay, lastDay));
     }
 
     var DUE_SOON_DAYS = 5;
