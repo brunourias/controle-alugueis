@@ -3424,15 +3424,21 @@ var historyRent = document.getElementById("historyRent");
     var DUE_SOON_DAYS = 5;
 
     function dueReminder(unit, limitDays) {
-        if (selectedYear !== new Date().getFullYear()) return null;
-        var m = new Date().getMonth();
-        if (!isActive(unit, m) || statusFor(unit, m) !== "pendente")
-            return null;
-        if (daysOverdue(unit, m) !== null) return null;
-        var due = dueDateFor(unit, m);
-        if (!due) return null;
         var today = new Date();
         today.setHours(0, 0, 0, 0);
+
+        // O ano pode vir da interface como texto; nunca esconda o lembrete
+        // apenas por essa diferença de tipo.
+        if (Number(selectedYear) !== today.getFullYear()) return null;
+
+        var m = today.getMonth();
+        var status = String(statusFor(unit, m) || "").toLowerCase();
+        if (!isActive(unit, m) || status !== "pendente") return null;
+        if (daysOverdue(unit, m) !== null) return null;
+
+        var due = dueDateFor(unit, m);
+        if (!due) return null;
+
         var days = Math.round((due - today) / 86400000);
         var windowDays = Number.isInteger(Number(limitDays))
             ? Number(limitDays)
@@ -4644,7 +4650,7 @@ var historyRent = document.getElementById("historyRent");
             var dueSoon =
                 reminderDays === null
                     ? ""
-                    : '<span class="due-soon">' +
+                    : '<span class="due-soon' + (reminderDays === 0 ? ' is-today' : '') + '">' +
                       (reminderDays === 0
                           ? "Vence hoje"
                           : reminderDays === 1
