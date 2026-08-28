@@ -529,6 +529,21 @@ var historyRent = document.getElementById("historyRent");
             if (validIds.indexOf(expense.empreendimentoId) < 0)
                 expense.empreendimentoId = validIds[0];
         });
+        saved.energyAllocations = Array.isArray(saved.energyAllocations) ? saved.energyAllocations
+            .filter(function (item) { return item && typeof item === "object" && /^\d{4}-\d{2}$/.test(String(item.reference || "")); })
+            .map(function (item) { return {
+                id: String(item.id || "energy-" + Date.now().toString(36)),
+                reference: String(item.reference).slice(0, 7),
+                enterpriseId: validIds.indexOf(item.enterpriseId) >= 0 ? item.enterpriseId : validIds[0],
+                invoiceAmount: Math.max(0, Number(item.invoiceAmount) || 0),
+                billedKwh: Math.max(0, Number(item.billedKwh) || 0),
+                readings: Array.isArray(item.readings) ? item.readings.map(function (row) { return {
+                    unitId: String(row.unitId || ""), unitName: String(row.unitName || "Unidade"),
+                    tenantName: String(row.tenantName || ""), kwh: Math.max(0, Number(row.kwh) || 0),
+                    amount: Math.max(0, Number(row.amount) || 0)
+                }; }) : [],
+                createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString()
+            }; }) : [];
         saved.tasks = Array.isArray(saved.tasks) ? saved.tasks.filter(function (task) {
             return task && typeof task === "object" && typeof task.title === "string";
         }).map(function (task) {
@@ -9729,5 +9744,109 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("saveChargeAndOpenWhatsapp").addEventListener("click", function () { saveChargeRecord(true); });
 
     applySuggestedRentAdjustment.addEventListener("click", suggestAdjustment);
+
+    // Rateio de energia: reproduz a regra da planilha, mantendo cada mês auditável.
+    function energyRateModalElements() {
+        return {
+            modal: document.getElementById("energyRateModal"),
+            reference: document.getElementById("energyRateReference"),
+            enterprise: document.getElementById("energyRateEnterprise"),
+            invoice: document.getElementById("energyRateInvoice"),
+            billed: document.getElementById("energyRateBilledKwh"),
+            readings: document.getElementById("energyRateReadings"),
+            preview: document.getElementById("energyRatePreview"),
+            history: document.getElementById("energyRateHistory")
+        };
+    }
+
+    function energyRateCalculate() {
+        var el = energyRateModalElements();
+        var invoiceAmount = Math.max(0, Number(el.invoice.value) || 0);
+        var billedKwh = Math.max(0, Number(el.billed.value) || 0);
+        var rows = Array.prototype.slice.call(el.readings.querySelectorAll("[data-energy-unit]")).map(function (input) {
+            return { unitId: input.dataset.energyUnit, unitName: input.dataset.energyName,
+                tenantName: input.dataset.energyTenant, kwh: Math.max(0, Number(input.value) || 0) };
+        });
+        var totalKwh = rows.reduce(function (sum, row) { return sum + row.kwh; }, 0);
+        var rate = totalKwh ? invoiceAmount / totalKwh : 0;
+        var subtotal = 0;
+        rows.forEach(function (row, index) {
+            row.amount = index === rows.length - 1 ? Math.max(0, Math.round((invoiceAmount - subtotal) * 100) / 100) : Math.round(row.kwh * rate * 100) / 100;
+            subtotal += row.amount;
+        });
+        return { invoiceAmount: invoiceAmount, billedKwh: billedKwh, totalKwh: totalKwh, rate: rate, difference: billedKwh ? billedKwh - totalKwh : null, readings: rows };
+    }
+
+    function renderEnergyRate() {
+        var el = energyRateModalElements(), calc = energyRateCalculate();
+        el.preview.innerHTML = '<div class="energy-metrics"><span><small>Soma dos medidores</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/kWh</strong></span><span class="' + (calc.difference !== null && Math.abs(calc.difference) > 5 ? "warning" : "") + '"><small>Diferença da fatura</small><strong>' + (calc.difference === null ? "—" : calc.difference.toFixed(2).replace(".", ",") + " kWh") + '</strong></span></div>' +
+            '<div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName) + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' kWh</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.readings.reduce(function (sum, row) { return sum + row.amount; }, 0)) + '.</p>';
+    }
+
+    function populateEnergyReadings() {
+        var el = energyRateModalElements();
+        var units = state.units.filter(function (unit) { return unit.empreendimentoId === el.enterprise.value && String(unit.tenantName || "").trim(); });
+        el.readings.innerHTML = units.length ? units.map(function (unit) {
+            return '<label class="energy-reading"><span><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(unit.tenantName) + '</small></span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="kWh" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label>';
+        }).join("") : '<p class="settings-note">Nenhuma unidade ocupada neste empreendimento.</p>';
+        el.readings.querySelectorAll("input").forEach(function (input) { input.addEventListener("input", renderEnergyRate); });
+        renderEnergyRate();
+    }
+
+    function energyReferenceLabel(reference) {
+        var parts = String(reference).split("-");
+        return fullMonths[Number(parts[1]) - 1] ? fullMonths[Number(parts[1]) - 1] + " de " + parts[0] : reference;
+    }
+
+    function energyShareImage(record, reading) {
+        var canvas = document.createElement("canvas"), ctx;
+        canvas.width = 1080; canvas.height = 720; ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#f5fbfa"; ctx.fillRect(0, 0, 1080, 720);
+        ctx.fillStyle = "#0f766e"; ctx.fillRect(0, 0, 1080, 170);
+        ctx.fillStyle = "#fff"; ctx.font = "700 43px Arial"; ctx.fillText("Rateio de energia", 60, 78);
+        ctx.font = "28px Arial"; ctx.fillText(energyReferenceLabel(record.reference), 60, 125);
+        var total = record.readings.reduce(function (sum, item) { return sum + item.kwh; }, 0), rate = total ? record.invoiceAmount / total : 0;
+        var lines = [["Unidade", reading.unitName], ["Consumo medido", reading.kwh.toFixed(2).replace(".", ",") + " kWh"], ["Tarifa efetiva", money(rate) + " por kWh"], ["Valor a cobrar", money(reading.amount)], ["Fatura total", money(record.invoiceAmount)]], y=250;
+        lines.forEach(function (line, index) { ctx.fillStyle=index===3?"#0f766e":"#355b58";ctx.font=index===3?"700 38px Arial":"600 29px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+22);ctx.lineTo(1020,y+22);ctx.stroke();y+=82; });
+        ctx.fillStyle="#607a78";ctx.font="23px Arial";ctx.fillText("Cálculo proporcional: consumo × (valor total da fatura ÷ soma dos medidores).",60,665);
+        return canvas;
+    }
+
+    function renderEnergyHistory() {
+        var el = energyRateModalElements();
+        var list = (state.energyAllocations || []).filter(function (item) { return item.enterpriseId === el.enterprise.value; }).sort(function(a,b){return String(b.reference).localeCompare(String(a.reference));}).slice(0,12);
+        el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + row.kwh.toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName) + '</small></span><b>' + money(row.amount) + '</b><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div>'; }).join("") + '</div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
+    }
+
+    function openEnergyRate() {
+        if (!requireWorkspacePermission("manageExpenses")) return;
+        var el = energyRateModalElements(), now = new Date();
+        el.reference.value = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+        el.invoice.value = ""; el.billed.value = "";
+        el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id===selectedEmpreendimentoId?" selected":"") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
+        populateEnergyReadings(); renderEnergyHistory(); ModalManager.open(el.modal);
+    }
+
+    function saveEnergyRate() {
+        if (!requireWorkspacePermission("manageExpenses")) return;
+        var el = energyRateModalElements(), calc = energyRateCalculate();
+        if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh) { alert("Informe referência, valor total da fatura e as leituras em kWh."); return; }
+        state.energyAllocations = Array.isArray(state.energyAllocations) ? state.energyAllocations : [];
+        state.energyAllocations.unshift({ id:"energy-"+Date.now().toString(36), reference:el.reference.value, enterpriseId:el.enterprise.value, invoiceAmount:calc.invoiceAmount, billedKwh:calc.billedKwh, readings:calc.readings, createdAt:new Date().toISOString() });
+        createVersionedBackup("Rateio de energia salvo", energyReferenceLabel(el.reference.value)); recordOperation("Rateio de energia salvo", energyReferenceLabel(el.reference.value)); saveState(); renderEnergyHistory();
+        alert("Rateio salvo no histórico.");
+    }
+
+    document.getElementById("openEnergyRate").addEventListener("click", openEnergyRate);
+    document.getElementById("cancelEnergyRate").addEventListener("click", function () { ModalManager.close(energyRateModalElements().modal); });
+    document.getElementById("saveEnergyRate").addEventListener("click", saveEnergyRate);
+    document.getElementById("energyRateEnterprise").addEventListener("change", function () { populateEnergyReadings(); renderEnergyHistory(); });
+    document.getElementById("energyRateInvoice").addEventListener("input", renderEnergyRate);
+    document.getElementById("energyRateBilledKwh").addEventListener("input", renderEnergyRate);
+    document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-energy-image]"); if (!button) return;
+        var record=(state.energyAllocations||[]).find(function(item){return item.id===button.dataset.energyImage;}), reading=record&&record.readings.find(function(item){return item.unitId===button.dataset.energyUnit;}); if(!record||!reading)return;
+        energyShareImage(record,reading).toBlob(function(blob){var file=new File([blob],"rateio-"+record.reference+"-"+reading.unitName.replace(/\s+/g,"-")+".png",{type:"image/png"});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({title:"Rateio de energia",files:[file]}).catch(function(){});return;}var link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download=file.name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},500);},"image/png");
+    });
 
 })();
