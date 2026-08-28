@@ -27,3 +27,4 @@ jobs:
         with:
           node-version: 22
       - run: node tests/integrity.mjs
+      - run: node tests/energy-rate.mjs
