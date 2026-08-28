@@ -7579,3 +7579,23 @@ button.energy-paid-indicator:focus-visible {
 .tenant-actions:empty {
     display: none;
 }
+
+
+/* Aproxima o menu da parcela e o indicador de energia como um único conjunto. */
+.status-cell {
+    column-gap: 2px;
+}
+.status-cell .cell-actions-trigger {
+    transform: translateX(5px);
+}
+.status-cell .energy-paid-indicator {
+    transform: translateX(-5px);
+}
+.status-cell.is-actions-open .energy-paid-indicator {
+    transform: none;
+}
+@media (hover: hover) and (pointer: fine) {
+    .status-cell:hover .energy-paid-indicator {
+        transform: none;
+    }
+}
