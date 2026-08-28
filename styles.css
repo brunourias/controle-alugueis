@@ -6762,3 +6762,38 @@ details.platform-account-manage[open] > summary::after {
 .energy-rate-reference-field {
     grid-column: 1 / -1;
 }
+
+
+/* Leituras compactas: neutraliza as margens globais aplicadas aos labels dos modais. */
+.energy-rate-modal .energy-rate-readings {
+    gap: 6px;
+}
+
+.energy-rate-modal .energy-reading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 88px;
+    align-items: center;
+    gap: 8px;
+    min-height: 50px;
+    margin: 0;
+    padding: 6px 8px;
+}
+
+.energy-rate-modal .energy-reading input {
+    width: 88px;
+    min-height: 32px;
+    margin: 0;
+    padding: 5px 8px;
+}
+
+@media (max-width: 620px) {
+    .energy-rate-modal .energy-reading {
+        grid-template-columns: minmax(0, 1fr) 78px;
+        min-height: 48px;
+        padding: 5px 7px;
+    }
+
+    .energy-rate-modal .energy-reading input {
+        width: 78px;
+    }
+}
