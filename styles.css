@@ -6752,3 +6752,13 @@ details.platform-account-manage[open] > summary::after {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* O rateio herda o empreendimento selecionado no cabeçalho. */
+.energy-rate-enterprise-field {
+    display: none !important;
+}
+
+.energy-rate-reference-field {
+    grid-column: 1 / -1;
+}
