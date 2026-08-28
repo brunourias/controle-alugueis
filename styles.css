@@ -7010,3 +7010,19 @@ details.platform-account-manage[open] > summary::after {
     border-color: #a9ddd4;
     background: #edf9f6;
 }
+
+
+/* O indicador de energia paga abre o comprovante individual. */
+button.energy-paid-indicator {
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+button.energy-paid-indicator:hover,
+button.energy-paid-indicator:focus-visible {
+    border-color: #49b8aa;
+    background: #ccefe7;
+    box-shadow: 0 0 0 3px rgba(73, 184, 170, .18);
+    outline: 0;
+}
