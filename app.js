@@ -9952,7 +9952,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             ctx.fillRect(810, 42, 210, 78);
             ctx.fillStyle = "#08756b"; ctx.textAlign = "center"; ctx.font = "700 29px Arial"; ctx.fillText("PAGO", 915, 76);
             ctx.font = "20px Arial";
-            ctx.fillText(reading.paidAt ? formatDate(parseDateValue(reading.paidAt)) : "", 915, 104);
+            ctx.fillText(reading.paidAt ? formatDate(reading.paidAt) : "", 915, 104);
             ctx.textAlign = "left";
         }
         var total = record.readings.reduce(function (sum, item) { return sum + item.kwh; }, 0), rate = total ? record.invoiceAmount / total : 0;
@@ -9969,7 +9969,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + '</small></span></summary><div>' +
                 item.readings.map(function (row) {
                     var paidLabel = row.paid ? 'Pago' : 'Marcar pago';
-                    var paidDate = row.paid && row.paidAt ? ' · pago em ' + formatDate(parseDateValue(row.paidAt)) : '';
+                    var paidDate = row.paid && row.paidAt ? ' · pago em ' + formatDate(row.paidAt) : '';
                     return '<div class="energy-history-item' + (row.paid ? ' is-paid' : '') + '"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + row.kwh.toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName || "Sem inquilino") + paidDate + '</small></span><b>' + money(row.amount) + '</b><div class="energy-history-actions"><button class="btn ' + (row.paid ? 'btn-energy-paid' : 'btn-ghost') + '" type="button" data-energy-paid="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">' + paidLabel + '</button><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div></div>';
                 }).join("") + '</div></details>';
         }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
