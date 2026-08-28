@@ -4454,14 +4454,14 @@ var historyRent = document.getElementById("historyRent");
 
     function energyPaidIndicator(unitId, month) {
         var reference = selectedYear + "-" + String(month + 1).padStart(2, "0");
-        var paid = (state.energyAllocations || []).some(function (allocation) {
-            return allocation.reference === reference &&
-                (allocation.readings || []).some(function (reading) {
+        var allocation = (state.energyAllocations || []).find(function (item) {
+            return item.reference === reference &&
+                (item.readings || []).some(function (reading) {
                     return reading.unitId === unitId && reading.paid === true;
                 });
         });
-        return paid
-            ? '<span class="energy-paid-indicator" title="Conta de energia paga" aria-label="Conta de energia paga">⚡</span>'
+        return allocation
+            ? '<button class="energy-paid-indicator" type="button" data-energy-image="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="Abrir comprovante da energia" aria-label="Abrir comprovante da energia">⚡</button>'
             : "";
     }
 
@@ -9947,6 +9947,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         ctx.fillStyle = "#0f766e"; ctx.fillRect(0, 0, 1080, 170);
         ctx.fillStyle = "#fff"; ctx.font = "700 43px Arial"; ctx.fillText("Rateio de energia", 60, 78);
         ctx.font = "28px Arial"; ctx.fillText(energyReferenceLabel(record.reference), 60, 125);
+        if (reading.paid) {
+            ctx.fillStyle = "#dff5ef";
+            ctx.beginPath(); ctx.roundRect(810, 42, 210, 78, 18); ctx.fill();
+            ctx.fillStyle = "#08756b"; ctx.textAlign = "center"; ctx.font = "700 29px Arial"; ctx.fillText("PAGO", 915, 76);
+            ctx.font = "20px Arial";
+            ctx.fillText(reading.paidAt ? formatDate(parseDateValue(reading.paidAt)) : "", 915, 104);
+            ctx.textAlign = "left";
+        }
         var total = record.readings.reduce(function (sum, item) { return sum + item.kwh; }, 0), rate = total ? record.invoiceAmount / total : 0;
         var lines = [["Unidade", reading.unitName], ["Consumo medido", reading.kwh.toFixed(2).replace(".", ",") + " kWh"], ["Tarifa efetiva", money(rate) + " por kWh"], ["Valor a cobrar", money(reading.amount)], ["Fatura total", money(record.invoiceAmount)]], y=250;
         lines.forEach(function (line, index) { ctx.fillStyle=index===3?"#0f766e":"#355b58";ctx.font=index===3?"700 38px Arial":"600 29px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+22);ctx.lineTo(1020,y+22);ctx.stroke();y+=82; });
