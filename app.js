@@ -9990,7 +9990,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 units[key].months += 1;
                 portfolioKwh += Math.max(0, Number(reading.kwh) || 0);
             });
-            if (winner) {
+            if (winner && Number(winner.kwh) > 0) {
                 var winnerKey = winner.unitId || winner.unitName;
                 if (units[winnerKey]) units[winnerKey].wins += 1;
             }
@@ -10008,7 +10008,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
         var monthLeaders = allocations.map(function (allocation) {
             var rows = (allocation.readings || []).slice().sort(function (left, right) { return Number(right.kwh) - Number(left.kwh); });
-            return { reference: allocation.reference, leader: rows[0] || null };
+            var leader = rows[0] && Number(rows[0].kwh) > 0 ? rows[0] : null;
+            return { reference: allocation.reference, leader: leader };
         });
 
         el.historicalComparison.innerHTML =
