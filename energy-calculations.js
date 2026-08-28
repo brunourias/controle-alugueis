@@ -19,8 +19,12 @@
         var readings = (rows || []).map(function (row) {
             var previousReading = Math.max(0, number(row.previousReading));
             var meterReading = Math.max(0, number(row.meterReading));
-            var hasValues = row.previousReading !== "" || row.meterReading !== "";
-            if (hasValues && meterReading < previousReading) {
+            var hasPrevious = row.previousReading !== "" && row.previousReading !== null && row.previousReading !== undefined;
+            var hasCurrent = row.meterReading !== "" && row.meterReading !== null && row.meterReading !== undefined;
+            var hasValues = hasPrevious && hasCurrent;
+            if (!hasValues) {
+                errors.push({ unitId: row.unitId, message: "Informe a leitura anterior e a leitura atual de todas as unidades." });
+            } else if (meterReading < previousReading) {
                 errors.push({ unitId: row.unitId, message: "A leitura atual não pode ser menor que a anterior." });
             }
             return Object.assign({}, row, {
