@@ -9851,11 +9851,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             reference: document.getElementById("energyRateReference"),
             enterprise: document.getElementById("energyRateEnterprise"),
             invoice: document.getElementById("energyRateInvoice"),
+            dueDate: document.getElementById("energyRateDueDate"),
             billed: document.getElementById("energyRateBilledKwh"),
             readings: document.getElementById("energyRateReadings"),
             modeNotice: document.getElementById("energyRateModeNotice"),
             saveButton: document.getElementById("saveEnergyRate"),
             preview: document.getElementById("energyRatePreview"),
+            alerts: document.getElementById("energyConsumptionAlerts"),
+            billing: document.getElementById("energyBillingSummary"),
             comparison: document.getElementById("energyRateComparison"),
             historicalComparison: document.getElementById("energyHistoricalComparison"),
             history: document.getElementById("energyRateHistory")
@@ -9867,23 +9870,50 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var invoiceAmount = Math.max(0, Number(el.invoice.value) || 0);
         var billedKwh = Math.max(0, Number(el.billed.value) || 0);
         var rows = Array.prototype.slice.call(el.readings.querySelectorAll("[data-energy-unit]")).map(function (input) {
-            return { unitId: input.dataset.energyUnit, unitName: input.dataset.energyName,
-                tenantName: input.dataset.energyTenant, kwh: Math.max(0, Number(input.value) || 0) };
+            var previousInput = el.readings.querySelector('[data-energy-previous-unit="' + CSS.escape(input.dataset.energyUnit) + '"]');
+            return {
+                unitId: input.dataset.energyUnit,
+                unitName: input.dataset.energyName,
+                tenantName: input.dataset.energyTenant,
+                previousReading: previousInput ? previousInput.value : "",
+                meterReading: input.value
+            };
         });
-        var totalKwh = rows.reduce(function (sum, row) { return sum + row.kwh; }, 0);
-        var rate = totalKwh ? invoiceAmount / totalKwh : 0;
-        var subtotal = 0;
-        rows.forEach(function (row, index) {
-            row.amount = index === rows.length - 1 ? Math.max(0, Math.round((invoiceAmount - subtotal) * 100) / 100) : Math.round(row.kwh * rate * 100) / 100;
-            subtotal += row.amount;
-        });
-        return { invoiceAmount: invoiceAmount, billedKwh: billedKwh, totalKwh: totalKwh, rate: rate, difference: billedKwh ? billedKwh - totalKwh : null, readings: rows };
+        var result = EnergyCalculations.calculateAllocation(rows, invoiceAmount);
+        result.billedKwh = billedKwh;
+        result.difference = billedKwh ? billedKwh - result.totalKwh : null;
+        return result;
     }
 
     function renderEnergyRate() {
         var el = energyRateModalElements(), calc = energyRateCalculate();
-        el.preview.innerHTML = '<div class="energy-metrics"><span><small>Soma dos medidores</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/kWh</strong></span><span class="' + (calc.difference !== null && Math.abs(calc.difference) > 5 ? "warning" : "") + '"><small>Diferença da fatura</small><strong>' + (calc.difference === null ? "—" : calc.difference.toFixed(2).replace(".", ",") + " kWh") + '</strong></span></div>' +
-            '<div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName) + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' kWh</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.readings.reduce(function (sum, row) { return sum + row.amount; }, 0)) + '.</p>';
+        calc.readings.forEach(function (row) {
+            var card = el.readings.querySelector('[data-energy-card="' + CSS.escape(row.unitId) + '"]');
+            var consumption = el.readings.querySelector('[data-energy-consumption="' + CSS.escape(row.unitId) + '"]');
+            var invalid = calc.errors.some(function (error) { return error.unitId === row.unitId; });
+            if (card) card.classList.toggle("is-invalid", invalid);
+            if (consumption) consumption.textContent = invalid ? "Leitura atual menor que a anterior" : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " kWh";
+        });
+        el.preview.innerHTML = '<div class="energy-metrics"><span><small>Consumo calculado</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/kWh</strong></span><span class="' + (calc.difference !== null && Math.abs(calc.difference) > 5 ? "warning" : "") + '"><small>Diferença da fatura</small><strong>' + (calc.difference === null ? "—" : calc.difference.toFixed(2).replace(".", ",") + " kWh") + '</strong></span></div>' +
+            '<div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName) + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' kWh</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.distributedAmount) + '.</p>';
+
+        var alerts = [];
+        calc.readings.forEach(function (row) {
+            if (!row.kwh) return;
+            var history = (state.energyAllocations || []).filter(function (item) {
+                return item.enterpriseId === el.enterprise.value && String(item.reference) < String(el.reference.value);
+            }).map(function (item) {
+                var oldReading = (item.readings || []).find(function (reading) { return reading.unitId === row.unitId; });
+                return oldReading ? Number(oldReading.kwh) : 0;
+            });
+            var alert = EnergyCalculations.anomaly(history, row.kwh, 0.3);
+            if (alert) alerts.push({ row: row, alert: alert });
+        });
+        el.alerts.innerHTML = alerts.length ? alerts.map(function (item) {
+            var percent = Math.abs(item.alert.variation * 100).toFixed(0);
+            var direction = item.alert.direction === "above" ? "acima" : "abaixo";
+            return '<div class="energy-consumption-alert ' + item.alert.direction + '"><strong>' + escapeHtml(item.row.unitName) + '</strong><span>' + percent + '% ' + direction + ' da média histórica (' + item.alert.average.toFixed(2).replace(".", ",") + ' kWh).</span></div>';
+        }).join("") : '<p class="energy-alert-empty">Nenhum consumo fora do padrão identificado.</p>';
 
         var ranked = calc.readings.slice().sort(function (left, right) { return right.kwh - left.kwh; });
         var maximum = ranked.length ? ranked[0].kwh : 0;
@@ -9897,12 +9927,27 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             : '<p class="settings-note energy-comparison-empty">Informe as leituras para visualizar o comparativo.</p>';
     }
 
+    function previousEnergyReading(unitId, reference, enterpriseId) {
+        var previousAllocation = (state.energyAllocations || []).filter(function (item) {
+            return item.enterpriseId === enterpriseId && String(item.reference || "") < String(reference || "") &&
+                (item.readings || []).some(function (reading) {
+                    return reading.unitId === unitId && Number.isFinite(Number(reading.meterReading));
+                });
+        }).sort(function (left, right) {
+            return String(right.reference).localeCompare(String(left.reference));
+        })[0];
+        if (!previousAllocation) return null;
+        var reading = (previousAllocation.readings || []).find(function (item) { return item.unitId === unitId; });
+        return reading ? { value: Number(reading.meterReading), reference: previousAllocation.reference } : null;
+    }
+
     function populateEnergyReadings() {
         var el = energyRateModalElements();
         var units = state.units.filter(function (unit) { return unit.empreendimentoId === el.enterprise.value; });
         el.readings.innerHTML = units.length ? units.map(function (unit) {
-            return '<label class="energy-reading"><span><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small></span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="kWh" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label>';
-        }).join("") : '<p class="settings-note">Nenhuma unidade ocupada neste empreendimento.</p>';
+            var previous = previousEnergyReading(unit.id, el.reference.value, el.enterprise.value);
+            return '<article class="energy-reading" data-energy-card="' + escapeHtml(unit.id) + '"><span class="energy-reading-identity"><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small><small class="energy-reading-consumption" data-energy-consumption="' + escapeHtml(unit.id) + '">Consumo: —</small></span><div class="energy-reading-fields"><label>Anterior<input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-previous-unit="' + escapeHtml(unit.id) + '" value="' + (previous ? previous.value.toFixed(2) : "") + '"' + (previous ? " readonly" : "") + '></label><label>Atual<input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label></div></article>';
+        }).join("") : '<p class="settings-note">Nenhuma unidade cadastrada neste empreendimento.</p>';
         el.readings.querySelectorAll("input").forEach(function (input) { input.addEventListener("input", renderEnergyRate); });
         renderEnergyRate();
     }
@@ -9918,11 +9963,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var el = energyRateModalElements();
         populateEnergyReadings();
         renderEnergyHistoricalComparison();
+        renderEnergyBillingSummary();
         var existing = currentEnergyAllocation();
         if (!existing) {
             el.invoice.value = "";
+            el.dueDate.value = "";
             el.billed.value = "";
-            el.modeNotice.textContent = "Nenhum rateio lançado nesta referência. Preencha os dados para criar.";
+            el.modeNotice.textContent = "Nenhum rateio lançado nesta referência. Informe as leituras anterior e atual de cada medidor.";
             el.modeNotice.classList.remove("is-existing");
             el.saveButton.textContent = "Salvar rateio";
             renderEnergyRate();
@@ -9930,14 +9977,22 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
 
         el.invoice.value = Number.isFinite(Number(existing.invoiceAmount)) ? Number(existing.invoiceAmount).toFixed(2) : "";
+        el.dueDate.value = existing.dueDate || "";
         el.billed.value = existing.billedKwh || "";
         var readingsByUnit = {};
         (existing.readings || []).forEach(function (reading) { readingsByUnit[reading.unitId] = reading; });
         el.readings.querySelectorAll("[data-energy-unit]").forEach(function (input) {
             var reading = readingsByUnit[input.dataset.energyUnit];
-            input.value = reading ? reading.kwh : "";
+            var previousInput = el.readings.querySelector('[data-energy-previous-unit="' + CSS.escape(input.dataset.energyUnit) + '"]');
+            if (!reading) { input.value = ""; return; }
+            var legacy = !Number.isFinite(Number(reading.meterReading));
+            input.value = legacy ? Number(reading.kwh || 0).toFixed(2) : Number(reading.meterReading).toFixed(2);
+            if (previousInput) {
+                previousInput.readOnly = !legacy;
+                previousInput.value = legacy ? "0.00" : Number(reading.previousReading || 0).toFixed(2);
+            }
         });
-        el.modeNotice.textContent = "Rateio já lançado. Os dados abaixo podem ser editados e salvos novamente.";
+        el.modeNotice.textContent = "Rateio já lançado. As leituras e o vencimento podem ser atualizados.";
         el.modeNotice.classList.add("is-existing");
         el.saveButton.textContent = "Salvar alterações";
         renderEnergyRate();
@@ -10076,7 +10131,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function saveEnergyRate() {
         if (!requireWorkspacePermission("manageExpenses")) return;
         var el = energyRateModalElements(), calc = energyRateCalculate();
-        if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh) { alert("Informe referência, valor total da fatura e as leituras em kWh."); return; }
+        if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh || !el.dueDate.value) { alert("Informe referência, vencimento, valor da fatura e as leituras dos medidores."); return; }
+        if (calc.errors.length) { alert(calc.errors[0].message); return; }
         state.energyAllocations = Array.isArray(state.energyAllocations) ? state.energyAllocations : [];
         var existing = currentEnergyAllocation();
         var nowIso = new Date().toISOString();
@@ -10084,6 +10140,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var previousByUnit = {};
             (existing.readings || []).forEach(function (reading) { previousByUnit[reading.unitId] = reading; });
             existing.invoiceAmount = calc.invoiceAmount;
+            existing.dueDate = el.dueDate.value;
             existing.billedKwh = calc.billedKwh;
             existing.readings = calc.readings.map(function (reading) {
                 var previous = previousByUnit[reading.unitId] || {};
@@ -10093,7 +10150,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             });
             existing.updatedAt = nowIso;
         } else {
-            state.energyAllocations.unshift({ id:"energy-"+Date.now().toString(36), reference:el.reference.value, enterpriseId:el.enterprise.value, invoiceAmount:calc.invoiceAmount, billedKwh:calc.billedKwh, readings:calc.readings, createdAt:nowIso, updatedAt:nowIso });
+            state.energyAllocations.unshift({ id:"energy-"+Date.now().toString(36), reference:el.reference.value, enterpriseId:el.enterprise.value, dueDate:el.dueDate.value, invoiceAmount:calc.invoiceAmount, billedKwh:calc.billedKwh, readings:calc.readings, createdAt:nowIso, updatedAt:nowIso });
         }
         // Garante uma única competência por empreendimento, inclusive para dados antigos.
         var keptKey = el.enterprise.value + "::" + el.reference.value;
@@ -10120,6 +10177,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("energyRateEnterprise").addEventListener("change", function () { loadEnergyRateReference(); renderEnergyHistory(); });
     document.getElementById("energyRateReference").addEventListener("change", loadEnergyRateReference);
     document.getElementById("energyRateInvoice").addEventListener("input", renderEnergyRate);
+    document.getElementById("energyRateDueDate").addEventListener("change", renderEnergyBillingSummary);
     document.getElementById("energyRateInvoice").addEventListener("blur", function (event) {
         if (event.target.value === "") return;
         var value = Number(event.target.value);
