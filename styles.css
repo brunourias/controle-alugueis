@@ -7026,3 +7026,58 @@ button.energy-paid-indicator:focus-visible {
     box-shadow: 0 0 0 3px rgba(73, 184, 170, .18);
     outline: 0;
 }
+
+
+/* Três ações mensais alinhadas: ajuste, recibo e energia. */
+.status-cell {
+    grid-template-columns: repeat(3, 22px);
+    grid-template-rows: auto 22px;
+    column-gap: 3px;
+    min-width: 72px;
+}
+
+.status-cell .status-btn,
+.status-cell .status-inactive {
+    grid-column: 1 / -1;
+    grid-row: 1;
+}
+
+.status-cell .payment-adjust-btn {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.status-cell .receipt-btn {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.status-cell .energy-paid-indicator {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: center;
+    justify-self: center;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+}
+
+@media (max-width: 520px) {
+    .status-cell {
+        grid-template-columns: repeat(3, 20px);
+        grid-template-rows: auto 20px;
+        column-gap: 3px;
+        min-width: 66px;
+    }
+
+    .status-cell .energy-paid-indicator {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media print {
+    .status-cell .energy-paid-indicator {
+        display: none !important;
+    }
+}
