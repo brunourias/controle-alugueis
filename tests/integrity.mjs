@@ -11,6 +11,8 @@ assert.doesNotThrow(() => new Function(energyCalculations), "energy-calculations
 assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
 assert.match(app, /meterReading:/, "Sincronização deve preservar a leitura atual");
 assert.match(app, /dueDate: isValidDateValue\(item\.dueDate\)/, "Sincronização deve preservar o vencimento da energia");
+assert.match(app, /Auth\.Persistence\.LOCAL/, "Autenticação deve persistir após atualizações");
+assert.match(app, /rememberPwaUpdateSession\(\)/, "Atualização deve preservar a sessão desbloqueada");
 
 const appVersion = (index.match(/app\.js\?v=(\d+)/) || [])[1];
 const styleVersion = (index.match(/styles\.css\?v=(\d+)/) || [])[1];
