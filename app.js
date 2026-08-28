@@ -3781,7 +3781,7 @@ var historyRent = document.getElementById("historyRent");
                 ' pelo WhatsApp" data-tenant-action data-charge-unit="' + escapeHtml(unit.id) + '">Cobrar</button>';
         }
         var whatsapp = whatsappUrl(unit.tenantPhone);
-        if (whatsapp) {
+        if (whatsapp && !charge) {
             actions +=
                 '<a class="tenant-action" href="' +
                 escapeHtml(whatsapp) +
@@ -4732,7 +4732,7 @@ var historyRent = document.getElementById("historyRent");
 
 			var recurrence = lateRecurrenceStatus(unit, selectedYear, currentMonth >= 0 ? currentMonth : 0);
             var recurrenceBadge = recurrence.count
-                ? '<span class="tenant-recurrence ' + (recurrence.reached ? "is-alert" : "") + '">' + recurrence.count + ' atraso(s) / 12 meses</span>'
+                ? '<span class="tenant-recurrence ' + (recurrence.reached ? "is-alert" : "") + '" title="' + escapeHtml(recurrence.label) + '">⚠ ' + recurrence.count + (recurrence.count === 1 ? ' atraso' : ' atrasos') + '</span>'
                 : "";
 			var tenant = unit.tenantName
 				? '<span class="tenant-name">' + escapeHtml(unit.tenantName) + "</span>" + recurrenceBadge
@@ -4790,11 +4790,11 @@ var historyRent = document.getElementById("historyRent");
 
                 tenant +
 
-                '<span class="rent">' +
+                '<span class="unit-financial-line"><span class="rent">' +
                 money(currentRent) +
                 "</span>" +
-
                 dueDay +
+                "</span>" +
                 dueSoon +
 
                 '<span class="tenant-actions">' +
