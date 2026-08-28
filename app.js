@@ -9765,6 +9765,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             billed: document.getElementById("energyRateBilledKwh"),
             readings: document.getElementById("energyRateReadings"),
             preview: document.getElementById("energyRatePreview"),
+            comparison: document.getElementById("energyRateComparison"),
             history: document.getElementById("energyRateHistory")
         };
     }
@@ -9791,6 +9792,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var el = energyRateModalElements(), calc = energyRateCalculate();
         el.preview.innerHTML = '<div class="energy-metrics"><span><small>Soma dos medidores</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/kWh</strong></span><span class="' + (calc.difference !== null && Math.abs(calc.difference) > 5 ? "warning" : "") + '"><small>Diferença da fatura</small><strong>' + (calc.difference === null ? "—" : calc.difference.toFixed(2).replace(".", ",") + " kWh") + '</strong></span></div>' +
             '<div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName) + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' kWh</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.readings.reduce(function (sum, row) { return sum + row.amount; }, 0)) + '.</p>';
+
+        var ranked = calc.readings.slice().sort(function (left, right) { return right.kwh - left.kwh; });
+        var maximum = ranked.length ? ranked[0].kwh : 0;
+        el.comparison.innerHTML = calc.totalKwh
+            ? '<div class="energy-comparison-summary"><span><small>Maior consumo</small><strong>' + escapeHtml(ranked[0].unitName) + '</strong></span><span><small>Média por unidade</small><strong>' + (calc.totalKwh / ranked.length).toFixed(2).replace(".", ",") + ' kWh</strong></span></div>' +
+              '<div class="energy-ranking">' + ranked.map(function (row, index) {
+                  var share = calc.totalKwh ? row.kwh / calc.totalKwh * 100 : 0;
+                  var width = maximum ? row.kwh / maximum * 100 : 0;
+                  return '<article class="' + (index === 0 ? 'is-highest' : '') + '"><span class="energy-rank">' + (index + 1) + 'º</span><div><div class="energy-rank-heading"><strong>' + escapeHtml(row.unitName) + '</strong><b>' + row.kwh.toFixed(2).replace(".", ",") + ' kWh · ' + share.toFixed(1).replace(".", ",") + '%</b></div><div class="energy-rank-bar"><i style="width:' + width.toFixed(2) + '%"></i></div><small>' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></div></article>';
+              }).join("") + '</div>'
+            : '<p class="settings-note energy-comparison-empty">Informe as leituras para visualizar o comparativo.</p>';
     }
 
     function populateEnergyReadings() {
