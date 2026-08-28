@@ -4883,20 +4883,8 @@ var historyRent = document.getElementById("historyRent");
         link.addEventListener("click", function (event) {
             event.stopPropagation();
             if (link.dataset.chargeUnit) {
-                var unit = state.units.find(function (item) { return item.id === link.dataset.chargeUnit; });
-                if (unit) {
-                    unit.chargeLog = Array.isArray(unit.chargeLog) ? unit.chargeLog : [];
-                    unit.chargeLog.unshift({
-                        createdAt: new Date().toISOString(),
-                        date: new Date().toISOString().slice(0, 10),
-                        kind: "whatsapp",
-                        tenantName: unit.tenantName || "",
-                        handledLateKeys: []
-                    });
-                    unit.chargeLog = unit.chargeLog.slice(0,40);
-                    recordOperation("Cobrança enviada", unit.name + " · WhatsApp");
-                    saveState();
-                }
+                event.preventDefault();
+                openChargeModal(link.dataset.chargeUnit);
             }
         });
 
