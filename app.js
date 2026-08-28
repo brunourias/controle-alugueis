@@ -9929,7 +9929,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return;
         }
 
-        el.invoice.value = existing.invoiceAmount || "";
+        el.invoice.value = Number.isFinite(Number(existing.invoiceAmount)) ? Number(existing.invoiceAmount).toFixed(2) : "";
         el.billed.value = existing.billedKwh || "";
         var readingsByUnit = {};
         (existing.readings || []).forEach(function (reading) { readingsByUnit[reading.unitId] = reading; });
@@ -10120,6 +10120,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("energyRateEnterprise").addEventListener("change", function () { loadEnergyRateReference(); renderEnergyHistory(); });
     document.getElementById("energyRateReference").addEventListener("change", loadEnergyRateReference);
     document.getElementById("energyRateInvoice").addEventListener("input", renderEnergyRate);
+    document.getElementById("energyRateInvoice").addEventListener("blur", function (event) {
+        if (event.target.value === "") return;
+        var value = Number(event.target.value);
+        if (!Number.isFinite(value)) return;
+        event.target.value = Math.max(0, value).toFixed(2);
+        renderEnergyRate();
+    });
     document.getElementById("energyRateBilledKwh").addEventListener("input", renderEnergyRate);
     document.addEventListener("click", function (event) {
         var paidButton = event.target.closest("[data-energy-paid]");
