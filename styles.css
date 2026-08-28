@@ -7209,3 +7209,174 @@ button.energy-paid-indicator:focus-visible {
         grid-column: 1 / -1;
     }
 }
+
+
+/* Leituras acumulativas, cobrança e inteligência do rateio de energia. */
+.energy-rate-inputs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.energy-rate-due-field { min-width: 0; }
+.energy-reading {
+    align-items: stretch;
+}
+.energy-reading-identity {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 92px;
+}
+.energy-reading-consumption {
+    margin-top: 4px;
+    color: #0f766e !important;
+    font-weight: 700;
+}
+.energy-reading-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(74px, 1fr));
+    gap: 5px;
+}
+.energy-reading-fields label {
+    display: grid;
+    gap: 2px;
+    color: #607a78;
+    font-size: .58rem;
+    font-weight: 700;
+}
+.energy-reading-fields input {
+    width: 100%;
+    min-width: 0;
+}
+.energy-reading-fields input[readonly] {
+    color: #607a78;
+    background: #edf4f3;
+}
+.energy-reading.is-invalid {
+    border-color: #ef9aa5;
+    background: #fff7f8;
+}
+.energy-reading.is-invalid .energy-reading-consumption {
+    color: #b42335 !important;
+}
+.energy-consumption-alerts {
+    display: grid;
+    gap: 5px;
+}
+.energy-consumption-alert,
+.energy-alert-empty {
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 9px;
+    font-size: .68rem;
+}
+.energy-consumption-alert {
+    display: flex;
+    gap: 5px;
+    border: 1px solid #f0d395;
+    color: #74591a;
+    background: #fff8e8;
+}
+.energy-consumption-alert.below {
+    border-color: #b9ddd7;
+    color: #246963;
+    background: #f0faf8;
+}
+.energy-alert-empty {
+    color: #607a78;
+    background: #f5f9f8;
+}
+.energy-billing-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+.energy-billing-cards span {
+    padding: 9px;
+    border-radius: 10px;
+    background: #edf7f5;
+}
+.energy-billing-cards span.is-overdue {
+    background: #fff0f2;
+}
+.energy-billing-cards small,
+.energy-billing-cards strong,
+.energy-billing-cards em {
+    display: block;
+}
+.energy-billing-cards small,
+.energy-billing-cards em {
+    color: #607a78;
+    font-size: .62rem;
+    font-style: normal;
+}
+.energy-billing-cards strong {
+    margin: 3px 0;
+    color: #075f5b;
+    font-size: .82rem;
+}
+.energy-billing-cards .is-overdue strong {
+    color: #b42335;
+}
+.energy-history-item.is-overdue {
+    background: #fff5f6;
+}
+.energy-evolution {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #dce9e7;
+}
+.energy-evolution > strong {
+    color: #174f4b;
+    font-size: .72rem;
+}
+.energy-evolution article {
+    display: grid;
+    grid-template-columns: minmax(84px, .35fr) 1fr;
+    align-items: end;
+    gap: 8px;
+}
+.energy-evolution article > b {
+    align-self: center;
+    overflow: hidden;
+    color: #245d58;
+    font-size: .68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.energy-evolution-bars {
+    display: flex;
+    align-items: end;
+    gap: 3px;
+    height: 66px;
+    padding-top: 4px;
+    border-bottom: 1px solid #bcd6d2;
+}
+.energy-evolution-bars span {
+    display: grid;
+    grid-template-rows: 1fr 13px;
+    align-items: end;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+}
+.energy-evolution-bars i {
+    display: block;
+    min-height: 4px;
+    border-radius: 4px 4px 0 0;
+    background: #49b8aa;
+}
+.energy-evolution-bars small {
+    overflow: hidden;
+    color: #6b817f;
+    font-size: .5rem;
+}
+@media (max-width: 620px) {
+    .energy-rate-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .energy-rate-due-field { grid-column: 1 / -1; }
+    .energy-reading { display: grid; }
+    .energy-reading-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .energy-billing-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .energy-billing-cards span { padding: 7px 5px; }
+    .energy-billing-cards strong { font-size: .7rem; }
+}
