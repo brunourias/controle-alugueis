@@ -10005,42 +10005,56 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function energyShareImage(record, reading) {
         var canvas = document.createElement("canvas"), ctx;
-        canvas.width = 1080; canvas.height = 720; ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#f5fbfa"; ctx.fillRect(0, 0, 1080, 720);
+        canvas.width = 1080; canvas.height = 900; ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#f5fbfa"; ctx.fillRect(0, 0, 1080, 900);
         ctx.fillStyle = "#0f766e"; ctx.fillRect(0, 0, 1080, 170);
         ctx.fillStyle = "#fff"; ctx.font = "700 43px Arial"; ctx.fillText("Rateio de energia", 60, 78);
         ctx.font = "28px Arial"; ctx.fillText(energyReferenceLabel(record.reference), 60, 125);
-        if (reading.paid) {
-            ctx.fillStyle = "#dff5ef";
-            ctx.fillRect(810, 42, 210, 78);
-            ctx.fillStyle = "#08756b"; ctx.textAlign = "center"; ctx.font = "700 29px Arial"; ctx.fillText("PAGO", 915, 76);
-            ctx.font = "20px Arial";
-            ctx.fillText(reading.paidAt ? formatDate(reading.paidAt) : "", 915, 104);
-            ctx.textAlign = "left";
+        var status = EnergyCalculations.dueStatus(record.dueDate, reading.paid === true, localDateValue(new Date()));
+        var badge = reading.paid ? "PAGO" : status === "overdue" ? "ATRASADO" : "PENDENTE";
+        ctx.fillStyle = reading.paid ? "#dff5ef" : status === "overdue" ? "#ffe4e6" : "#f5f1df";
+        ctx.fillRect(790, 42, 230, 78);
+        ctx.fillStyle = reading.paid ? "#08756b" : status === "overdue" ? "#b42335" : "#796b32";
+        ctx.textAlign = "center"; ctx.font = "700 27px Arial"; ctx.fillText(badge, 905, 76);
+        ctx.font = "19px Arial";
+        ctx.fillText(reading.paid && reading.paidAt ? formatDate(reading.paidAt) : record.dueDate ? "Vence " + formatDate(record.dueDate) : "", 905, 104);
+        ctx.textAlign = "left";
+
+        var total = record.readings.reduce(function (sum, item) { return sum + Number(item.kwh || 0); }, 0);
+        var rate = total ? record.invoiceAmount / total : 0;
+        var share = total ? Number(reading.kwh || 0) / total * 100 : 0;
+        var hasMeterReadings = Number.isFinite(Number(reading.meterReading));
+        var lines = [["Unidade", reading.unitName]];
+        if (hasMeterReadings) {
+            lines.push(["Leitura anterior", Number(reading.previousReading || 0).toFixed(2).replace(".", ",") + " kWh"]);
+            lines.push(["Leitura atual", Number(reading.meterReading || 0).toFixed(2).replace(".", ",") + " kWh"]);
         }
-        var total = record.readings.reduce(function (sum, item) { return sum + item.kwh; }, 0), rate = total ? record.invoiceAmount / total : 0;
-        var previousRecord = (state.energyAllocations || []).filter(function (item) {
-            return item.enterpriseId === record.enterpriseId &&
-                String(item.reference || "") < String(record.reference || "") &&
-                (item.readings || []).some(function (itemReading) { return itemReading.unitId === reading.unitId; });
-        }).sort(function (left, right) {
-            return String(right.reference).localeCompare(String(left.reference));
-        })[0];
-        var previousReading = previousRecord && (previousRecord.readings || []).find(function (item) {
-            return item.unitId === reading.unitId;
-        });
-        var lines = [["Unidade", reading.unitName], ["Consumo medido", reading.kwh.toFixed(2).replace(".", ",") + " kWh"], ["Tarifa efetiva", money(rate) + " por kWh"], ["Valor a cobrar", money(reading.amount)], ["Fatura total", money(record.invoiceAmount)]];
-        if (previousReading) {
-            lines.splice(1, 0, ["Medição anterior", Number(previousReading.kwh || 0).toFixed(2).replace(".", ",") + " kWh · " + energyReferenceLabel(previousRecord.reference)]);
-        }
-        var y = previousReading ? 225 : 250;
-        var lineGap = previousReading ? 70 : 82;
+        lines.push(["Consumo do mês", Number(reading.kwh || 0).toFixed(2).replace(".", ",") + " kWh"]);
+        lines.push(["Participação", share.toFixed(1).replace(".", ",") + "% do consumo"]);
+        lines.push(["Tarifa efetiva", money(rate) + " por kWh"]);
+        lines.push(["Valor a cobrar", money(reading.amount)]);
+        lines.push(["Vencimento", record.dueDate ? formatDate(record.dueDate) : "Não informado"]);
+        var y = 220, lineGap = hasMeterReadings ? 68 : 77;
         lines.forEach(function (line) {
             var isTotal = line[0] === "Valor a cobrar";
-            ctx.fillStyle=isTotal?"#0f766e":"#355b58";ctx.font=isTotal?"700 38px Arial":"600 29px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+22);ctx.lineTo(1020,y+22);ctx.stroke();y+=lineGap;
+            ctx.fillStyle=isTotal?"#0f766e":"#355b58";ctx.font=isTotal?"700 36px Arial":"600 27px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+20);ctx.lineTo(1020,y+20);ctx.stroke();y+=lineGap;
         });
-        ctx.fillStyle="#607a78";ctx.font="23px Arial";ctx.fillText("Cálculo proporcional: consumo × (valor total da fatura ÷ soma dos medidores).",60,665);
+        ctx.fillStyle="#607a78";ctx.font="22px Arial";ctx.fillText("Consumo = leitura atual − leitura anterior.",60,825);
+        ctx.fillText("Rateio proporcional: consumo × (fatura total ÷ consumo total).",60,858);
         return canvas;
+    }
+
+    function renderEnergyBillingSummary() {
+        var el = energyRateModalElements();
+        if (!el.billing) return;
+        var allocations = (state.energyAllocations || []).filter(function (item) {
+            return item.enterpriseId === el.enterprise.value;
+        });
+        var summary = EnergyCalculations.billingSummary(allocations, localDateValue(new Date()));
+        el.billing.innerHTML =
+            '<div class="energy-billing-cards"><span><small>Recebido</small><strong>' + money(summary.paid) + '</strong><em>' + summary.paidCount + ' pagamento(s)</em></span>' +
+            '<span><small>A receber</small><strong>' + money(summary.pending) + '</strong><em>' + summary.pendingCount + ' pendente(s)</em></span>' +
+            '<span class="' + (summary.overdueCount ? 'is-overdue' : '') + '"><small>Em atraso</small><strong>' + money(summary.overdue) + '</strong><em>' + summary.overdueCount + ' vencido(s)</em></span></div>';
     }
 
     function renderEnergyHistoricalComparison() {
@@ -10064,7 +10078,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var winner = monthRows.slice().sort(function (left, right) { return Number(right.kwh) - Number(left.kwh); })[0];
             monthRows.forEach(function (reading) {
                 var key = reading.unitId || reading.unitName;
-                if (!units[key]) units[key] = { unitName: reading.unitName || "Unidade", total: 0, months: 0, wins: 0 };
+                if (!units[key]) units[key] = { unitName: reading.unitName || "Unidade", total: 0, months: 0, wins: 0, values: [] };
+                units[key].values.push({ reference: allocation.reference, kwh: Math.max(0, Number(reading.kwh) || 0) });
                 units[key].total += Math.max(0, Number(reading.kwh) || 0);
                 units[key].months += 1;
                 portfolioKwh += Math.max(0, Number(reading.kwh) || 0);
@@ -10100,20 +10115,32 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             '<div class="energy-month-leaders"><strong>Maior consumo por mês</strong>' + monthLeaders.map(function (entry) {
                 var label = energyReferenceLabel(entry.reference);
                 return '<span><small>' + escapeHtml(label) + '</small><b>' + (entry.leader ? escapeHtml(entry.leader.unitName) + ' · ' + Number(entry.leader.kwh || 0).toFixed(2).replace(".", ",") + ' kWh' : "Sem leitura") + '</b></span>';
+            }).join("") + '</div>' +
+            '<div class="energy-evolution"><strong>Evolução mensal por unidade</strong>' + ranking.map(function (unit) {
+                var max = unit.values.reduce(function (value, item) { return Math.max(value, item.kwh); }, 0);
+                return '<article><b>' + escapeHtml(unit.unitName) + '</b><div class="energy-evolution-bars">' + unit.values.map(function (item) {
+                    var height = max ? Math.max(8, item.kwh / max * 100) : 8;
+                    return '<span title="' + escapeHtml(energyReferenceLabel(item.reference)) + ': ' + item.kwh.toFixed(2).replace(".", ",") + ' kWh"><i style="height:' + height.toFixed(1) + '%"></i><small>' + escapeHtml(months[Number(String(item.reference).slice(5, 7)) - 1]) + '</small></span>';
+                }).join("") + '</div></article>';
             }).join("") + '</div>';
     }
 
     function renderEnergyHistory() {
         var el = energyRateModalElements();
+        var today = localDateValue(new Date());
         var list = (state.energyAllocations || []).filter(function (item) { return item.enterpriseId === el.enterprise.value; }).sort(function(a,b){return String(b.reference).localeCompare(String(a.reference));}).slice(0,12);
         el.history.innerHTML = list.length ? list.map(function (item) {
-            return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + '</small></span></summary><div>' +
+            var dueLabel = item.dueDate ? ' · vence ' + formatDate(item.dueDate) : ' · sem vencimento';
+            return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + dueLabel + '</small></span></summary><div>' +
                 item.readings.map(function (row) {
+                    var status = EnergyCalculations.dueStatus(item.dueDate, row.paid === true, today);
                     var paidLabel = row.paid ? 'Pago' : 'Marcar pago';
                     var paidDate = row.paid && row.paidAt ? ' · pago em ' + formatDate(row.paidAt) : '';
-                    return '<div class="energy-history-item' + (row.paid ? ' is-paid' : '') + '"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + row.kwh.toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName || "Sem inquilino") + paidDate + '</small></span><b>' + money(row.amount) + '</b><div class="energy-history-actions"><button class="btn ' + (row.paid ? 'btn-energy-paid' : 'btn-ghost') + '" type="button" data-energy-paid="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">' + paidLabel + '</button><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div></div>';
+                    var statusLabel = status === "overdue" ? ' · energia atrasada' : status === "pending" ? ' · energia pendente' : '';
+                    return '<div class="energy-history-item is-' + status + '"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.kwh || 0).toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName || "Sem inquilino") + statusLabel + paidDate + '</small></span><b>' + money(row.amount) + '</b><div class="energy-history-actions"><button class="btn ' + (row.paid ? 'btn-energy-paid' : 'btn-ghost') + '" type="button" data-energy-paid="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">' + paidLabel + '</button><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div></div>';
                 }).join("") + '</div></details>';
         }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
+        renderEnergyBillingSummary();
     }
 
     function openEnergyRate() {
@@ -10197,6 +10224,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         reading.paidAt = reading.paid ? new Date().toISOString().slice(0, 10) : "";
         saveState();
         renderEnergyHistory();
+        renderEnergyHistoricalComparison();
         render();
     });
 
