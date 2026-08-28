@@ -9830,6 +9830,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function openEnergyRate() {
         if (!requireWorkspacePermission("manageExpenses")) return;
+        if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === selectedEmpreendimentoId; })) {
+            alert("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio.");
+            return;
+        }
         var el = energyRateModalElements(), now = new Date();
         el.reference.value = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
         el.invoice.value = ""; el.billed.value = "";
