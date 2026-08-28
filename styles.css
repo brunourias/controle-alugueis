@@ -7599,3 +7599,20 @@ button.energy-paid-indicator:focus-visible {
         transform: none;
     }
 }
+
+
+/* Três ações mensais sempre visíveis e centralizadas. */
+.status-cell {
+    column-gap: 3px;
+}
+.status-cell .cell-actions-trigger {
+    display: none !important;
+}
+.status-cell .cell-payment-actions,
+.status-cell.is-actions-open .cell-payment-actions {
+    display: flex;
+}
+.status-cell .energy-paid-indicator,
+.status-cell.is-actions-open .energy-paid-indicator {
+    transform: none;
+}
