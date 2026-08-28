@@ -4675,7 +4675,7 @@ var historyRent = document.getElementById("historyRent");
                         (selectedYear === new Date().getFullYear() && currentMonth >= 0 && i > currentMonth)
                     );
                     var secondaryActions = hasSecondaryActions
-                        ? '<button class="cell-actions-trigger" type="button" aria-label="Mostrar ações da parcela">⋯</button><div class="cell-payment-actions">' + adjustPayment + receipt + '</div>'
+                        ? '<div class="cell-payment-actions">' + adjustPayment + receipt + '</div>'
                         : "";
 
                     return (
@@ -4890,19 +4890,6 @@ var historyRent = document.getElementById("historyRent");
 
         link.addEventListener("keydown", function (event) {
             event.stopPropagation();
-        });
-    });
-
-    // Ações secundárias ficam ocultas até a parcela ser selecionada.
-    grid.querySelectorAll(".cell-actions-trigger").forEach(function (trigger) {
-        trigger.addEventListener("click", function (event) {
-            event.stopPropagation();
-            var cell = trigger.closest(".status-cell");
-            var willOpen = cell && !cell.classList.contains("is-actions-open");
-            grid.querySelectorAll(".status-cell.is-actions-open").forEach(function (openCell) {
-                openCell.classList.remove("is-actions-open");
-            });
-            if (cell && willOpen) cell.classList.add("is-actions-open");
         });
     });
 
