@@ -21,6 +21,11 @@ const invalid = energy.calculateAllocation([
 ], 100);
 assert.equal(invalid.errors.length, 1, "Leitura atual menor deve ser rejeitada");
 
+const incomplete = energy.calculateAllocation([
+    { unitId: "u1", previousReading: "", meterReading: 140 }
+], 100);
+assert.equal(incomplete.errors.length, 1, "As duas leituras devem ser obrigatórias");
+
 assert.equal(energy.anomaly([100, 110, 90], 150).direction, "above");
 assert.equal(energy.anomaly([100, 110, 90], 105), null);
 
