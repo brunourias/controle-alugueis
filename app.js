@@ -540,7 +540,9 @@ var historyRent = document.getElementById("historyRent");
                 readings: Array.isArray(item.readings) ? item.readings.map(function (row) { return {
                     unitId: String(row.unitId || ""), unitName: String(row.unitName || "Unidade"),
                     tenantName: String(row.tenantName || ""), kwh: Math.max(0, Number(row.kwh) || 0),
-                    amount: Math.max(0, Number(row.amount) || 0)
+                    amount: Math.max(0, Number(row.amount) || 0),
+                    paid: row.paid === true,
+                    paidAt: row.paid === true && typeof row.paidAt === "string" ? row.paidAt : ""
                 }; }) : [],
                 createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString()
             }; }) : [];
@@ -4450,6 +4452,19 @@ var historyRent = document.getElementById("historyRent");
     }
 
 
+    function energyPaidIndicator(unitId, month) {
+        var reference = selectedYear + "-" + String(month + 1).padStart(2, "0");
+        var paid = (state.energyAllocations || []).some(function (allocation) {
+            return allocation.reference === reference &&
+                (allocation.readings || []).some(function (reading) {
+                    return reading.unitId === unitId && reading.paid === true;
+                });
+        });
+        return paid
+            ? '<span class="energy-paid-indicator" title="Conta de energia paga" aria-label="Conta de energia paga">⚡</span>'
+            : "";
+    }
+
     function archivedMonthCell(unit, month, currentMonth) {
         var contract = archivedContractForMonth(unit, month);
         if (!contract) return null;
@@ -4458,10 +4473,11 @@ var historyRent = document.getElementById("historyRent");
             '<td class="' +
             (month === currentMonth ? "month-current" : "") +
             '">' +
-            '<div class="status-inactive" aria-label="Contrato arquivado">' +
+            '<div class="status-cell"><div class="status-inactive" aria-label="Contrato arquivado">' +
             '<span>Contrato arquivado</span>' +
             "</div>" +
-            "</td>"
+            energyPaidIndicator(unit.id, month) +
+            "</div></td>"
         );
     }
 
@@ -4506,7 +4522,7 @@ var historyRent = document.getElementById("historyRent");
 						return (
 							'<td class="' +
 							(i === currentMonth ? "month-current" : "") +
-							'"><div class="status-cell"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div></div></td>'
+							'"><div class="status-cell"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div>' + energyPaidIndicator(unit.id, i) + '</div></td>'
 						);
 					}
 
@@ -4514,7 +4530,7 @@ var historyRent = document.getElementById("historyRent");
 						return (
 							'<td class="' +
 							(i === currentMonth ? "month-current" : "") +
-							'"><div class="status-cell"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div></div></td>'
+							'"><div class="status-cell"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div>' + energyPaidIndicator(unit.id, i) + '</div></td>'
 						);
 					}
 
@@ -4629,6 +4645,7 @@ var historyRent = document.getElementById("historyRent");
 
                         receipt +
                         adjustPayment +
+                        energyPaidIndicator(unit.id, i) +
 
                         "</div>" +
                         "</td>"
@@ -9894,7 +9911,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function renderEnergyHistory() {
         var el = energyRateModalElements();
         var list = (state.energyAllocations || []).filter(function (item) { return item.enterpriseId === el.enterprise.value; }).sort(function(a,b){return String(b.reference).localeCompare(String(a.reference));}).slice(0,12);
-        el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + row.kwh.toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName) + '</small></span><b>' + money(row.amount) + '</b><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div>'; }).join("") + '</div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
+        el.history.innerHTML = list.length ? list.map(function (item) {
+            return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + '</small></span></summary><div>' +
+                item.readings.map(function (row) {
+                    var paidLabel = row.paid ? 'Pago' : 'Marcar pago';
+                    var paidDate = row.paid && row.paidAt ? ' · pago em ' + formatDate(parseDateValue(row.paidAt)) : '';
+                    return '<div class="energy-history-item' + (row.paid ? ' is-paid' : '') + '"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + row.kwh.toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName || "Sem inquilino") + paidDate + '</small></span><b>' + money(row.amount) + '</b><div class="energy-history-actions"><button class="btn ' + (row.paid ? 'btn-energy-paid' : 'btn-ghost') + '" type="button" data-energy-paid="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">' + paidLabel + '</button><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div></div>';
+                }).join("") + '</div></details>';
+        }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
     }
 
     function openEnergyRate() {
@@ -9927,6 +9951,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("energyRateEnterprise").addEventListener("change", function () { populateEnergyReadings(); renderEnergyHistory(); });
     document.getElementById("energyRateInvoice").addEventListener("input", renderEnergyRate);
     document.getElementById("energyRateBilledKwh").addEventListener("input", renderEnergyRate);
+    document.addEventListener("click", function (event) {
+        var paidButton = event.target.closest("[data-energy-paid]");
+        if (!paidButton) return;
+        if (!requireWorkspacePermission("manageExpenses")) return;
+        var allocation = (state.energyAllocations || []).find(function (item) { return item.id === paidButton.dataset.energyPaid; });
+        var reading = allocation && (allocation.readings || []).find(function (item) { return item.unitId === paidButton.dataset.energyUnit; });
+        if (!reading) return;
+        reading.paid = reading.paid !== true;
+        reading.paidAt = reading.paid ? new Date().toISOString().slice(0, 10) : "";
+        saveState();
+        renderEnergyHistory();
+        render();
+    });
+
     document.addEventListener("click", function (event) {
         var button = event.target.closest("[data-energy-image]"); if (!button) return;
         var record=(state.energyAllocations||[]).find(function(item){return item.id===button.dataset.energyImage;}), reading=record&&record.readings.find(function(item){return item.unitId===button.dataset.energyUnit;}); if(!record||!reading)return;
