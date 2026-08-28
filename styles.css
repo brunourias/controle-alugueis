@@ -7447,3 +7447,17 @@ button.energy-paid-indicator:focus-visible {
         grid-template-columns: minmax(90px, .75fr) minmax(164px, 1.25fr);
     }
 }
+
+
+/* Remove os controles nativos cortados dos campos de leitura dos medidores. */
+.energy-rate-modal .energy-reading-fields input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    padding-right: 9px;
+}
+.energy-rate-modal .energy-reading-fields input[type="number"]::-webkit-inner-spin-button,
+.energy-rate-modal .energy-reading-fields input[type="number"]::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
