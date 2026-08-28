@@ -2409,8 +2409,44 @@ var historyRent = document.getElementById("historyRent");
         });
     }
 
+    var PWA_UPDATE_SESSION_KEY = "controle-alugueis-pwa-update-session";
+
+    function rememberPwaUpdateSession() {
+        try {
+            sessionStorage.setItem(PWA_UPDATE_SESSION_KEY, JSON.stringify({
+                createdAt: Date.now(),
+                unlocked: appUnlocked === true,
+                uid: firebaseUser ? firebaseUser.uid : ""
+            }));
+        } catch (error) {}
+    }
+
+    function canResumePwaUpdate(user) {
+        try {
+            var saved = JSON.parse(sessionStorage.getItem(PWA_UPDATE_SESSION_KEY) || "null");
+            return !!saved && saved.unlocked === true && !!user && saved.uid === user.uid &&
+                Date.now() - Number(saved.createdAt || 0) < 2 * 60 * 1000;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function finishCloudAccessAfterUpdate(resumeAfterUpdate) {
+        setAccountGate(false);
+        if (resumeAfterUpdate) {
+            sessionStorage.removeItem(PWA_UPDATE_SESSION_KEY);
+            closeAuth();
+            appUnlocked = true;
+            revealApp();
+            return;
+        }
+        if (appUnlocked) revealApp();
+        else if (authModal.hidden) initAuth();
+    }
+
     function handleCloudAuthState(user) {
         firebaseUser = user;
+        var resumeAfterUpdate = canResumePwaUpdate(user);
 
         setCloudError("");
 
@@ -2430,7 +2466,7 @@ var historyRent = document.getElementById("historyRent");
             cloudAccessChecking = true;
             // A conta já autenticada vê primeiro o PIN do dispositivo.
             // A aprovação continua sendo verificada em segundo plano.
-            if (lockConfig) openAuthLogin();
+            if (lockConfig && !resumeAfterUpdate) openAuthLogin();
             setAccountGate(true, {
                 title: "Verificando acesso",
                 message: "Estamos preparando sua área de trabalho.",
@@ -2449,15 +2485,11 @@ var historyRent = document.getElementById("historyRent");
                     setCloudStatus("Conta conectada. Sincronização automática ativa.");
                     if (acceptedWorkspaceId) return activateWorkspace(acceptedWorkspaceId).then(function () {
                         cloudAccessChecking = false;
-                        setAccountGate(false);
-                        if (appUnlocked) revealApp();
-                        else if (authModal.hidden) initAuth();
+                        finishCloudAccessAfterUpdate(resumeAfterUpdate);
                     });
                     reconcileCloud();
                     cloudAccessChecking = false;
-                    setAccountGate(false);
-                    if (appUnlocked) revealApp();
-                    else if (authModal.hidden) initAuth();
+                    finishCloudAccessAfterUpdate(resumeAfterUpdate);
                 })
                 .catch(function (error) {
                     cloudAccessChecking = false;
@@ -2522,7 +2554,12 @@ var historyRent = document.getElementById("historyRent");
             // O aplicativo preserva o seu estado localmente. Não habilitamos a
             // persistência legada do Firestore, que foi descontinuada pelo SDK.
 
-            firebaseAuth.onAuthStateChanged(handleCloudAuthState);
+            var observeCloudAuth = function () {
+                firebaseAuth.onAuthStateChanged(handleCloudAuthState);
+            };
+            firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(observeCloudAuth)
+                .catch(observeCloudAuth);
 
             cloudInitialized = true;
 
@@ -8332,6 +8369,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!registration || !registration.waiting) return;
         pendingPwaUpdate = registration;
         showPwaStatus("Uma atualização está disponível.", "Atualizar agora", function () {
+            rememberPwaUpdateSession();
             pwaUpdateAccepted = true;
             registration.waiting.postMessage({ type: "SKIP_WAITING" });
         }, "is-update");
