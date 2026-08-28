@@ -6807,3 +6807,117 @@ details.platform-account-manage[open] > summary::after {
 .energy-rate-invoice-field {
     grid-column: 1 / -1;
 }
+
+
+/* Comparativo visual do consumo entre unidades. */
+.energy-comparison-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 8px;
+}
+
+.energy-comparison-summary span {
+    padding: 8px 9px;
+    border-radius: 9px;
+    background: #edf7f5;
+}
+
+.energy-comparison-summary small,
+.energy-comparison-summary strong {
+    display: block;
+}
+
+.energy-comparison-summary small {
+    color: #66817e;
+    font-size: .64rem;
+}
+
+.energy-comparison-summary strong {
+    margin-top: 2px;
+    color: #075f5b;
+    font-size: .78rem;
+}
+
+.energy-ranking {
+    display: grid;
+    gap: 5px;
+}
+
+.energy-ranking article {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border: 1px solid #e0ecea;
+    border-radius: 9px;
+    background: #fbfefe;
+}
+
+.energy-ranking article.is-highest {
+    border-color: #e3c779;
+    background: #fff9e8;
+}
+
+.energy-rank {
+    display: grid;
+    width: 26px;
+    height: 26px;
+    place-items: center;
+    border-radius: 50%;
+    color: #075f5b;
+    background: #e5f4f1;
+    font-size: .68rem;
+    font-weight: 850;
+}
+
+.energy-ranking article.is-highest .energy-rank {
+    color: #76550c;
+    background: #f7df9d;
+}
+
+.energy-rank-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.energy-rank-heading strong,
+.energy-rank-heading b {
+    color: #245d58;
+    font-size: .7rem;
+}
+
+.energy-rank-heading b {
+    white-space: nowrap;
+}
+
+.energy-rank-bar {
+    height: 5px;
+    margin: 4px 0 3px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: #e4efed;
+}
+
+.energy-rank-bar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #16877c;
+}
+
+.energy-ranking article.is-highest .energy-rank-bar i {
+    background: #d5a526;
+}
+
+.energy-ranking article small {
+    display: block;
+    color: #6c8582;
+    font-size: .62rem;
+}
+
+.energy-comparison-empty {
+    margin: 4px 0;
+}
