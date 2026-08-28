@@ -7461,3 +7461,88 @@ button.energy-paid-indicator:focus-visible {
     -webkit-appearance: none;
     appearance: none;
 }
+
+
+/* Grade mensal em dois níveis: visão rápida e ações sob demanda. */
+.status-cell .cell-actions-trigger {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    align-self: center;
+    justify-self: center;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    margin: 0;
+    padding: 0 0 5px;
+    border: 1px solid #dce9e7;
+    border-radius: 7px;
+    color: #68817e;
+    background: #f4f8f7;
+    font-size: .82rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.status-cell .cell-payment-actions {
+    display: none;
+    grid-column: 1 / 3;
+    grid-row: 2;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+.status-cell.is-actions-open .cell-actions-trigger {
+    display: none;
+}
+.status-cell.is-actions-open .cell-payment-actions {
+    display: flex;
+}
+.status-cell.is-compact-paid .status-btn {
+    min-width: 38px;
+    min-height: 34px;
+    border-radius: 10px;
+    font-size: .9rem;
+}
+.status-cell.is-compact-paid .status-label {
+    display: none;
+}
+.status-cell.is-future-pending .status-btn {
+    color: #738582;
+    border: 1px solid #d8e4e2;
+    background: #f5f8f7;
+    box-shadow: none;
+}
+.status-cell.is-inactive .status-inactive {
+    min-width: 38px;
+    min-height: 32px;
+    color: #a0afad;
+    border: 1px dashed #dce5e4;
+    background: transparent;
+}
+.status-cell.is-inactive .status-inactive span {
+    display: none;
+}
+.status-cell.is-inactive .status-inactive::before {
+    content: "—";
+    font-size: .75rem;
+}
+@media (hover: hover) and (pointer: fine) {
+    .status-cell:hover .cell-actions-trigger {
+        display: none;
+    }
+    .status-cell:hover .cell-payment-actions {
+        display: flex;
+    }
+}
+@media (max-width: 520px) {
+    .status-cell .cell-actions-trigger {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+    }
+    .status-cell.is-compact-paid .status-btn {
+        min-width: 34px;
+        min-height: 31px;
+    }
+}
