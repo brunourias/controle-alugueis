@@ -6991,3 +6991,22 @@ details.platform-account-manage[open] > summary::after {
         font-size: .66rem;
     }
 }
+
+
+/* Indica se a competência do rateio é nova ou está em edição. */
+.energy-rate-mode-notice {
+    margin: 0;
+    padding: 7px 9px;
+    border: 1px solid #d8e8e6;
+    border-radius: 9px;
+    color: #607a78;
+    background: #f8fbfb;
+    font-size: .68rem;
+    line-height: 1.35;
+}
+
+.energy-rate-mode-notice.is-existing {
+    color: #0b685f;
+    border-color: #a9ddd4;
+    background: #edf9f6;
+}
