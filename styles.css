@@ -6625,3 +6625,24 @@ details.platform-account-manage[open] > summary::after {
 
 /* Rateio de energia */
 .energy-rate-modal{width:min(760px,calc(100vw - 28px))}.energy-rate-form{display:grid;gap:12px}.energy-rate-form h3{margin:0;color:#075f5b;font-size:.9rem}.energy-rate-inputs,.energy-rate-readings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.energy-rate-inputs label{display:grid;gap:4px;color:#426966;font-size:.76rem;font-weight:700}.energy-rate-inputs small{color:#6c8582;font-size:.66rem;font-weight:400}.energy-reading{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px;border:1px solid #d8e8e6;border-radius:11px;background:#fbfefe}.energy-reading span,.energy-reading strong,.energy-reading small{display:block}.energy-reading strong{color:#155f5a;font-size:.76rem}.energy-reading small{color:#6c8582;font-size:.66rem}.energy-reading input{width:92px;min-height:34px}.energy-rate-preview{padding:10px;border:1px solid #d7e8e5;border-radius:12px;background:#f9fdfc}.energy-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.energy-metrics span{padding:7px;border-radius:9px;background:#edf7f5}.energy-metrics .warning{background:#fff4da}.energy-metrics small,.energy-metrics strong{display:block}.energy-metrics small{font-size:.64rem;color:#66817e}.energy-metrics strong{margin-top:3px;color:#075f5b;font-size:.77rem}.energy-results{display:grid;gap:4px;margin-top:8px}.energy-results>div,.energy-history-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 2px;border-top:1px solid #e3efed}.energy-results span,.energy-results strong,.energy-results small,.energy-history-item span,.energy-history-item strong,.energy-history-item small{display:block}.energy-results strong,.energy-history-item strong{font-size:.74rem;color:#245d58}.energy-results small,.energy-history-item small{font-size:.66rem;color:#6c8582}.energy-results b,.energy-history-item b{font-size:.76rem;color:#075f5b}.energy-check{margin:7px 0 0;font-size:.68rem;color:#6c8582}.energy-history{border-top:1px solid #e1edeb}.energy-history summary{display:flex;justify-content:space-between;gap:8px;padding:8px 0;cursor:pointer;list-style:none}.energy-history summary::-webkit-details-marker{display:none}.energy-history summary span,.energy-history summary strong,.energy-history summary small{display:block}.energy-history summary strong{font-size:.76rem;color:#075f5b}.energy-history summary small{font-size:.66rem;color:#6c8582}.energy-history-item .btn{min-height:29px;padding:0 8px;font-size:.65rem}@media(max-width:620px){.energy-rate-modal{width:calc(100vw - 20px);padding:14px}.energy-rate-inputs,.energy-rate-readings{grid-template-columns:1fr}.energy-metrics{grid-template-columns:1fr 1fr}.energy-metrics span:last-child{grid-column:1/-1}.energy-reading input{width:108px}}
+
+
+/* Atalho do rateio ocupa uma linha própria no menu inicial do celular. */
+.mobile-energy-rate-nav {
+    display: none;
+}
+
+@media (max-width: 680px) {
+    .mobile-energy-rate-nav {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: auto auto;
+        justify-content: center;
+        align-content: center;
+        column-gap: 8px;
+    }
+
+    .mobile-energy-rate-nav > svg {
+        align-self: center;
+    }
+}
