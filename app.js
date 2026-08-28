@@ -8378,6 +8378,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 ModalManager.close(document.getElementById("contractInstallmentsModal"));
             },
         },
+        {
+            element: document.getElementById("energyRateModal"),
+            close: function () {
+                ModalManager.close(document.getElementById("energyRateModal"));
+            },
+        },
     ];
 
     dismissibleModals.forEach(function (entry) {
