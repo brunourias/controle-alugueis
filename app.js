@@ -9851,6 +9851,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             saveButton: document.getElementById("saveEnergyRate"),
             preview: document.getElementById("energyRatePreview"),
             comparison: document.getElementById("energyRateComparison"),
+            historicalComparison: document.getElementById("energyHistoricalComparison"),
             history: document.getElementById("energyRateHistory")
         };
     }
@@ -9910,6 +9911,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function loadEnergyRateReference() {
         var el = energyRateModalElements();
         populateEnergyReadings();
+        renderEnergyHistoricalComparison();
         var existing = currentEnergyAllocation();
         if (!existing) {
             el.invoice.value = "";
@@ -9960,6 +9962,65 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         lines.forEach(function (line, index) { ctx.fillStyle=index===3?"#0f766e":"#355b58";ctx.font=index===3?"700 38px Arial":"600 29px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+22);ctx.lineTo(1020,y+22);ctx.stroke();y+=82; });
         ctx.fillStyle="#607a78";ctx.font="23px Arial";ctx.fillText("Cálculo proporcional: consumo × (valor total da fatura ÷ soma dos medidores).",60,665);
         return canvas;
+    }
+
+    function renderEnergyHistoricalComparison() {
+        var el = energyRateModalElements();
+        if (!el.historicalComparison) return;
+        var yearMatch = String(el.reference.value || "").match(/^(\d{4})/);
+        var year = yearMatch ? yearMatch[1] : String(selectedYear);
+        var allocations = (state.energyAllocations || []).filter(function (item) {
+            return item.enterpriseId === el.enterprise.value && String(item.reference || "").slice(0, 4) === year;
+        }).sort(function (left, right) { return String(left.reference).localeCompare(String(right.reference)); });
+
+        if (!allocations.length) {
+            el.historicalComparison.innerHTML = '<p class="settings-note energy-comparison-empty">Ainda não há rateios salvos em ' + escapeHtml(year) + '.</p>';
+            return;
+        }
+
+        var units = {};
+        var portfolioKwh = 0;
+        allocations.forEach(function (allocation) {
+            var monthRows = (allocation.readings || []).filter(function (reading) { return Number(reading.kwh) >= 0; });
+            var winner = monthRows.slice().sort(function (left, right) { return Number(right.kwh) - Number(left.kwh); })[0];
+            monthRows.forEach(function (reading) {
+                var key = reading.unitId || reading.unitName;
+                if (!units[key]) units[key] = { unitName: reading.unitName || "Unidade", total: 0, months: 0, wins: 0 };
+                units[key].total += Math.max(0, Number(reading.kwh) || 0);
+                units[key].months += 1;
+                portfolioKwh += Math.max(0, Number(reading.kwh) || 0);
+            });
+            if (winner) {
+                var winnerKey = winner.unitId || winner.unitName;
+                if (units[winnerKey]) units[winnerKey].wins += 1;
+            }
+        });
+
+        var ranking = Object.keys(units).map(function (key) {
+            var unit = units[key];
+            unit.average = unit.months ? unit.total / unit.months : 0;
+            unit.share = portfolioKwh ? unit.total / portfolioKwh * 100 : 0;
+            return unit;
+        }).sort(function (left, right) {
+            return right.average - left.average || right.total - left.total;
+        });
+        var maximumAverage = ranking.length ? ranking[0].average : 0;
+
+        var monthLeaders = allocations.map(function (allocation) {
+            var rows = (allocation.readings || []).slice().sort(function (left, right) { return Number(right.kwh) - Number(left.kwh); });
+            return { reference: allocation.reference, leader: rows[0] || null };
+        });
+
+        el.historicalComparison.innerHTML =
+            '<div class="energy-history-overview"><span><small>Ano analisado</small><strong>' + escapeHtml(year) + '</strong></span><span><small>Meses lançados</small><strong>' + allocations.length + '</strong></span><span><small>Consumo acumulado</small><strong>' + portfolioKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span></div>' +
+            '<div class="energy-historical-ranking">' + ranking.map(function (unit, index) {
+                var width = maximumAverage ? unit.average / maximumAverage * 100 : 0;
+                return '<article class="' + (index === 0 ? 'is-leader' : '') + '"><span class="energy-rank">' + (index + 1) + 'º</span><div><div class="energy-rank-heading"><strong>' + escapeHtml(unit.unitName) + '</strong><b>' + unit.average.toFixed(2).replace(".", ",") + ' kWh/mês</b></div><div class="energy-rank-bar"><i style="width:' + width.toFixed(2) + '%"></i></div><small>' + unit.total.toFixed(2).replace(".", ",") + ' kWh acumulados · ' + unit.months + ' mês(es) · maior em ' + unit.wins + ' mês(es)</small></div></article>';
+            }).join("") + '</div>' +
+            '<div class="energy-month-leaders"><strong>Maior consumo por mês</strong>' + monthLeaders.map(function (entry) {
+                var label = energyReferenceLabel(entry.reference);
+                return '<span><small>' + escapeHtml(label) + '</small><b>' + (entry.leader ? escapeHtml(entry.leader.unitName) + ' · ' + Number(entry.leader.kwh || 0).toFixed(2).replace(".", ",") + ' kWh' : "Sem leitura") + '</b></span>';
+            }).join("") + '</div>';
     }
 
     function renderEnergyHistory() {
