@@ -8,6 +8,9 @@ const energyCalculations = readFileSync("energy-calculations.js", "utf8");
 
 assert.doesNotThrow(() => new Function(app), "app.js precisa manter sintaxe válida");
 assert.doesNotThrow(() => new Function(energyCalculations), "energy-calculations.js precisa manter sintaxe válida");
+assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
+assert.match(app, /meterReading:/, "Sincronização deve preservar a leitura atual");
+assert.match(app, /dueDate: isValidDateValue\(item\.dueDate\)/, "Sincronização deve preservar o vencimento da energia");
 
 const appVersion = (index.match(/app\.js\?v=(\d+)/) || [])[1];
 const styleVersion = (index.match(/styles\.css\?v=(\d+)/) || [])[1];
