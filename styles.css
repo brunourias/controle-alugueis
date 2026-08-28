@@ -6646,3 +6646,109 @@ details.platform-account-manage[open] > summary::after {
         align-self: center;
     }
 }
+
+
+/* Modal de rateio: mesma densidade dos demais formulários. */
+.energy-rate-modal {
+    max-height: calc(100dvh - 24px);
+    padding: 18px;
+}
+
+.energy-rate-modal .settings-heading {
+    margin: 0 0 10px;
+}
+
+.energy-rate-modal .settings-heading h2 {
+    font-size: 1.2rem;
+}
+
+.energy-rate-modal .settings-heading p {
+    margin-top: 3px;
+}
+
+.energy-rate-form {
+    gap: 8px;
+}
+
+.energy-rate-inputs {
+    gap: 7px 8px;
+}
+
+.energy-rate-inputs label {
+    margin: 3px 0;
+    gap: 3px;
+}
+
+.energy-rate-inputs input,
+.energy-rate-inputs select {
+    min-height: 40px;
+    margin-top: 3px;
+    padding-block: 7px;
+}
+
+.energy-rate-inputs small {
+    margin-top: 1px;
+    line-height: 1.25;
+}
+
+.energy-rate-form h3 {
+    margin-top: 4px;
+}
+
+.energy-rate-readings {
+    gap: 7px;
+}
+
+.energy-reading {
+    min-height: 58px;
+    padding: 7px 9px;
+}
+
+.energy-reading input {
+    min-height: 34px;
+    margin: 0;
+    padding-block: 5px;
+}
+
+.energy-rate-modal > .settings-panel {
+    margin: 7px 0;
+}
+
+.energy-rate-modal > .settings-panel summary {
+    min-height: 52px;
+    padding: 8px 11px;
+}
+
+.energy-rate-modal .settings-footer {
+    margin-top: 9px;
+    padding-top: 9px;
+}
+
+@media (max-width: 620px) {
+    .energy-rate-modal {
+        max-height: calc(100dvh - 12px);
+        padding: 12px;
+    }
+
+    .energy-rate-inputs,
+    .energy-rate-readings {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .energy-reading {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: 74px;
+    }
+
+    .energy-reading input {
+        width: 100%;
+    }
+}
+
+@media (max-width: 390px) {
+    .energy-rate-inputs {
+        grid-template-columns: 1fr;
+    }
+}
