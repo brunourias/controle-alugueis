@@ -9478,7 +9478,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
 
         if (!granularEqual(current.meta, baseline.meta || {})) {
-            check(granularMetaRef(), baseline.meta || null, function (data) { return data.payload || null; });
+            check(granularMetaRef(), baseline.meta || null, function (data) {
+                // Documentos antigos podem não conter campos adicionados por versões novas.
+                // Normalize antes de comparar para não tratar migração de esquema como conflito.
+                return data.payload ? granularSnapshot(data.payload).meta : null;
+            });
         }
         var roots = {
             units: granularUnitsRef,
