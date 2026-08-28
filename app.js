@@ -9949,7 +9949,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         ctx.font = "28px Arial"; ctx.fillText(energyReferenceLabel(record.reference), 60, 125);
         if (reading.paid) {
             ctx.fillStyle = "#dff5ef";
-            ctx.beginPath(); ctx.roundRect(810, 42, 210, 78, 18); ctx.fill();
+            ctx.fillRect(810, 42, 210, 78);
             ctx.fillStyle = "#08756b"; ctx.textAlign = "center"; ctx.font = "700 29px Arial"; ctx.fillText("PAGO", 915, 76);
             ctx.font = "20px Arial";
             ctx.fillText(reading.paidAt ? formatDate(parseDateValue(reading.paidAt)) : "", 915, 104);
