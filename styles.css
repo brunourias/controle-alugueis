@@ -6939,3 +6939,55 @@ details.platform-account-manage[open] > summary::after {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+
+/* Baixa da conta de energia no histórico e na grade mensal. */
+.energy-history-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.energy-history-item.is-paid {
+    background: #f1faf7;
+}
+
+.energy-history-item .btn-energy-paid {
+    min-height: 29px;
+    padding: 0 8px;
+    color: #0b685f;
+    border: 1px solid #a9ddd4;
+    background: #dff5ef;
+    font-size: .65rem;
+}
+
+.energy-paid-indicator {
+    display: inline-grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 1px solid #a5ddd3;
+    border-radius: 7px;
+    color: #08756b;
+    background: #def5ef;
+    font-size: .72rem;
+    line-height: 1;
+    box-shadow: 0 2px 5px rgba(8, 117, 107, .10);
+}
+
+@media (max-width: 620px) {
+    .energy-history-item {
+        flex-wrap: wrap;
+    }
+
+    .energy-history-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .energy-paid-indicator {
+        width: 20px;
+        height: 20px;
+        font-size: .66rem;
+    }
+}
