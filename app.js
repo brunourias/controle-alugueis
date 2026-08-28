@@ -10027,7 +10027,6 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         alert(existing ? "Alterações do rateio salvas." : "Rateio salvo no histórico.");
     }
 
-    document.getElementById("openEnergyRate").addEventListener("click", openEnergyRate);
     document.getElementById("mobileEnergyRateNav").addEventListener("click", openEnergyRate);
     document.getElementById("desktopEnergyRateNav").addEventListener("click", openEnergyRate);
     document.getElementById("cancelEnergyRate").addEventListener("click", function () { ModalManager.close(energyRateModalElements().modal); });
