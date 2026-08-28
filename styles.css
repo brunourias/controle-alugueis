@@ -6921,3 +6921,21 @@ details.platform-account-manage[open] > summary::after {
 .energy-comparison-empty {
     margin: 4px 0;
 }
+
+
+/* Referência e valor da fatura permanecem lado a lado. */
+.energy-rate-inputs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.energy-rate-reference-field,
+.energy-rate-invoice-field {
+    grid-column: auto;
+    min-width: 0;
+}
+
+@media (max-width: 390px) {
+    .energy-rate-inputs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
