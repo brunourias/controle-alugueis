@@ -272,6 +272,11 @@ service cloud.firestore {
         allow create, update, delete: if expenseOperator(workspaceId);
       }
 
+      match /energyAllocations/{allocationId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if expenseOperator(workspaceId);
+      }
+
       // Registros financeiros separados da unidade permitem permissões
       // reais de cobrança/financeiro sem expor campos de contrato.
       match /payments/{unitId} {
