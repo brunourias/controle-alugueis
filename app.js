@@ -535,16 +535,24 @@ var historyRent = document.getElementById("historyRent");
                 id: String(item.id || "energy-" + Date.now().toString(36)),
                 reference: String(item.reference).slice(0, 7),
                 enterpriseId: validIds.indexOf(item.enterpriseId) >= 0 ? item.enterpriseId : validIds[0],
+                dueDate: isValidDateValue(item.dueDate) ? item.dueDate : "",
                 invoiceAmount: Math.max(0, Number(item.invoiceAmount) || 0),
                 billedKwh: Math.max(0, Number(item.billedKwh) || 0),
-                readings: Array.isArray(item.readings) ? item.readings.map(function (row) { return {
-                    unitId: String(row.unitId || ""), unitName: String(row.unitName || "Unidade"),
-                    tenantName: String(row.tenantName || ""), kwh: Math.max(0, Number(row.kwh) || 0),
-                    amount: Math.max(0, Number(row.amount) || 0),
-                    paid: row.paid === true,
-                    paidAt: row.paid === true && typeof row.paidAt === "string" ? row.paidAt : ""
-                }; }) : [],
-                createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString()
+                readings: Array.isArray(item.readings) ? item.readings.map(function (row) {
+                    var hasMeterReading = row.meterReading !== undefined && row.meterReading !== null && Number.isFinite(Number(row.meterReading));
+                    return {
+                        unitId: String(row.unitId || ""), unitName: String(row.unitName || "Unidade"),
+                        tenantName: String(row.tenantName || ""),
+                        previousReading: hasMeterReading ? Math.max(0, Number(row.previousReading) || 0) : undefined,
+                        meterReading: hasMeterReading ? Math.max(0, Number(row.meterReading) || 0) : undefined,
+                        kwh: Math.max(0, Number(row.kwh) || 0),
+                        amount: Math.max(0, Number(row.amount) || 0),
+                        paid: row.paid === true,
+                        paidAt: row.paid === true && typeof row.paidAt === "string" ? row.paidAt : ""
+                    };
+                }) : [],
+                createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString(),
+                updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : (typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString())
             }; }) : [];
         saved.tasks = Array.isArray(saved.tasks) ? saved.tasks.filter(function (task) {
             return task && typeof task === "object" && typeof task.title === "string";
