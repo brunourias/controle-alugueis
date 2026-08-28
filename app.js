@@ -9842,6 +9842,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     document.getElementById("openEnergyRate").addEventListener("click", openEnergyRate);
+    document.getElementById("mobileEnergyRateNav").addEventListener("click", openEnergyRate);
     document.getElementById("cancelEnergyRate").addEventListener("click", function () { ModalManager.close(energyRateModalElements().modal); });
     document.getElementById("saveEnergyRate").addEventListener("click", saveEnergyRate);
     document.getElementById("energyRateEnterprise").addEventListener("change", function () { populateEnergyReadings(); renderEnergyHistory(); });
