@@ -7546,3 +7546,36 @@ button.energy-paid-indicator:focus-visible {
         min-height: 31px;
     }
 }
+
+
+/* Resumo compacto da unidade: informação essencial sem ações duplicadas. */
+.unit-financial-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+    margin-top: 3px;
+    color: var(--muted);
+}
+.unit-financial-line .rent,
+.unit-financial-line .due-day {
+    display: inline;
+    margin: 0;
+}
+.unit-financial-line .due-day::before {
+    content: "· ";
+}
+.tenant-recurrence {
+    align-items: center;
+    width: fit-content;
+    margin-top: 3px;
+    padding: 2px 6px;
+    font-size: .58rem;
+    white-space: nowrap;
+}
+.tenant-actions {
+    margin-top: 5px;
+}
+.tenant-actions:empty {
+    display: none;
+}
