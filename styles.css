@@ -7028,12 +7028,12 @@ button.energy-paid-indicator:focus-visible {
 }
 
 .energy-paid-indicator.is-pending {
-    border-color: #d9d7c7;
+    border-color: #d7e3e1;
     border-style: dashed;
-    color: #9a8f62;
-    background: #f7f5ea;
+    color: #819795;
+    background: #f4f8f7;
     box-shadow: none;
-    opacity: .82;
+    opacity: .52;
 }
 
 
