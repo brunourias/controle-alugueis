@@ -9530,7 +9530,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 var now = current[kind][id] || null;
                 var before = (baseline[kind] || {})[id] || null;
                 if (!granularEqual(now, before)) {
-                    check(roots[kind]().doc(id), before, function (data) { return data; });
+                    check(roots[kind]().doc(id), before, function (data) {
+                        if (kind !== "energyAllocations") return data;
+                        // Rateios de versões anteriores não possuem os campos de baixa.
+                        // Normalize o documento remoto antes de validar a concorrência.
+                        var normalized = normalizeState({
+                            empreendimentos: granularClone(state.empreendimentos),
+                            energyAllocations: [Object.assign({}, granularClone(data), { id: id })]
+                        });
+                        return normalized.energyAllocations[0] || null;
+                    });
                 }
             });
         });
