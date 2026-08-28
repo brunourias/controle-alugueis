@@ -6797,3 +6797,13 @@ details.platform-account-manage[open] > summary::after {
         width: 78px;
     }
 }
+
+
+/* O cálculo usa somente a soma das leituras individuais. */
+.energy-rate-billed-field {
+    display: none !important;
+}
+
+.energy-rate-invoice-field {
+    grid-column: 1 / -1;
+}
