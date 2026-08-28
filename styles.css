@@ -7081,3 +7081,15 @@ button.energy-paid-indicator:focus-visible {
         display: none !important;
     }
 }
+
+
+/* Acesso direto ao rateio na navegação principal do desktop. */
+.desktop-energy-rate-nav {
+    white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+    .desktop-energy-rate-nav {
+        display: none !important;
+    }
+}
