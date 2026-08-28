@@ -9964,8 +9964,26 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             ctx.textAlign = "left";
         }
         var total = record.readings.reduce(function (sum, item) { return sum + item.kwh; }, 0), rate = total ? record.invoiceAmount / total : 0;
-        var lines = [["Unidade", reading.unitName], ["Consumo medido", reading.kwh.toFixed(2).replace(".", ",") + " kWh"], ["Tarifa efetiva", money(rate) + " por kWh"], ["Valor a cobrar", money(reading.amount)], ["Fatura total", money(record.invoiceAmount)]], y=250;
-        lines.forEach(function (line, index) { ctx.fillStyle=index===3?"#0f766e":"#355b58";ctx.font=index===3?"700 38px Arial":"600 29px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+22);ctx.lineTo(1020,y+22);ctx.stroke();y+=82; });
+        var previousRecord = (state.energyAllocations || []).filter(function (item) {
+            return item.enterpriseId === record.enterpriseId &&
+                String(item.reference || "") < String(record.reference || "") &&
+                (item.readings || []).some(function (itemReading) { return itemReading.unitId === reading.unitId; });
+        }).sort(function (left, right) {
+            return String(right.reference).localeCompare(String(left.reference));
+        })[0];
+        var previousReading = previousRecord && (previousRecord.readings || []).find(function (item) {
+            return item.unitId === reading.unitId;
+        });
+        var lines = [["Unidade", reading.unitName], ["Consumo medido", reading.kwh.toFixed(2).replace(".", ",") + " kWh"], ["Tarifa efetiva", money(rate) + " por kWh"], ["Valor a cobrar", money(reading.amount)], ["Fatura total", money(record.invoiceAmount)]];
+        if (previousReading) {
+            lines.splice(1, 0, ["Medição anterior", Number(previousReading.kwh || 0).toFixed(2).replace(".", ",") + " kWh · " + energyReferenceLabel(previousRecord.reference)]);
+        }
+        var y = previousReading ? 225 : 250;
+        var lineGap = previousReading ? 70 : 82;
+        lines.forEach(function (line) {
+            var isTotal = line[0] === "Valor a cobrar";
+            ctx.fillStyle=isTotal?"#0f766e":"#355b58";ctx.font=isTotal?"700 38px Arial":"600 29px Arial";ctx.fillText(line[0],60,y);ctx.textAlign="right";ctx.fillText(line[1],1020,y);ctx.textAlign="left";ctx.strokeStyle="#d7e8e5";ctx.beginPath();ctx.moveTo(60,y+22);ctx.lineTo(1020,y+22);ctx.stroke();y+=lineGap;
+        });
         ctx.fillStyle="#607a78";ctx.font="23px Arial";ctx.fillText("Cálculo proporcional: consumo × (valor total da fatura ÷ soma dos medidores).",60,665);
         return canvas;
     }
