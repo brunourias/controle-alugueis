@@ -9785,9 +9785,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function populateEnergyReadings() {
         var el = energyRateModalElements();
-        var units = state.units.filter(function (unit) { return unit.empreendimentoId === el.enterprise.value && String(unit.tenantName || "").trim(); });
+        var units = state.units.filter(function (unit) { return unit.empreendimentoId === el.enterprise.value; });
         el.readings.innerHTML = units.length ? units.map(function (unit) {
-            return '<label class="energy-reading"><span><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(unit.tenantName) + '</small></span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="kWh" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label>';
+            return '<label class="energy-reading"><span><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small></span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="kWh" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label>';
         }).join("") : '<p class="settings-note">Nenhuma unidade ocupada neste empreendimento.</p>';
         el.readings.querySelectorAll("input").forEach(function (input) { input.addEventListener("input", renderEnergyRate); });
         renderEnergyRate();
