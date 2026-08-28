@@ -4457,12 +4457,18 @@ var historyRent = document.getElementById("historyRent");
         var allocation = (state.energyAllocations || []).find(function (item) {
             return item.reference === reference &&
                 (item.readings || []).some(function (reading) {
-                    return reading.unitId === unitId && reading.paid === true;
+                    return reading.unitId === unitId;
                 });
         });
-        return allocation
-            ? '<button class="energy-paid-indicator" type="button" data-energy-image="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="Abrir comprovante da energia" aria-label="Abrir comprovante da energia">⚡</button>'
-            : "";
+        if (!allocation) return "";
+
+        var reading = (allocation.readings || []).find(function (item) {
+            return item.unitId === unitId;
+        });
+        if (reading && reading.paid === true) {
+            return '<button class="energy-paid-indicator" type="button" data-energy-image="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="Energia paga — abrir comprovante" aria-label="Energia paga — abrir comprovante">⚡</button>';
+        }
+        return '<span class="energy-paid-indicator is-pending" title="Energia ainda não paga" aria-label="Energia ainda não paga">⚡</span>';
     }
 
     function archivedMonthCell(unit, month, currentMonth) {
