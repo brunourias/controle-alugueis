@@ -7380,3 +7380,69 @@ button.energy-paid-indicator:focus-visible {
     .energy-billing-cards span { padding: 7px 5px; }
     .energy-billing-cards strong { font-size: .7rem; }
 }
+
+
+/* Otimização espacial do modal de rateio de energia. */
+.energy-rate-modal {
+    width: min(1040px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow-x: hidden;
+}
+.energy-rate-modal .energy-rate-form {
+    gap: 9px;
+}
+.energy-rate-modal .energy-rate-inputs {
+    gap: 10px;
+}
+.energy-rate-modal .energy-rate-inputs label,
+.energy-rate-modal .energy-reading-fields label {
+    min-width: 0;
+    margin: 0;
+}
+.energy-rate-modal .energy-rate-inputs input {
+    margin-top: 4px;
+}
+.energy-rate-modal .energy-rate-readings {
+    gap: 7px;
+}
+.energy-rate-modal .energy-reading {
+    display: grid;
+    grid-template-columns: minmax(105px, .8fr) minmax(176px, 1.2fr);
+    align-items: center;
+    min-width: 0;
+    padding: 8px;
+}
+.energy-rate-modal .energy-reading-identity,
+.energy-rate-modal .energy-reading-fields,
+.energy-rate-modal .energy-reading-fields label {
+    min-width: 0;
+}
+.energy-rate-modal .energy-reading-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+}
+.energy-rate-modal .energy-reading-fields input {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    margin-top: 2px;
+    padding: 7px 8px;
+}
+.energy-rate-modal .energy-rate-preview {
+    padding: 8px 10px;
+}
+@media (max-width: 720px) {
+    .energy-rate-modal {
+        width: calc(100vw - 20px);
+        max-height: calc(100dvh - 20px);
+        padding: 14px;
+    }
+    .energy-rate-modal .energy-rate-readings {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 420px) {
+    .energy-rate-modal .energy-reading {
+        grid-template-columns: minmax(90px, .75fr) minmax(164px, 1.25fr);
+    }
+}
