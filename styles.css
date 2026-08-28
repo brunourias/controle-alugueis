@@ -7093,3 +7093,110 @@ button.energy-paid-indicator:focus-visible {
         display: none !important;
     }
 }
+
+
+/* Comparativo histórico anual de consumo. */
+.energy-history-overview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.energy-history-overview span {
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 9px;
+    background: #edf7f5;
+}
+
+.energy-history-overview small,
+.energy-history-overview strong {
+    display: block;
+}
+
+.energy-history-overview small {
+    overflow: hidden;
+    color: #66817e;
+    font-size: .61rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.energy-history-overview strong {
+    margin-top: 2px;
+    color: #075f5b;
+    font-size: .75rem;
+}
+
+.energy-historical-ranking {
+    display: grid;
+    gap: 5px;
+}
+
+.energy-historical-ranking article {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border: 1px solid #e0ecea;
+    border-radius: 9px;
+    background: #fbfefe;
+}
+
+.energy-historical-ranking article.is-leader {
+    border-color: #e3c779;
+    background: #fff9e8;
+}
+
+.energy-historical-ranking article.is-leader .energy-rank {
+    color: #76550c;
+    background: #f7df9d;
+}
+
+.energy-historical-ranking article.is-leader .energy-rank-bar i {
+    background: #d5a526;
+}
+
+.energy-month-leaders {
+    display: grid;
+    gap: 0;
+    margin-top: 10px;
+    border-top: 1px solid #e1edeb;
+}
+
+.energy-month-leaders > strong {
+    padding: 8px 0 4px;
+    color: #075f5b;
+    font-size: .72rem;
+}
+
+.energy-month-leaders span {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 0;
+    border-top: 1px solid #edf3f2;
+}
+
+.energy-month-leaders small,
+.energy-month-leaders b {
+    color: #607a78;
+    font-size: .65rem;
+}
+
+.energy-month-leaders b {
+    color: #245d58;
+    text-align: right;
+}
+
+@media (max-width: 420px) {
+    .energy-history-overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .energy-history-overview span:last-child {
+        grid-column: 1 / -1;
+    }
+}
