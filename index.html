@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=191" />
+        <link rel="stylesheet" href="styles.css?v=192" />
     
 <style>
     /* Histórico de contratos */
@@ -524,7 +524,7 @@
             </div>
         </div>
 
-        <div class="modal-backdrop" id="energyRateModal" hidden><div class="modal energy-rate-modal"><div class="settings-heading"><div><h2>Rateio de energia</h2><p>Divida a fatura integral proporcionalmente ao consumo medido.</p></div></div><section class="energy-rate-form"><div class="energy-rate-inputs"><label class="energy-rate-reference-field">Referência<input id="energyRateReference" type="month" required></label><label class="energy-rate-enterprise-field" hidden>Empreendimento<select id="energyRateEnterprise"></select></label><label class="energy-rate-invoice-field">Valor total da fatura (R$)<input id="energyRateInvoice" type="number" min="0" step="0.01" inputmode="decimal" required></label><label class="energy-rate-billed-field" hidden>Consumo da fatura (kWh)<input id="energyRateBilledKwh" type="number" min="0" step="0.01" inputmode="decimal"></label></div><h3>Leituras por unidade</h3><div id="energyRateReadings" class="energy-rate-readings"></div><div id="energyRatePreview" class="energy-rate-preview"></div></section><details class="settings-panel energy-comparison-panel"><summary><span class="settings-panel-icon">📊</span><span><strong>Comparativo de consumo</strong><small>Veja quem consumiu mais nesta referência.</small></span></summary><div class="settings-panel-content"><div id="energyRateComparison" class="energy-rate-comparison"></div></div></details><details class="settings-panel"><summary><span class="settings-panel-icon">🗂️</span><span><strong>Histórico de rateios</strong><small>Abra uma competência e gere a imagem individual.</small></span></summary><div class="settings-panel-content"><div id="energyRateHistory" class="energy-rate-history"></div></div></details><div class="modal-actions settings-footer"><button id="cancelEnergyRate" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span><button id="saveEnergyRate" class="btn btn-primary" type="button">Salvar rateio</button></div></div></div>
+        <div class="modal-backdrop" id="energyRateModal" hidden><div class="modal energy-rate-modal"><div class="settings-heading"><div><h2>Rateio de energia</h2><p>Divida a fatura integral proporcionalmente ao consumo medido.</p></div></div><section class="energy-rate-form"><div class="energy-rate-inputs"><label class="energy-rate-reference-field">Referência<input id="energyRateReference" type="month" required></label><label class="energy-rate-enterprise-field" hidden>Empreendimento<select id="energyRateEnterprise"></select></label><label class="energy-rate-invoice-field">Valor total da fatura (R$)<input id="energyRateInvoice" type="number" min="0" step="0.01" inputmode="decimal" required></label><label class="energy-rate-billed-field" hidden>Consumo da fatura (kWh)<input id="energyRateBilledKwh" type="number" min="0" step="0.01" inputmode="decimal"></label></div><p id="energyRateModeNotice" class="energy-rate-mode-notice"></p><h3>Leituras por unidade</h3><div id="energyRateReadings" class="energy-rate-readings"></div><div id="energyRatePreview" class="energy-rate-preview"></div></section><details class="settings-panel energy-comparison-panel"><summary><span class="settings-panel-icon">📊</span><span><strong>Comparativo de consumo</strong><small>Veja quem consumiu mais nesta referência.</small></span></summary><div class="settings-panel-content"><div id="energyRateComparison" class="energy-rate-comparison"></div></div></details><details class="settings-panel"><summary><span class="settings-panel-icon">🗂️</span><span><strong>Histórico de rateios</strong><small>Abra uma competência e gere a imagem individual.</small></span></summary><div class="settings-panel-content"><div id="energyRateHistory" class="energy-rate-history"></div></div></details><div class="modal-actions settings-footer"><button id="cancelEnergyRate" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span><button id="saveEnergyRate" class="btn btn-primary" type="button">Salvar rateio</button></div></div></div>
 
         <!-- Modal de Gasto -->
         <div class="modal-backdrop" id="expenseModal" hidden>
@@ -1024,6 +1024,6 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="app.js?v=191"></script>
+    <script src="app.js?v=192"></script>
     </body>
 </html>
