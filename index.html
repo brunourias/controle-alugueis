@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=220" />
+        <link rel="stylesheet" href="styles.css?v=221" />
     
 <style>
     /* Histórico de contratos */
@@ -256,6 +256,11 @@
                         <option value="pagos">Pagos</option>
                     </select>
                 </label>
+            </div>
+
+            <div id="settledMonthsToolbar" class="settled-months-toolbar" hidden>
+                <span id="settledMonthsSummary"></span>
+                <button id="toggleSettledMonths" class="btn btn-ghost" type="button">Reexibir meses concluídos</button>
             </div>
 
             <div class="table-wrap">
@@ -1028,7 +1033,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=220"></script>
-    <script src="app.js?v=220"></script>
+    <script src="energy-calculations.js?v=221"></script>
+    <script src="app.js?v=221"></script>
     </body>
 </html>
