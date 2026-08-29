@@ -7632,3 +7632,35 @@ button.energy-paid-indicator:focus-visible {
 .unit-financial-line .due-day::before {
     content: none;
 }
+
+
+/* Controle dos meses integralmente pagos na grade de unidades. */
+.settled-months-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 7px;
+}
+.settled-months-toolbar[hidden] {
+    display: none;
+}
+.settled-months-toolbar span {
+    color: var(--muted);
+    font-size: .68rem;
+    font-weight: 600;
+}
+.settled-months-toolbar .btn {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: .68rem;
+}
+@media (max-width: 520px) {
+    .settled-months-toolbar {
+        justify-content: space-between;
+    }
+    .settled-months-toolbar span {
+        max-width: 110px;
+        line-height: 1.2;
+    }
+}
