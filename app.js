@@ -4669,7 +4669,6 @@ var historyRent = document.getElementById("historyRent");
 
                     var energyIndicator = energyPaidIndicator(unit.id, i);
                     var hasSecondaryActions = !!(receipt || adjustPayment);
-                    var compactPaid = (status === "pago" || status === "pago-atrasado") && i !== currentMonth;
                     var futurePending = status === "pendente" && (
                         selectedYear > new Date().getFullYear() ||
                         (selectedYear === new Date().getFullYear() && currentMonth >= 0 && i > currentMonth)
@@ -4683,7 +4682,6 @@ var historyRent = document.getElementById("historyRent");
                         (i === currentMonth ? "month-current " : "") +
                         '">' +
                         '<div class="status-cell' +
-                        (compactPaid ? " is-compact-paid" : "") +
                         (futurePending ? " is-future-pending" : "") +
                         '">' +
 
