@@ -4557,7 +4557,9 @@ var historyRent = document.getElementById("historyRent");
     if (settledMonthsToolbar) {
         settledMonthsToolbar.hidden = completedMonths.length === 0;
         settledMonthsSummary.textContent = completedMonths.length
-            ? completedMonths.length + (completedMonths.length === 1 ? " mês concluído oculto" : " meses concluídos ocultos")
+            ? completedMonths.length +
+                (completedMonths.length === 1 ? " mês concluído " : " meses concluídos ") +
+                (showSettledMonths ? "visível" + (completedMonths.length === 1 ? "" : "is") : "oculto" + (completedMonths.length === 1 ? "" : "s"))
             : "";
         toggleSettledMonths.textContent = showSettledMonths ? "Ocultar meses concluídos" : "Reexibir meses concluídos";
     }
