@@ -7616,3 +7616,19 @@ button.energy-paid-indicator:focus-visible {
 .status-cell.is-actions-open .energy-paid-indicator {
     transform: none;
 }
+
+
+/* Vencimento volta a ocupar uma linha própria na identificação da unidade. */
+.unit-financial-line {
+    display: block;
+}
+.unit-financial-line .rent,
+.unit-financial-line .due-day {
+    display: block;
+}
+.unit-financial-line .due-day {
+    margin-top: 2px;
+}
+.unit-financial-line .due-day::before {
+    content: none;
+}
