@@ -243,6 +243,7 @@ document.addEventListener("click", function (event) {
     // Cada abertura do bloqueio tenta a digital apenas uma vez.
     var biometricAutoPromptAttempted = false;
     var didInitialScroll = false;
+    var showSettledMonths = false;
     var lastGridScrollLeft = 0;
     var receiptContext = null;
     var lockConfig = loadLockConfig();
@@ -262,6 +263,9 @@ document.addEventListener("click", function (event) {
     var filterEmpty = document.getElementById("filterEmpty");
     var unitSearch = document.getElementById("unitSearch");
     var statusFilter = document.getElementById("statusFilter");
+    var settledMonthsToolbar = document.getElementById("settledMonthsToolbar");
+    var settledMonthsSummary = document.getElementById("settledMonthsSummary");
+    var toggleSettledMonths = document.getElementById("toggleSettledMonths");
     var summary = document.getElementById("summary");
     var expensesList = document.getElementById("expensesList");
     var toggleExpensesButton = document.getElementById("toggleExpenses");
@@ -4532,7 +4536,32 @@ var historyRent = document.getElementById("historyRent");
         );
     }
 
+    function settledMonthIndexes(units) {
+        return months.map(function (_, monthIndex) {
+            var applicable = units.filter(function (unit) {
+                return String(unit.tenantName || "").trim() && isActive(unit, monthIndex);
+            });
+            if (!applicable.length) return -1;
+            return applicable.every(function (unit) {
+                var status = displayStatus(unit, monthIndex);
+                return status === "pago" || status === "pago-atrasado";
+            }) ? monthIndex : -1;
+        }).filter(function (monthIndex) { return monthIndex >= 0; });
+    }
+
     function renderGrid(visibleUnits) {
+    var completedMonths = settledMonthIndexes(scopedUnits());
+    var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
+        return showSettledMonths || completedMonths.indexOf(index) < 0;
+    });
+    if (settledMonthsToolbar) {
+        settledMonthsToolbar.hidden = completedMonths.length === 0;
+        settledMonthsSummary.textContent = completedMonths.length
+            ? completedMonths.length + (completedMonths.length === 1 ? " mês concluído oculto" : " meses concluídos ocultos")
+            : "";
+        toggleSettledMonths.textContent = showSettledMonths ? "Ocultar meses concluídos" : "Reexibir meses concluídos";
+    }
+
     var currentMonth =
         new Date().getFullYear() === selectedYear
             ? new Date().getMonth()
@@ -4540,8 +4569,9 @@ var historyRent = document.getElementById("historyRent");
 
     var head =
         '<tr><th scope="col">Unidade</th>' +
-        months
-            .map(function (month, i) {
+        renderedMonthIndexes
+            .map(function (i) {
+                var month = months[i];
                 return (
                     '<th scope="col" class="' +
                     (i === currentMonth ? "month-current" : "") +
@@ -4557,8 +4587,8 @@ var historyRent = document.getElementById("historyRent");
 
     grid.querySelector("tbody").innerHTML = visibleUnits
         .map(function (unit) {
-            var cells = months
-                .map(function (_, i) {
+            var cells = renderedMonthIndexes
+                .map(function (i) {
                     if (!String(unit.tenantName || "").trim()) {
                         var archivedCell = archivedMonthCell(
                             unit,
@@ -4816,8 +4846,8 @@ var historyRent = document.getElementById("historyRent");
 
     grid.querySelector("tfoot").innerHTML =
         '<tr><th scope="row">Total recebido</th>' +
-        months
-            .map(function (_, i) {
+        renderedMonthIndexes
+            .map(function (i) {
                 // A tabela e o dashboard precisam usar exatamente a mesma regra:
                 // apenas parcelas com status Pago entram em "Recebido".
                 var total = monthlyFinancialMetrics(
@@ -4832,8 +4862,8 @@ var historyRent = document.getElementById("historyRent");
         "</tr>" +
 
         '<tr><th scope="row">Total juros</th>' +
-        months
-            .map(function (_, i) {
+        renderedMonthIndexes
+            .map(function (i) {
                 var totalJuros = scopedUnits().reduce(
                     function (sum, unit) {
                         return (
@@ -8115,6 +8145,11 @@ function saveExpense() {
     });
 
     statusFilter.addEventListener("change", render);
+    toggleSettledMonths.addEventListener("click", function () {
+        showSettledMonths = !showSettledMonths;
+        didInitialScroll = false;
+        render();
+    });
 
     empreendimentoFilter.addEventListener("change", function () {
         selectedEmpreendimentoId = empreendimentoFilter.value;
