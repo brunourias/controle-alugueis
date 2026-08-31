@@ -7664,3 +7664,14 @@ button.energy-paid-indicator:focus-visible {
         line-height: 1.2;
     }
 }
+
+
+/* Auditoria v224: alvos de toque consistentes no acesso à conta. */
+.account-gate-actions .btn {
+    min-height: 44px;
+}
+.account-gate-link {
+    min-height: 44px;
+    padding: 10px 4px;
+    cursor: pointer;
+}
