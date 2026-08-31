@@ -10031,7 +10031,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var units = state.units.filter(function (unit) { return unit.empreendimentoId === el.enterprise.value; });
         el.readings.innerHTML = units.length ? units.map(function (unit) {
             var previous = previousEnergyReading(unit.id, el.reference.value, el.enterprise.value);
-            return '<article class="energy-reading" data-energy-card="' + escapeHtml(unit.id) + '"><span class="energy-reading-identity"><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small><small class="energy-reading-consumption" data-energy-consumption="' + escapeHtml(unit.id) + '">Consumo: —</small></span><div class="energy-reading-fields"><label>Anterior<input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-previous-unit="' + escapeHtml(unit.id) + '" value="' + (previous ? previous.value.toFixed(2) : "") + '"' + (previous ? " readonly" : "") + '></label><label>Atual<input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label></div></article>';
+            return '<article class="energy-reading" data-energy-card="' + escapeHtml(unit.id) + '"><span class="energy-reading-identity"><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small><small class="energy-reading-consumption" data-energy-consumption="' + escapeHtml(unit.id) + '">Consumo: —</small></span><div class="energy-reading-fields"><label><span data-energy-previous-label="' + escapeHtml(unit.id) + '">' + (previous ? "Leitura anterior" : "Leitura inicial") + '</span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-previous-unit="' + escapeHtml(unit.id) + '" value="' + (previous ? previous.value.toFixed(2) : "") + '"' + (previous ? ' readonly aria-readonly="true" title="Preenchida automaticamente pelo último rateio"' : ' title="Informe a leitura inicial do medidor"') + '></label><label><span>Leitura atual</span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label></div></article>';
         }).join("") : '<p class="settings-note">Nenhuma unidade cadastrada neste empreendimento.</p>';
         el.readings.querySelectorAll("input").forEach(function (input) { input.addEventListener("input", renderEnergyRate); });
         renderEnergyRate();
@@ -10074,7 +10074,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             input.value = legacy ? Number(reading.kwh || 0).toFixed(2) : Number(reading.meterReading).toFixed(2);
             if (previousInput) {
                 previousInput.readOnly = !legacy;
+                previousInput.setAttribute("aria-readonly", String(!legacy));
+                previousInput.title = legacy
+                    ? "Informe a leitura inicial do medidor"
+                    : "Preenchida automaticamente pelo rateio salvo";
                 previousInput.value = legacy ? "0.00" : Number(reading.previousReading || 0).toFixed(2);
+                var previousLabel = el.readings.querySelector('[data-energy-previous-label="' + CSS.escape(input.dataset.energyUnit) + '"]');
+                if (previousLabel) previousLabel.textContent = legacy ? "Leitura inicial" : "Leitura anterior";
             }
         });
         el.modeNotice.textContent = "Rateio já lançado. As leituras e o vencimento podem ser atualizados.";
