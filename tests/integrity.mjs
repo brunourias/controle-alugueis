@@ -12,6 +12,8 @@ assert.doesNotThrow(() => new Function(app), "app.js precisa manter sintaxe vál
 assert.doesNotThrow(() => new Function(energyCalculations), "energy-calculations.js precisa manter sintaxe válida");
 assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
 assert.match(app, /meterReading:/, "Sincronização deve preservar a leitura atual");
+assert.match(app, /Consumo total por mês/, "Rateio deve exibir a evolução mensal do consumo total");
+assert.match(app, /monthTotals[\s\S]*reading\.kwh/, "Evolução total deve somar o consumo das unidades");
 assert.match(app, /dueDate: isValidDateValue\(item\.dueDate\)/, "Sincronização deve preservar o vencimento da energia");
 assert.match(app, /Auth\.Persistence\.LOCAL/, "Autenticação deve persistir após atualizações");
 assert.match(app, /rememberPwaUpdateSession\(\)/, "Atualização deve preservar a sessão desbloqueada");
