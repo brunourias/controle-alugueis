@@ -11,6 +11,11 @@ const firestoreRules = readFileSync("firestore.rules", "utf8");
 assert.doesNotThrow(() => new Function(app), "app.js precisa manter sintaxe válida");
 assert.doesNotThrow(() => new Function(energyCalculations), "energy-calculations.js precisa manter sintaxe válida");
 assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
+assert.match(
+    app,
+    /Um rateio já salvo nunca deve reabrir a leitura anterior[\s\S]{0,300}previousInput\.readOnly = true/,
+    "Rateios salvos, inclusive legados, devem bloquear a leitura anterior"
+);
 assert.match(app, /meterReading:/, "Sincronização deve preservar a leitura atual");
 assert.match(app, /Consumo total por mês/, "Rateio deve exibir a evolução mensal do consumo total");
 assert.match(app, /monthTotals[\s\S]*reading\.kwh/, "Evolução total deve somar o consumo das unidades");
