@@ -10273,6 +10273,25 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         loadEnergyRateReference(); renderEnergyHistory(); ModalManager.open(el.modal);
     }
 
+    function persistEnergyAllocationNow(allocation) {
+        if (!firebaseUser || !firebaseDb || !cloudWorkspaceReady || !cloudWorkspaceId || !navigator.onLine) {
+            return Promise.resolve({ cloud: false });
+        }
+        var ref = granularEnergyAllocationsRef();
+        if (!ref || !allocation || !allocation.id) return Promise.resolve({ cloud: false });
+        setSyncStatus("Salvando rateio na nuvem...");
+        return ref.doc(allocation.id).set(granularClone(allocation)).then(function () {
+            cloudGranularBaseline = cloudGranularBaseline || {
+                meta: null, units: {}, expenses: {}, energyAllocations: {},
+                contracts: {}, payments: {}, charges: {}
+            };
+            cloudGranularBaseline.energyAllocations = cloudGranularBaseline.energyAllocations || {};
+            cloudGranularBaseline.energyAllocations[allocation.id] = granularClone(allocation);
+            setSyncStatus("Rateio salvo na nuvem");
+            return { cloud: true };
+        });
+    }
+
     function saveEnergyRate() {
         if (!requireWorkspacePermission("manageExpenses")) return;
         var el = energyRateModalElements(), calc = energyRateCalculate();
@@ -10281,6 +10300,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         state.energyAllocations = Array.isArray(state.energyAllocations) ? state.energyAllocations : [];
         var existing = currentEnergyAllocation();
         var nowIso = new Date().toISOString();
+        var savedAllocation;
         if (existing) {
             var previousByUnit = {};
             (existing.readings || []).forEach(function (reading) { previousByUnit[reading.unitId] = reading; });
@@ -10294,8 +10314,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 return reading;
             });
             existing.updatedAt = nowIso;
+            savedAllocation = existing;
         } else {
-            state.energyAllocations.unshift({ id:"energy-"+Date.now().toString(36), reference:el.reference.value, enterpriseId:el.enterprise.value, dueDate:el.dueDate.value, invoiceAmount:calc.invoiceAmount, billedKwh:calc.billedKwh, readings:calc.readings, createdAt:nowIso, updatedAt:nowIso });
+            savedAllocation = { id:"energy-"+Date.now().toString(36), reference:el.reference.value, enterpriseId:el.enterprise.value, dueDate:el.dueDate.value, invoiceAmount:calc.invoiceAmount, billedKwh:calc.billedKwh, readings:calc.readings, createdAt:nowIso, updatedAt:nowIso };
+            state.energyAllocations.unshift(savedAllocation);
         }
         // Garante uma única competência por empreendimento, inclusive para dados antigos.
         var keptKey = el.enterprise.value + "::" + el.reference.value;
@@ -10312,7 +10334,15 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         loadEnergyRateReference();
         renderEnergyHistory();
         render();
-        alert(existing ? "Alterações do rateio salvas." : "Rateio salvo no histórico.");
+        persistEnergyAllocationNow(savedAllocation).then(function (result) {
+            alert(result.cloud
+                ? (existing ? "Alterações salvas e confirmadas na nuvem." : "Rateio salvo e confirmado na nuvem.")
+                : (existing ? "Alterações salvas neste aparelho. A nuvem sincronizará quando estiver disponível." : "Rateio salvo neste aparelho. A nuvem sincronizará quando estiver disponível."));
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+            setSyncStatus("Rateio salvo apenas neste aparelho");
+            alert("O rateio foi preservado neste aparelho, mas a nuvem não confirmou a alteração. Verifique a conexão ou as permissões.");
+        });
     }
 
     document.getElementById("mobileEnergyRateNav").addEventListener("click", openEnergyRate);
