@@ -7675,3 +7675,21 @@ button.energy-paid-indicator:focus-visible {
     padding: 10px 4px;
     cursor: pointer;
 }
+
+
+/* Rateio v226: leitura herdada do mês anterior não aparenta ser editável. */
+.energy-reading-fields label > span {
+    display: block;
+    margin-bottom: 5px;
+}
+.energy-reading-fields input[readonly] {
+    color: var(--muted);
+    background: #edf4f3;
+    border-color: #d5e3e1;
+    cursor: not-allowed;
+}
+.energy-reading-fields input[readonly]:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: #d5e3e1;
+}
