@@ -3471,8 +3471,9 @@ var historyRent = document.getElementById("historyRent");
         var year = parts[0];
         var month = parts[1];
         var day = parts[2];
-        var lastDay = new Date(year, month + 1, 0).getDate();
-        return new Date(year, month, Math.min(day, lastDay));
+        var monthIndex = month - 1;
+        var lastDay = new Date(year, monthIndex + 1, 0).getDate();
+        return new Date(year, monthIndex, Math.min(day, lastDay));
     }
 
     function dueDateFor(unit, month) {
