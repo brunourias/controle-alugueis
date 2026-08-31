@@ -16,6 +16,24 @@ assert.equal(allocation.readings[2].kwh, 100);
 assert.equal(allocation.distributedAmount, 638.50, "Rateio deve fechar exatamente com a fatura");
 assert.equal(allocation.readings.reduce((sum, row) => sum + row.amount, 0), 638.50);
 
+const tinyAllocation = energy.calculateAllocation([
+    { unitId: "u1", previousReading: 0, meterReading: 1 },
+    { unitId: "u2", previousReading: 0, meterReading: 1 },
+    { unitId: "u3", previousReading: 0, meterReading: 1 },
+    { unitId: "u4", previousReading: 0, meterReading: 1 },
+    { unitId: "u5", previousReading: 0, meterReading: 1 }
+], 0.03);
+assert.equal(tinyAllocation.distributedAmount, 0.03, "Rateio mínimo deve fechar em centavos");
+assert.equal(tinyAllocation.readings.reduce((sum, row) => sum + row.amount, 0), 0.03);
+assert.ok(tinyAllocation.readings.every((row) => row.amount >= 0), "Nenhuma unidade pode receber valor negativo");
+
+const roundedInvoice = energy.calculateAllocation([
+    { unitId: "u1", previousReading: 10, meterReading: 11 },
+    { unitId: "u2", previousReading: 20, meterReading: 22 }
+], 10.005);
+assert.equal(roundedInvoice.invoiceAmount, 10.01, "Fatura deve ser normalizada para duas casas decimais");
+assert.equal(roundedInvoice.distributedAmount, 10.01);
+
 const invalid = energy.calculateAllocation([
     { unitId: "u1", previousReading: 150, meterReading: 140 }
 ], 100);
