@@ -10295,10 +10295,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function saveEnergyRate() {
         if (!requireWorkspacePermission("manageExpenses")) return;
         var el = energyRateModalElements(), calc = energyRateCalculate();
-        if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh || !el.dueDate.value) { alert("Informe referência, vencimento, valor da fatura e as leituras dos medidores."); return; }
-        if (calc.errors.length) { alert(calc.errors[0].message); return; }
         state.energyAllocations = Array.isArray(state.energyAllocations) ? state.energyAllocations : [];
         var existing = currentEnergyAllocation();
+        // Rateios antigos não possuíam vencimento. Eles precisam continuar
+        // editáveis; a obrigatoriedade vale somente para um novo lançamento.
+        if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh || (!existing && !el.dueDate.value)) {
+            alert(existing
+                ? "Informe referência, valor da fatura e as leituras dos medidores."
+                : "Informe referência, vencimento, valor da fatura e as leituras dos medidores.");
+            return;
+        }
+        if (calc.errors.length) { alert(calc.errors[0].message); return; }
         var nowIso = new Date().toISOString();
         var savedAllocation;
         if (existing) {
