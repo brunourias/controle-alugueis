@@ -10191,6 +10191,22 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
         var maximumAverage = ranking.length ? ranking[0].average : 0;
 
+        var monthTotals = allocations.map(function (allocation, index) {
+            var total = (allocation.readings || []).reduce(function (sum, reading) {
+                return sum + Math.max(0, Number(reading.kwh) || 0);
+            }, 0);
+            var previous = index > 0
+                ? (allocations[index - 1].readings || []).reduce(function (sum, reading) {
+                    return sum + Math.max(0, Number(reading.kwh) || 0);
+                }, 0)
+                : null;
+            var variation = previous && previous > 0 ? (total - previous) / previous * 100 : null;
+            return { reference: allocation.reference, total: total, variation: variation };
+        });
+        var maximumMonthlyTotal = monthTotals.reduce(function (maximum, item) {
+            return Math.max(maximum, item.total);
+        }, 0);
+
         var monthLeaders = allocations.map(function (allocation) {
             var rows = (allocation.readings || []).slice().sort(function (left, right) { return Number(right.kwh) - Number(left.kwh); });
             var leader = rows[0] && Number(rows[0].kwh) > 0 ? rows[0] : null;
@@ -10199,6 +10215,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
         el.historicalComparison.innerHTML =
             '<div class="energy-history-overview"><span><small>Ano analisado</small><strong>' + escapeHtml(year) + '</strong></span><span><small>Meses lançados</small><strong>' + allocations.length + '</strong></span><span><small>Consumo acumulado</small><strong>' + portfolioKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span></div>' +
+            '<section class="energy-total-evolution"><div class="energy-section-heading"><strong>Consumo total por mês</strong><small>Soma do consumo de todas as unidades</small></div><div class="energy-total-bars">' + monthTotals.map(function (item) {
+                var width = maximumMonthlyTotal ? item.total / maximumMonthlyTotal * 100 : 0;
+                var variationLabel = item.variation === null
+                    ? "Primeiro mês"
+                    : (item.variation > 0 ? "+" : "") + item.variation.toFixed(1).replace(".", ",") + "% vs. mês anterior";
+                var variationClass = item.variation === null ? "is-neutral" : item.variation > 0 ? "is-up" : item.variation < 0 ? "is-down" : "is-neutral";
+                return '<article><div><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><b>' + item.total.toFixed(2).replace(".", ",") + ' kWh</b></div><span class="energy-total-track"><i style="width:' + width.toFixed(2) + '%"></i></span><small class="' + variationClass + '">' + variationLabel + '</small></article>';
+            }).join("") + '</div></section>' +
             '<div class="energy-historical-ranking">' + ranking.map(function (unit, index) {
                 var width = maximumAverage ? unit.average / maximumAverage * 100 : 0;
                 return '<article class="' + (index === 0 ? 'is-leader' : '') + '"><span class="energy-rank">' + (index + 1) + 'º</span><div><div class="energy-rank-heading"><strong>' + escapeHtml(unit.unitName) + '</strong><b>' + unit.average.toFixed(2).replace(".", ",") + ' kWh/mês</b></div><div class="energy-rank-bar"><i style="width:' + width.toFixed(2) + '%"></i></div><small>' + unit.total.toFixed(2).replace(".", ",") + ' kWh acumulados · ' + unit.months + ' mês(es) · maior em ' + unit.wins + ' mês(es)</small></div></article>';
