@@ -10073,14 +10073,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var legacy = !Number.isFinite(Number(reading.meterReading));
             input.value = legacy ? Number(reading.kwh || 0).toFixed(2) : Number(reading.meterReading).toFixed(2);
             if (previousInput) {
-                previousInput.readOnly = !legacy;
-                previousInput.setAttribute("aria-readonly", String(!legacy));
+                // Um rateio já salvo nunca deve reabrir a leitura anterior
+                // para edição. Registros legados assumem zero como base porque
+                // armazenavam apenas o consumo mensal, não o medidor acumulado.
+                previousInput.readOnly = true;
+                previousInput.setAttribute("aria-readonly", "true");
                 previousInput.title = legacy
-                    ? "Informe a leitura inicial do medidor"
+                    ? "Base automática do registro antigo"
                     : "Preenchida automaticamente pelo rateio salvo";
-                previousInput.value = legacy ? "0.00" : Number(reading.previousReading || 0).toFixed(2);
+                previousInput.value = Number(reading.previousReading || 0).toFixed(2);
                 var previousLabel = el.readings.querySelector('[data-energy-previous-label="' + CSS.escape(input.dataset.energyUnit) + '"]');
-                if (previousLabel) previousLabel.textContent = legacy ? "Leitura inicial" : "Leitura anterior";
+                if (previousLabel) previousLabel.textContent = "Leitura anterior";
             }
         });
         el.modeNotice.textContent = "Rateio já lançado. As leituras e o vencimento podem ser atualizados.";
