@@ -21,6 +21,7 @@ assert.match(app, /Consumo total por mês/, "Rateio deve exibir a evolução men
 assert.match(app, /monthTotals[\s\S]*reading\.kwh/, "Evolução total deve somar o consumo das unidades");
 assert.match(app, /dueDate: isValidDateValue\(item\.dueDate\)/, "Sincronização deve preservar o vencimento da energia");
 assert.match(app, /persistEnergyAllocationNow\(savedAllocation\)/, "Salvamento do rateio deve aguardar confirmação dedicada");
+assert.match(app, /\(!existing && !el\.dueDate\.value\)/, "Rateios antigos sem vencimento devem continuar editáveis");
 assert.match(app, /ref\.doc\(allocation\.id\)\.set\(granularClone\(allocation\)\)/, "Rateio deve ser persistido diretamente na coleção granular");
 assert.match(app, /Auth\.Persistence\.LOCAL/, "Autenticação deve persistir após atualizações");
 assert.match(app, /rememberPwaUpdateSession\(\)/, "Atualização deve preservar a sessão desbloqueada");
