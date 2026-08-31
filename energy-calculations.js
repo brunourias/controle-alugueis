@@ -35,15 +35,30 @@
             });
         });
         var totalKwh = readings.reduce(function (sum, row) { return sum + row.kwh; }, 0);
-        var totalInvoice = Math.max(0, number(invoiceAmount));
+        var totalInvoice = roundMoney(Math.max(0, number(invoiceAmount)));
         var rate = totalKwh ? totalInvoice / totalKwh : 0;
         var positive = readings.filter(function (row) { return row.kwh > 0; });
-        var allocated = 0;
-        positive.forEach(function (row, index) {
-            row.amount = index === positive.length - 1
-                ? roundMoney(totalInvoice - allocated)
-                : roundMoney(row.kwh * rate);
-            allocated += row.amount;
+
+        /*
+         * Distribui em centavos pelo método dos maiores restos. Assim nenhuma
+         * unidade recebe valor negativo e a soma fecha exatamente com a fatura,
+         * mesmo em valores mínimos divididos entre muitas unidades.
+         */
+        var totalCents = Math.round(totalInvoice * 100);
+        var shares = positive.map(function (row, index) {
+            var exactCents = totalKwh ? row.kwh / totalKwh * totalCents : 0;
+            var baseCents = Math.floor(exactCents);
+            return { row: row, index: index, cents: baseCents, remainder: exactCents - baseCents };
+        });
+        var assignedCents = shares.reduce(function (sum, share) { return sum + share.cents; }, 0);
+        var remainingCents = Math.max(0, totalCents - assignedCents);
+        shares.slice().sort(function (left, right) {
+            return right.remainder - left.remainder || left.index - right.index;
+        }).forEach(function (share, index) {
+            if (index < remainingCents) share.cents += 1;
+        });
+        shares.forEach(function (share) {
+            share.row.amount = share.cents / 100;
         });
         return {
             invoiceAmount: totalInvoice,
