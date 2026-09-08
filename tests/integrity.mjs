@@ -9,6 +9,11 @@ const styles = readFileSync("styles.css", "utf8");
 const firestoreRules = readFileSync("firestore.rules", "utf8");
 
 assert.doesNotThrow(() => new Function(app), "app.js precisa manter sintaxe válida");
+assert.match(
+    app,
+    /activeMobileShortcut === "charges"[\s\S]{0,100}closeMobileShortcut\(\)/,
+    "Ocultar Cobranças no celular deve retornar ao menu, sem deixar painel vazio"
+);
 assert.match(app, /for \(var index = stack\.length - 1; index >= 0;/, "O último modal aberto deve ser tratado como o modal ativo");
 assert.match(app, /modal\.style\.zIndex = String\(1000 \+ stack\.length \* 10\)/, "Modais encadeados devem ocupar camadas crescentes");
 assert.match(app, /hasModalOpen\.removeAttribute\("aria-hidden"\)/, "Ao fechar um modal, o anterior deve voltar a ficar acessível");
