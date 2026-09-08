@@ -9,6 +9,9 @@ const styles = readFileSync("styles.css", "utf8");
 const firestoreRules = readFileSync("firestore.rules", "utf8");
 
 assert.doesNotThrow(() => new Function(app), "app.js precisa manter sintaxe válida");
+assert.match(app, /for \(var index = stack\.length - 1; index >= 0;/, "O último modal aberto deve ser tratado como o modal ativo");
+assert.match(app, /modal\.style\.zIndex = String\(1000 \+ stack\.length \* 10\)/, "Modais encadeados devem ocupar camadas crescentes");
+assert.match(app, /hasModalOpen\.removeAttribute\("aria-hidden"\)/, "Ao fechar um modal, o anterior deve voltar a ficar acessível");
 assert.doesNotThrow(() => new Function(energyCalculations), "energy-calculations.js precisa manter sintaxe válida");
 assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
 assert.match(
