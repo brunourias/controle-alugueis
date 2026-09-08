@@ -13,6 +13,8 @@ assert.match(app, /for \(var index = stack\.length - 1; index >= 0;/, "O último
 assert.match(app, /modal\.style\.zIndex = String\(1000 \+ stack\.length \* 10\)/, "Modais encadeados devem ocupar camadas crescentes");
 assert.match(app, /hasModalOpen\.removeAttribute\("aria-hidden"\)/, "Ao fechar um modal, o anterior deve voltar a ficar acessível");
 assert.doesNotThrow(() => new Function(energyCalculations), "energy-calculations.js precisa manter sintaxe válida");
+assert.doesNotMatch(index, /Juros \(% ao dia\)/, "A interface não deve apresentar a taxa mensal como juros ao dia");
+assert.match(index, /Juros de mora \(% ao mês\)/, "A unidade da taxa de juros deve estar explícita");
 assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
 assert.match(
     app,
