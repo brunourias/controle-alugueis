@@ -17,6 +17,9 @@ const ModalManager = (() => {
     const focusOrigins = new WeakMap();
 
     function getOpenModal() {
+        for (var index = stack.length - 1; index >= 0; index -= 1) {
+            if (stack[index] && !stack[index].hidden) return stack[index];
+        }
         return document.querySelector(".modal-backdrop:not([hidden])");
     }
 
@@ -34,15 +37,23 @@ const ModalManager = (() => {
         if (!modal || !modal.hidden) return;
 
         closeExpandablePanels();
+        var previousModal = getOpenModal();
+        if (previousModal) {
+            previousModal.setAttribute("aria-modal", "false");
+            previousModal.setAttribute("aria-hidden", "true");
+        }
         focusOrigins.set(modal, document.activeElement);
         modal.setAttribute("role", "dialog");
         modal.setAttribute("aria-modal", "true");
+        modal.removeAttribute("aria-hidden");
         modal.hidden = false;
         document.body.classList.add("modal-open");
 
         if (!stack.includes(modal)) {
             stack.push(modal);
         }
+        // Cada novo modal ocupa uma camada superior à anterior.
+        modal.style.zIndex = String(1000 + stack.length * 10);
 
         window.requestAnimationFrame(function () {
             var first = focusableElements(modal)[0];
@@ -66,14 +77,15 @@ const ModalManager = (() => {
         }
 
         target.hidden = true;
+        target.removeAttribute("aria-hidden");
+        target.style.removeProperty("z-index");
 
         const index = stack.lastIndexOf(target);
         if (index !== -1) {
             stack.splice(index, 1);
         }
 
-        const hasModalOpen =
-            document.querySelector(".modal-backdrop:not([hidden])");
+        const hasModalOpen = getOpenModal();
 
         if (!hasModalOpen) {
             document.body.classList.remove("modal-open");
@@ -81,6 +93,13 @@ const ModalManager = (() => {
             if (origin && document.contains(origin) && typeof origin.focus === "function") {
                 origin.focus({ preventScroll: true });
             }
+        } else {
+            hasModalOpen.setAttribute("aria-modal", "true");
+            hasModalOpen.removeAttribute("aria-hidden");
+            window.requestAnimationFrame(function () {
+                var first = focusableElements(hasModalOpen)[0];
+                if (first) first.focus({ preventScroll: true });
+            });
         }
 
         return true;
