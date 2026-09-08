@@ -7777,3 +7777,37 @@ button.energy-paid-indicator:focus-visible {
         text-align: left;
     }
 }
+
+
+/* Central de ações v233: textos completos nos cartões do celular. */
+@media (max-width: 520px) {
+    .operations-row.action-priority-row > div:first-child {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .operations-row.action-priority-row > div:first-child strong,
+    .operations-row.action-priority-row > div:first-child span {
+        display: block;
+        max-width: 100%;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        line-height: 1.35;
+    }
+
+    .operations-row.action-priority-row > .action-row-actions {
+        display: flex;
+        width: 100%;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .operations-row.action-priority-row > .action-row-actions .btn {
+        flex: 0 1 auto;
+        min-width: 72px;
+    }
+}
