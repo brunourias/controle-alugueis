@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=231" />
+        <link rel="stylesheet" href="styles.css?v=232" />
     
 <style>
     /* Histórico de contratos */
@@ -658,7 +658,7 @@
                     <div class="settings-panel-content">
                         <p class="settings-note">Defina os encargos aplicados aos pagamentos em atraso.</p>
                         <label>Multa (%)<input type="number" id="finePercent" inputmode="decimal" min="0" step="0.01" /></label>
-                        <label>Juros (% ao dia)<input type="number" id="dailyInterestPercent" inputmode="decimal" min="0" step="0.01" /></label>
+                        <label>Juros de mora (% ao mês)<input type="number" id="dailyInterestPercent" inputmode="decimal" min="0" step="0.01" /></label>
                         <label>Antecedência do lembrete (dias)<input type="number" id="reminderDays" inputmode="numeric" min="0" max="30" step="1" /><small class="field-help">Quando avisar sobre vencimentos próximos.</small></label>
                         <label>Retorno de cobrança em (dias)<input type="number" id="overdueFollowUpDays" inputmode="numeric" min="1" max="30" step="1" /><small class="field-help">Prazo sugerido para acompanhar cobrança em atraso.</small></label><label>Percentual padrão de reajuste (%)<input type="number" id="defaultAdjustmentPercent" inputmode="decimal" min="-100" max="1000" step="0.01" /><small class="field-help">Só sugere; você confirma cada reajuste.</small></label>
                         <label>Nome do recebedor<input type="text" id="receiverName" placeholder="Opcional" autocomplete="name" /><small class="field-help">Será exibido nos recibos.</small></label>
@@ -1033,7 +1033,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=231"></script>
-    <script src="app.js?v=231"></script>
+    <script src="energy-calculations.js?v=232"></script>
+    <script src="app.js?v=232"></script>
     </body>
 </html>
