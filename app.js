@@ -4406,7 +4406,16 @@ var historyRent = document.getElementById("historyRent");
             : "";
 
         var toggleActionCenter = document.getElementById("toggleActionCenter");
-        if (toggleActionCenter) toggleActionCenter.addEventListener("click", function () { actionCenterExpanded = false; renderActionCenter(); });
+        if (toggleActionCenter) toggleActionCenter.addEventListener("click", function () {
+            actionCenterExpanded = false;
+            // No celular, ocultar encerra a tela exclusiva de Cobranças/Ações.
+            // Manter o painel home ativo sem conteúdo deixava uma faixa vazia.
+            if (isMobileNavigation() && (activeMobileShortcut === "charges" || activeMobileShortcut === "alerts")) {
+                closeMobileShortcut();
+                return;
+            }
+            renderActionCenter();
+        });
         var taskFormElement = document.getElementById("operationalTaskForm");
         if (taskFormElement) taskFormElement.addEventListener("submit", function (event) {
             event.preventDefault();
