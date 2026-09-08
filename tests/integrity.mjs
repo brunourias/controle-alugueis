@@ -50,6 +50,16 @@ assert.deepEqual(unsafeBlankLinks, [], "Links externos em nova aba devem usar no
 
 assert.match(styles, /\.account-gate-actions \.btn\s*\{[^}]*min-height:\s*44px/s, "Ações de acesso devem ter alvo de toque adequado");
 assert.match(styles, /\.account-gate-link\s*\{[^}]*min-height:\s*44px/s, "Recuperação de senha deve ter alvo de toque adequado");
+assert.match(
+    styles,
+    /\.operations-row\.action-priority-row > div:first-child strong,[\s\S]{0,180}white-space:\s*normal/,
+    "A central de ações deve permitir quebra de texto no celular"
+);
+assert.match(
+    styles,
+    /\.operations-row\.action-priority-row > div:first-child[\s\S]{0,80}display:\s*block/,
+    "O conteúdo da ação deve ocupar uma linha própria no celular"
+);
 
 assert.doesNotMatch(
     firestoreRules,
