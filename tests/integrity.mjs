@@ -89,4 +89,11 @@ assert.match(serviceWorker, new RegExp('styles\\.css\\?v=' + styleVersion), "Ser
 assert.match(index, new RegExp('energy-calculations\\.js\\?v=' + appVersion), "Motor do rateio deve acompanhar a versão do app");
 assert.match(serviceWorker, new RegExp('energy-calculations\\.js\\?v=' + appVersion), "Service Worker deve precachear o motor do rateio");
 
+assert.match(app, /function partialPaymentInfo\(/, "O app deve calcular o saldo de pagamentos parciais");
+assert.match(app, /partialPayments:\s*entries/, "Cada baixa parcial deve preservar o histórico de recebimentos");
+assert.match(app, /activeUnit\.status\[paymentAdjustContext\.key\]\s*=\s*settled\s*\?\s*"pago"\s*:\s*"pendente"/, "A parcela só pode ser quitada quando o saldo chegar a zero");
+assert.match(app, /metrics\.received \+= partialOpen\.received/, "O painel deve contabilizar o valor já recebido parcialmente");
+assert.match(index, /id="paymentAdjustSummary"/, "O modal deve exibir valor da parcela, recebido e saldo");
+assert.match(styles, /\.status-btn\.is-partial/, "A grade deve diferenciar visualmente pagamento parcial");
+
 console.log("Verificações de integridade concluídas.");
