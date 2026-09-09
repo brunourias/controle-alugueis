@@ -102,4 +102,10 @@ assert.match(app, /var balance = Math\.max\(0, originalRent - receivedPrincipal\
 assert.match(app, /var hasFinePayment = entries\.some/, "A multa não deve ser sugerida novamente após já ter sido recebida");
 assert.match(index, /id="paymentAdjustPolicy"/, "A política de encargos após baixa parcial deve estar explícita");
 
+assert.match(app, /function editPartialPayment\(/, "Baixas parciais devem permitir correção");
+assert.match(app, /function deletePartialPayment\(/, "Baixas parciais devem permitir exclusão");
+assert.match(app, /applyPartialPaymentEntries\(unit, month, key, entries\)/, "Excluir uma baixa deve recalcular saldo e status");
+assert.match(app, /mode === "edit-partial"/, "A edição deve atualizar a baixa existente sem criar outra");
+assert.match(app, /data-partial-delete/, "O histórico deve oferecer a ação Excluir");
+
 console.log("Verificações de integridade concluídas.");
