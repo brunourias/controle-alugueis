@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=234" />
+        <link rel="stylesheet" href="styles.css?v=235" />
     
 <style>
     /* Histórico de contratos */
@@ -861,7 +861,7 @@
 							<input type="date" id="paymentAdjustDate" />
 						</label>
 						<label>
-							Valor do aluguel
+							<span id="paymentAdjustRentLabel">Valor principal recebido</span>
 							<input type="number" id="paymentAdjustRent" inputmode="decimal" min="0" step="0.01" />
 						</label>
 					</div>
@@ -895,8 +895,11 @@
 					</div>
 				</details>
 
+				<div id="paymentAdjustSummary" class="payment-adjust-summary" hidden></div>
+				<div id="paymentAdjustHistory" class="payment-adjust-history" hidden></div>
+
 				<div class="payment-adjust-total">
-					<span>Total recebido</span>
+					<span>Total desta baixa</span>
 					<input type="number" id="paymentAdjustTotal" readonly />
 				</div>
 
@@ -1033,7 +1036,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=234"></script>
-    <script src="app.js?v=234"></script>
+    <script src="energy-calculations.js?v=235"></script>
+    <script src="app.js?v=235"></script>
     </body>
 </html>
