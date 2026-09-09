@@ -1473,7 +1473,7 @@ var historyRent = document.getElementById("historyRent");
         var nameInput = document.getElementById("platformPlanName"), priceInput = document.getElementById("platformPlanPrice");
         var unitInput = document.getElementById("platformPlanUnits"), enterpriseInput = document.getElementById("platformPlanEnterprises"), userInput = document.getElementById("platformPlanUsers");
         if (!isPlatformAdmin(firebaseUser) || !nameInput) return;
-        var name = nameInput.value.trim(), price = Number(priceInput.value);
+        var name = nameInput.value.trim(), price = moneyInputValue(priceInput);
         var limits = { units: Number(unitInput.value), enterprises: Number(enterpriseInput.value), users: Number(userInput.value), workspaces: Number(enterpriseInput.value) };
         if (!name || !Number.isFinite(price) || price < 0 || Object.keys(limits).some(function (key) { return !Number.isInteger(limits[key]) || limits[key] < 1; })) {
             nameInput.setCustomValidity("Informe nome, preço e limites válidos."); nameInput.reportValidity(); return;
@@ -3395,6 +3395,56 @@ var historyRent = document.getElementById("historyRent");
         });
     }
 
+    function parseMoneyValue(value) {
+        if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+        var text = String(value == null ? "" : value).trim();
+        if (!text) return NaN;
+        if (text.indexOf(",") >= 0) text = text.replace(/\./g, "").replace(",", ".");
+        else text = text.replace(/[^0-9.-]/g, "");
+        var parsed = Number(text);
+        return Number.isFinite(parsed) ? parsed : NaN;
+    }
+
+    function moneyInputValue(input) {
+        return parseMoneyValue(input && input.value);
+    }
+
+    function setMoneyInput(input, value) {
+        if (!input) return;
+        if (value === "" || value === null || value === undefined || !Number.isFinite(Number(value))) {
+            input.value = "";
+            return;
+        }
+        input.value = Number(value).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function maskMoneyInput(input) {
+        var digits = String(input.value || "").replace(/\D/g, "");
+        if (!digits) {
+            input.value = "";
+            return;
+        }
+        setMoneyInput(input, Number(digits) / 100);
+    }
+
+    function initializeMoneyInputs() {
+        document.querySelectorAll("[data-money]").forEach(function (input) {
+            if (input.dataset.moneyReady === "true") return;
+            input.dataset.moneyReady = "true";
+            input.addEventListener("input", function () {
+                maskMoneyInput(input);
+                if (input.id === "paymentAdjustRent" || input.id === "paymentAdjustFine" ||
+                    input.id === "paymentAdjustInterest") updatePaymentAdjustTotal();
+            });
+            if (input.value) setMoneyInput(input, parseMoneyValue(input.value));
+        });
+    }
+
+    initializeMoneyInputs();
+
     function monthKey(month) {
         return selectedYear + "-" + String(month + 1).padStart(2, "0");
     }
@@ -5094,7 +5144,7 @@ function renderUnitOverview(unit) {
     unitOverview.innerHTML='<div class="unit-overview-grid"><div><span>Contrato atual</span><strong>'+escapeHtml(unit.tenantName||"Unidade vaga")+'</strong></div><div><span>Aluguel</span><strong>'+(unit.tenantName?money(unit.rent):"—")+'</strong></div><div><span>Situação</span><strong>'+(late?late+" atraso(s)":"Em dia")+'</strong></div><div><span>Próxima ação</span><strong>'+(follow?formatTimelineDate(follow):"Não definida")+'</strong></div></div>';
 }
 function suggestAdjustment() {
-    var percent=Number(state.settings.defaultAdjustmentPercent), rent=Number(unitRent.value);
+    var percent=Number(state.settings.defaultAdjustmentPercent), rent=moneyInputValue(unitRent);
     if(!Number.isFinite(percent)||percent===0||!Number.isFinite(rent)){suggestedRentAdjustment.textContent="Defina o percentual padrão nas Configurações e o valor do aluguel.";return;}
     var base=unitStartYm.value?unitStartYm.value.slice(0,7):monthKey(new Date().getMonth()), p=base.split("-").map(Number), date=new Date(p[0]+1,p[1]-1,1), ym=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0"), value=Math.round(rent*(1+percent/100)*100)/100;
     rentChangeYm.value=ym;rentChangePercent.value=String(percent);rentChangeAbsolute.value="";suggestedRentAdjustment.textContent="Sugestão: "+percent+"% em "+ymLabel(ym)+" · "+money(value)+". Revise e clique em “Adicionar reajuste”.";
@@ -5827,18 +5877,18 @@ function partialEntriesPaidLate(unit, month, entries) {
 
         document.getElementById("paymentAdjustRentLabel").textContent =
             registerPayment ? "Valor recebido nesta baixa" : "Valor principal recebido";
-        document.getElementById("paymentAdjustRent").value = editingEntry
-            ? (Number(editedEntry.rentAmount) || 0).toFixed(2)
-            : (registerPayment ? remaining.toFixed(2) : (Number(payment.rentAmount) || 0).toFixed(2));
+        setMoneyInput(document.getElementById("paymentAdjustRent"), editingEntry
+            ? Number(editedEntry.rentAmount) || 0
+            : (registerPayment ? remaining : Number(payment.rentAmount) || 0));
         var suggestedCharges = registerPayment && !editingEntry ? lateChargeBreakdown(unit, month) : null;
-        document.getElementById("paymentAdjustFine").value = editingEntry
-            ? (Number(editedEntry.fineAmount) || 0).toFixed(2)
-            : (registerPayment ? (Number(suggestedCharges && suggestedCharges.fineAmount) || 0).toFixed(2)
-                : (Number(payment.fineAmount) || 0).toFixed(2));
-        document.getElementById("paymentAdjustInterest").value = editingEntry
-            ? (Number(editedEntry.interestAmount) || 0).toFixed(2)
-            : (registerPayment ? (Number(suggestedCharges && suggestedCharges.interestAmount) || 0).toFixed(2)
-                : (Number(payment.interestAmount) || 0).toFixed(2));
+        setMoneyInput(document.getElementById("paymentAdjustFine"), editingEntry
+            ? Number(editedEntry.fineAmount) || 0
+            : (registerPayment ? Number(suggestedCharges && suggestedCharges.fineAmount) || 0
+                : Number(payment.fineAmount) || 0));
+        setMoneyInput(document.getElementById("paymentAdjustInterest"), editingEntry
+            ? Number(editedEntry.interestAmount) || 0
+            : (registerPayment ? Number(suggestedCharges && suggestedCharges.interestAmount) || 0
+                : Number(payment.interestAmount) || 0));
         document.getElementById("paymentAdjustNotes").value = editingEntry
             ? String(editedEntry.notes || "") : (registerPayment ? "" : String(payment.notes || ""));
 
@@ -5952,7 +6002,7 @@ document
 
 		// Se a unidade não possui contrato atual, não reutiliza dados
 		// antigos que possam ter ficado gravados após o arquivamento.
-		unitRent.value = hasCurrentContract ? unit.rent : "";
+		setMoneyInput(unitRent, hasCurrentContract ? unit.rent : "");
 
 		pendingRentChanges = hasCurrentContract
 			? (unit.rentChanges || []).map(function (change) {
@@ -6098,7 +6148,7 @@ document
             rentChangeAbsolute.focus();
             return;
         }
-        var baseRent = Number(unitRent.value);
+        var baseRent = moneyInputValue(unitRent);
         if (!Number.isFinite(baseRent) || baseRent < 0) {
             unitRent.focus();
             return;
@@ -6109,7 +6159,7 @@ document
         );
         var rent = hasPercent
             ? previousRent * (1 + Number(percentValue) / 100)
-            : Number(absoluteValue);
+            : parseMoneyValue(absoluteValue);
         if (
             !Number.isFinite(rent) ||
             rent < 0 ||
@@ -6153,7 +6203,7 @@ document
     function contractHistoryPeriod(contract){return(contract.startYm?ymLabel(contract.startYm):"Início não informado")+" até "+(contract.endYm?ymLabel(contract.endYm):"fim não informado")}
     function resetHistoryForm(){editingHistoryIndex=null;historyTenant.value="";historyStart.value="";historyEnd.value="";historyRent.value="";historyStatus.value="encerrado";historyReason.value="";addContractHistory.textContent="Adicionar ao histórico"}
 
-    function addContractHistoryEntry(){var name=historyTenant.value.trim(),start=historyStart.value||null,end=historyEnd.value||null,amount=Number(historyRent.value);if(!name&&!start&&!end){historyTenant.focus();return}if(start&&end&&end<start){historyEnd.setCustomValidity("O fim deve ser igual ou posterior ao início.");historyEnd.reportValidity();historyEnd.focus();return}historyEnd.setCustomValidity("");var c={id:editingHistoryIndex!==null&&pendingContractHistory[editingHistoryIndex]?pendingContractHistory[editingHistoryIndex].id:newContractHistoryId(),tenantName:name,startYm:start,endYm:end,rent:Number.isFinite(amount)&&amount>=0?amount:null,status:normalizeContractHistoryStatus(historyStatus.value),reason:historyReason.value.trim()};if(editingHistoryIndex!==null)pendingContractHistory[editingHistoryIndex]=c;else pendingContractHistory.push(c);resetHistoryForm();historyManual.open=false;renderContractHistory()}
+    function addContractHistoryEntry(){var name=historyTenant.value.trim(),start=historyStart.value||null,end=historyEnd.value||null,amount=moneyInputValue(historyRent);if(!name&&!start&&!end){historyTenant.focus();return}if(start&&end&&end<start){historyEnd.setCustomValidity("O fim deve ser igual ou posterior ao início.");historyEnd.reportValidity();historyEnd.focus();return}historyEnd.setCustomValidity("");var c={id:editingHistoryIndex!==null&&pendingContractHistory[editingHistoryIndex]?pendingContractHistory[editingHistoryIndex].id:newContractHistoryId(),tenantName:name,startYm:start,endYm:end,rent:Number.isFinite(amount)&&amount>=0?amount:null,status:normalizeContractHistoryStatus(historyStatus.value),reason:historyReason.value.trim()};if(editingHistoryIndex!==null)pendingContractHistory[editingHistoryIndex]=c;else pendingContractHistory.push(c);resetHistoryForm();historyManual.open=false;renderContractHistory()}
     //--------------------------------------------------------------------------------------------
     function setCategoryStatus(message, isError) {
         categoryStatus.textContent = message;
@@ -6507,7 +6557,7 @@ document
                 ? expense.category
                 : expenseCategories[expenseCategories.length - 1]
         );
-        expenseAmount.value = expense ? expense.amount : "";
+        setMoneyInput(expenseAmount, expense ? expense.amount : "");
         expenseDescription.value = expense ? expense.description : "";
         expenseTaxTreatment.value = expense ? expense.taxTreatment || "revisar" : "revisar";
         expenseTaxProvider.value = expense ? expense.taxProvider || "" : "";
@@ -6553,7 +6603,7 @@ function saveExpense() {
     if (!requireWorkspacePermission("manageExpenses")) return;
     var date = expenseYm.value;
     var ym = date.slice(0, 7);
-    var amount = Number(expenseAmount.value);
+    var amount = moneyInputValue(expenseAmount);
 
     if (!isValidDateValue(date)) {
         expenseYm.focus();
@@ -6927,7 +6977,7 @@ function saveExpense() {
     function saveUnit() {
         if (!requireWorkspacePermission("manageContracts")) return;
         var name = unitName.value.trim();
-        var rent = Number(unitRent.value);
+        var rent = moneyInputValue(unitRent);
         var dueDayValue = unitDueDay.value.trim();
         var dueDay = dueDayValue === "" ? null : Number(dueDayValue);
         var startDate = unitStartYm.value || null;
@@ -9267,7 +9317,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             endDate: endDate,
             startYm: contractMonthValue(startDate),
             endYm: contractMonthValue(endDate),
-            rent: Number.isFinite(Number(unitRent.value)) ? Number(unitRent.value) : null,
+            rent: Number.isFinite(moneyInputValue(unitRent)) ? moneyInputValue(unitRent) : null,
             dueDay: unitDueDay.value === "" ? null : Number(unitDueDay.value),
             status: "encerrado",
             reason: ""
@@ -9411,27 +9461,27 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         document.getElementById("paymentAdjustInfo").textContent = unit.name + " · " +
             (contract.tenantName || "Contrato encerrado") + " · " + ymLabel(key);
         document.getElementById("paymentAdjustDate").value = localDateValue(new Date());
-        document.getElementById("paymentAdjustRent").value = Number(contract.rent) || 0;
-        document.getElementById("paymentAdjustFine").value = 0;
-        document.getElementById("paymentAdjustInterest").value = 0;
+        setMoneyInput(document.getElementById("paymentAdjustRent"), Number(contract.rent) || 0);
+        setMoneyInput(document.getElementById("paymentAdjustFine"), 0);
+        setMoneyInput(document.getElementById("paymentAdjustInterest"), 0);
         document.getElementById("paymentAdjustNotes").value = "";
         updatePaymentAdjustTotal();
         ModalManager.open(document.getElementById("paymentAdjustModal"));
     }
 
     function updatePaymentAdjustTotal() {
-        var rent = Number(document.getElementById("paymentAdjustRent").value) || 0;
-        var fine = Number(document.getElementById("paymentAdjustFine").value) || 0;
-        var interest = Number(document.getElementById("paymentAdjustInterest").value) || 0;
-        document.getElementById("paymentAdjustTotal").value = (rent + fine + interest).toFixed(2);
+        var rent = moneyInputValue(document.getElementById("paymentAdjustRent")) || 0;
+        var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
+        var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
+        setMoneyInput(document.getElementById("paymentAdjustTotal"), rent + fine + interest);
     }
 
     function savePaymentAdjust() {
     if (!requireWorkspacePermission("managePayments")) return;
         var dateValue = document.getElementById("paymentAdjustDate").value;
-        var rent = Number(document.getElementById("paymentAdjustRent").value);
-        var fine = Number(document.getElementById("paymentAdjustFine").value) || 0;
-        var interest = Number(document.getElementById("paymentAdjustInterest").value) || 0;
+        var rent = moneyInputValue(document.getElementById("paymentAdjustRent"));
+        var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
+        var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
         var notes = document.getElementById("paymentAdjustNotes").value.trim();
         if (!dateValue || !Number.isFinite(rent) || rent < 0 || fine < 0 || interest < 0) {
             alert("Informe a data e valores válidos, sem números negativos.");
@@ -10212,7 +10262,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function energyRateCalculate() {
         var el = energyRateModalElements();
-        var invoiceAmount = Math.max(0, Number(el.invoice.value) || 0);
+        var invoiceAmount = Math.max(0, moneyInputValue(el.invoice) || 0);
         var billedKwh = Math.max(0, Number(el.billed.value) || 0);
         var rows = Array.prototype.slice.call(el.readings.querySelectorAll("[data-energy-unit]")).map(function (input) {
             var previousInput = el.readings.querySelector('[data-energy-previous-unit="' + CSS.escape(input.dataset.energyUnit) + '"]');
@@ -10321,7 +10371,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return;
         }
 
-        el.invoice.value = Number.isFinite(Number(existing.invoiceAmount)) ? Number(existing.invoiceAmount).toFixed(2) : "";
+        setMoneyInput(el.invoice, Number.isFinite(Number(existing.invoiceAmount)) ? Number(existing.invoiceAmount) : "");
         el.dueDate.value = existing.dueDate || "";
         el.billed.value = existing.billedKwh || "";
         var readingsByUnit = {};
@@ -10622,9 +10672,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("energyRateDueDate").addEventListener("change", renderEnergyBillingSummary);
     document.getElementById("energyRateInvoice").addEventListener("blur", function (event) {
         if (event.target.value === "") return;
-        var value = Number(event.target.value);
+        var value = moneyInputValue(event.target);
         if (!Number.isFinite(value)) return;
-        event.target.value = Math.max(0, value).toFixed(2);
+        setMoneyInput(event.target, Math.max(0, value));
         renderEnergyRate();
     });
     document.getElementById("energyRateBilledKwh").addEventListener("input", renderEnergyRate);
