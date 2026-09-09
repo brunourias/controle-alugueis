@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=237" />
+        <link rel="stylesheet" href="styles.css?v=238" />
     
 <style>
     /* Histórico de contratos */
@@ -402,7 +402,7 @@
                 <details class="settings-panel">
                     <summary><span class="settings-panel-icon">📝</span><span><strong>Contrato atual</strong><small>Aluguel, vencimento e período</small></span></summary>
                     <div class="settings-panel-content">
-                        <label>Valor do aluguel (R$)<input type="number" id="unitRent" name="rent" step="0.01" min="0" placeholder="0,00" /></label>
+                        <label>Valor do aluguel (R$)<input type="text" id="unitRent" name="rent" placeholder="0,00" data-money="true"></label>
                         <label>Dia de vencimento<input type="number" id="unitDueDay" placeholder="Ex.: 5" inputmode="numeric" min="1" max="31" step="1" /></label>
                         <label>Início da locação<input type="date" id="unitStartYm" /><small class="field-help">Deixe em branco para considerar o ano todo. Informe também o dia.</small></label>
                         <label>Fim da locação<input type="date" id="unitEndYm" /><small class="field-help">Deixe em branco para considerar sem fim. Informe também o dia.</small></label>
@@ -426,7 +426,7 @@
                         <div id="rentChangesList"></div><div class="adjustment-suggestion"><p id="suggestedRentAdjustment" class="field-help">Use o percentual padrão das Configurações para preencher uma sugestão.</p><button id="applySuggestedRentAdjustment" class="btn btn-ghost" type="button">Sugerir reajuste</button></div>
                         <label>Aplicar a partir de<input type="month" id="rentChangeYm" /></label>
                         <label>Percentual de reajuste (%)<input type="number" id="rentChangePercent" min="-100" step="0.01" placeholder="Ex.: 10" inputmode="decimal" /></label>
-                        <label>Novo valor absoluto (R$)<input type="number" id="rentChangeAbsolute" min="0" step="0.01" placeholder="Opcional" inputmode="decimal" /></label>
+                        <label>Novo valor absoluto (R$)<input type="text" id="rentChangeAbsolute" placeholder="Opcional" inputmode="decimal" data-money="true"></label>
                         <button id="addRentChange" class="btn btn-ghost" type="button">Adicionar reajuste</button>
                     </div>
                 </details>
@@ -455,7 +455,7 @@
                                     <label>Inquilino<input type="text" id="historyTenant" placeholder="Nome" autocomplete="off" /></label>
                                     <label>Início<input type="month" id="historyStart" /></label>
                                     <label>Fim<input type="month" id="historyEnd" /></label>
-                                    <label>Valor do aluguel (R$)<input type="number" id="historyRent" min="0" step="0.01" inputmode="decimal" placeholder="Opcional" /></label>
+                                    <label>Valor do aluguel (R$)<input type="text" id="historyRent" inputmode="decimal" placeholder="Opcional" data-money="true"></label>
                                     <label>Situação do encerramento<select id="historyStatus"><option value="encerrado">Encerrado normalmente</option><option value="rescisao">Rescisão antecipada</option><option value="pendente">Encerrado com pendências</option></select></label>
                                     <label>Motivo ou observação<input type="text" id="historyReason" maxlength="180" placeholder="Opcional" /></label>
                                     <button id="addContractHistory" class="btn btn-ghost" type="button">Adicionar ao histórico</button>
@@ -533,7 +533,7 @@
             </div>
         </div>
 
-        <div class="modal-backdrop" id="energyRateModal" hidden><div class="modal energy-rate-modal"><div class="settings-heading"><div><h2>Rateio de energia</h2><p>Divida a fatura integral proporcionalmente ao consumo medido.</p></div></div><section class="energy-rate-form"><div class="energy-rate-inputs"><label class="energy-rate-reference-field">Referência<input id="energyRateReference" type="month" required></label><label class="energy-rate-enterprise-field" hidden>Empreendimento<select id="energyRateEnterprise"></select></label><label class="energy-rate-invoice-field">Valor total da fatura (R$)<input id="energyRateInvoice" type="number" min="0" step="0.01" inputmode="decimal" required></label><label class="energy-rate-due-field">Vencimento<input id="energyRateDueDate" type="date" required></label><label class="energy-rate-billed-field" hidden>Consumo da fatura (kWh)<input id="energyRateBilledKwh" type="number" min="0" step="0.01" inputmode="decimal"></label></div><p id="energyRateModeNotice" class="energy-rate-mode-notice"></p><h3>Leituras por unidade</h3><div id="energyRateReadings" class="energy-rate-readings"></div><div id="energyRatePreview" class="energy-rate-preview"></div><div id="energyConsumptionAlerts" class="energy-consumption-alerts"></div></section><details class="settings-panel energy-billing-panel"><summary><span class="settings-panel-icon">💰</span><span><strong>Controle de cobrança</strong><small>Valores recebidos, pendentes e vencidos.</small></span></summary><div class="settings-panel-content"><div id="energyBillingSummary" class="energy-billing-summary"></div></div></details><details class="settings-panel energy-comparison-panel"><summary><span class="settings-panel-icon">📊</span><span><strong>Comparativo de consumo</strong><small>Veja quem consumiu mais nesta referência.</small></span></summary><div class="settings-panel-content"><div id="energyRateComparison" class="energy-rate-comparison"></div></div></details><details class="settings-panel energy-historical-panel"><summary><span class="settings-panel-icon">📈</span><span><strong>Histórico de consumo</strong><small>Compare as unidades ao longo do ano.</small></span></summary><div class="settings-panel-content"><div id="energyHistoricalComparison" class="energy-historical-comparison"></div></div></details><details class="settings-panel"><summary><span class="settings-panel-icon">🗂️</span><span><strong>Histórico de rateios</strong><small>Abra uma competência e gere a imagem individual.</small></span></summary><div class="settings-panel-content"><div id="energyRateHistory" class="energy-rate-history"></div></div></details><div class="modal-actions settings-footer"><button id="cancelEnergyRate" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span><button id="saveEnergyRate" class="btn btn-primary" type="button">Salvar rateio</button></div></div></div>
+        <div class="modal-backdrop" id="energyRateModal" hidden><div class="modal energy-rate-modal"><div class="settings-heading"><div><h2>Rateio de energia</h2><p>Divida a fatura integral proporcionalmente ao consumo medido.</p></div></div><section class="energy-rate-form"><div class="energy-rate-inputs"><label class="energy-rate-reference-field">Referência<input id="energyRateReference" type="month" required></label><label class="energy-rate-enterprise-field" hidden>Empreendimento<select id="energyRateEnterprise"></select></label><label class="energy-rate-invoice-field">Valor total da fatura (R$)<input id="energyRateInvoice" type="text" inputmode="decimal" required data-money="true"></label><label class="energy-rate-due-field">Vencimento<input id="energyRateDueDate" type="date" required></label><label class="energy-rate-billed-field" hidden>Consumo da fatura (kWh)<input id="energyRateBilledKwh" type="number" min="0" step="0.01" inputmode="decimal"></label></div><p id="energyRateModeNotice" class="energy-rate-mode-notice"></p><h3>Leituras por unidade</h3><div id="energyRateReadings" class="energy-rate-readings"></div><div id="energyRatePreview" class="energy-rate-preview"></div><div id="energyConsumptionAlerts" class="energy-consumption-alerts"></div></section><details class="settings-panel energy-billing-panel"><summary><span class="settings-panel-icon">💰</span><span><strong>Controle de cobrança</strong><small>Valores recebidos, pendentes e vencidos.</small></span></summary><div class="settings-panel-content"><div id="energyBillingSummary" class="energy-billing-summary"></div></div></details><details class="settings-panel energy-comparison-panel"><summary><span class="settings-panel-icon">📊</span><span><strong>Comparativo de consumo</strong><small>Veja quem consumiu mais nesta referência.</small></span></summary><div class="settings-panel-content"><div id="energyRateComparison" class="energy-rate-comparison"></div></div></details><details class="settings-panel energy-historical-panel"><summary><span class="settings-panel-icon">📈</span><span><strong>Histórico de consumo</strong><small>Compare as unidades ao longo do ano.</small></span></summary><div class="settings-panel-content"><div id="energyHistoricalComparison" class="energy-historical-comparison"></div></div></details><details class="settings-panel"><summary><span class="settings-panel-icon">🗂️</span><span><strong>Histórico de rateios</strong><small>Abra uma competência e gere a imagem individual.</small></span></summary><div class="settings-panel-content"><div id="energyRateHistory" class="energy-rate-history"></div></div></details><div class="modal-actions settings-footer"><button id="cancelEnergyRate" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span><button id="saveEnergyRate" class="btn btn-primary" type="button">Salvar rateio</button></div></div></div>
 
         <!-- Modal de Gasto -->
         <div class="modal-backdrop" id="expenseModal" hidden>
@@ -551,7 +551,7 @@
                         <label>Data<input type="date" id="expenseYm" required /></label>
                         <label>Empreendimento<select id="expenseEmpreendimento" required></select></label>
                         <label>Categoria<select id="expenseCategory"><option>Manutenção</option><option>Mão de obra</option><option>IPTU</option><option>Água</option><option>Luz</option><option>Outros</option></select></label>
-                        <label>Valor (R$)<input type="number" id="expenseAmount" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 350,00" required /></label>
+                        <label>Valor (R$)<input type="text" id="expenseAmount" inputmode="decimal" placeholder="Ex.: 350,00" required data-money="true"></label>
                         <label>Descrição<input type="text" id="expenseDescription" maxlength="160" placeholder="Ex.: Conserto do portão" autocomplete="off" /></label>
                     </div>
                 </details>
@@ -759,7 +759,7 @@
                             <div id="platformPlansList" class="platform-plans-list"></div>
                             <div class="platform-plan-form">
                                 <label>Nome<input id="platformPlanName" maxlength="60" placeholder="Ex.: Premium"></label>
-                                <label>Preço mensal (R$)<input id="platformPlanPrice" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                                <label>Preço mensal (R$)<input id="platformPlanPrice" type="text" inputmode="decimal" data-money="true"></label>
                                 <label>Unidades<input id="platformPlanUnits" type="number" min="1" step="1" inputmode="numeric"></label>
                                 <label>Empreendimentos<input id="platformPlanEnterprises" type="number" min="1" step="1" inputmode="numeric"></label>
                                 <label>Usuários<input id="platformPlanUsers" type="number" min="1" step="1" inputmode="numeric"></label>
@@ -862,7 +862,7 @@
 						</label>
 						<label>
 							<span id="paymentAdjustRentLabel">Valor principal recebido</span>
-							<input type="number" id="paymentAdjustRent" inputmode="decimal" min="0" step="0.01" />
+							<input type="text" id="paymentAdjustRent" inputmode="decimal" data-money="true">
 						</label>
 					</div>
 				</details>
@@ -874,11 +874,11 @@
 					<div class="settings-panel-body">
 						<label>
 							Multa
-							<input type="number" id="paymentAdjustFine" inputmode="decimal" min="0" step="0.01" />
+							<input type="text" id="paymentAdjustFine" inputmode="decimal" data-money="true">
 						</label>
 						<label>
 							Juros / encargos
-							<input type="number" id="paymentAdjustInterest" inputmode="decimal" min="0" step="0.01" />
+							<input type="text" id="paymentAdjustInterest" inputmode="decimal" data-money="true">
 						</label>
 					</div>
 				</details>
@@ -903,7 +903,7 @@
 
 				<div class="payment-adjust-total">
 					<span>Total desta baixa</span>
-					<input type="number" id="paymentAdjustTotal" readonly />
+					<input type="text" id="paymentAdjustTotal" readonly data-money="true">
 				</div>
 
 				<div class="modal-actions settings-footer payment-adjust-footer">
@@ -1039,7 +1039,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=237"></script>
-    <script src="app.js?v=237"></script>
+    <script src="energy-calculations.js?v=238"></script>
+    <script src="app.js?v=238"></script>
     </body>
 </html>
