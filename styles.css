@@ -7811,3 +7811,53 @@ button.energy-paid-indicator:focus-visible {
         min-width: 72px;
     }
 }
+
+
+/* Pagamentos parciais */
+.status-btn.is-partial {
+    color: #8a5a00;
+    background: #fff1c9;
+    border-color: #e6c36a;
+}
+.status-btn.is-partial .status-balance {
+    display: block;
+    color: #9b3f36;
+    font-size: .58rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.payment-adjust-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+}
+.payment-adjust-summary[hidden],
+.payment-adjust-history[hidden] {
+    display: none;
+}
+.payment-adjust-summary span,
+.payment-adjust-history {
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--muted);
+    font-size: .72rem;
+}
+.payment-adjust-summary strong,
+.payment-adjust-history span {
+    display: block;
+    margin-top: 3px;
+    color: var(--ink);
+}
+.payment-adjust-history {
+    display: grid;
+    gap: 4px;
+    margin: 10px 0;
+}
+@media (max-width: 520px) {
+    .payment-adjust-summary {
+        grid-template-columns: 1fr;
+    }
+}
