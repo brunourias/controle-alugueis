@@ -7887,3 +7887,32 @@ button.energy-paid-indicator:focus-visible {
     padding: 5px 9px;
     font-size: .68rem;
 }
+
+.partial-payment-actions {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    margin: 0 !important;
+}
+.partial-edit-btn,
+.partial-delete-btn {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: .68rem;
+}
+.partial-payment-row.is-editing {
+    outline: 2px solid color-mix(in srgb, var(--teal) 45%, transparent);
+    outline-offset: 2px;
+}
+@media (max-width: 520px) {
+    .partial-payment-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .partial-payment-actions {
+        width: 100%;
+    }
+    .partial-payment-actions .btn {
+        flex: 1 1 auto;
+    }
+}
