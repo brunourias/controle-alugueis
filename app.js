@@ -3562,45 +3562,53 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function lateChargeBreakdown(unit, month) {
-        var days = daysOverdue(unit, month);
-        if (days === null) return null;
+        var overdueDays = daysOverdue(unit, month);
+        if (overdueDays === null) return null;
 
-        var rent = Number(rentForMonth(unit, selectedYear, month)) || 0;
-        var fineRate = Number(state.settings.finePercent) / 100;
-        var monthlyInterestRate = Number(state.settings.dailyInterestPercent) / 100;
+        var originalRent = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
+        var payment = getPaymentRecord(unit, selectedYear, month);
+        var entries = payment && Array.isArray(payment.partialPayments) ? payment.partialPayments : [];
+        var receivedPrincipal = paymentPrincipalReceived(payment);
+        var balance = Math.max(0, originalRent - receivedPrincipal);
+        var fineRate = Math.max(0, Number(state.settings.finePercent) || 0) / 100;
+        var monthlyInterestRate = Math.max(0, Number(state.settings.dailyInterestPercent) || 0) / 100;
         var dailyInterestRate = monthlyInterestRate / 30;
 
-        var fineAmount = rent * fineRate;
-        var interestAmount = rent * dailyInterestRate * days;
+        // A multa é sugerida uma única vez. Depois da primeira baixa, os juros
+        // recomeçam na data daquela baixa e incidem somente sobre o saldo.
+        var hasFinePayment = entries.some(function (entry) {
+            return Number(entry && entry.fineAmount) > 0;
+        });
+        var fineAmount = hasFinePayment ? 0 : balance * fineRate;
+        var interestStart = dueDateFor(unit, month);
+        if (entries.length) {
+            var latest = entries.reduce(function (value, entry) {
+                var candidate = entry && entry.paidAt ? new Date(entry.paidAt) : null;
+                return candidate && !isNaN(candidate.getTime()) && (!value || candidate > value) ? candidate : value;
+            }, null);
+            if (latest) { latest.setHours(0, 0, 0, 0); interestStart = latest; }
+        }
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var days = interestStart ? Math.max(0, Math.floor((today - interestStart) / 86400000)) : overdueDays;
+        var interestAmount = balance * dailyInterestRate * days;
         var chargesAmount = fineAmount + interestAmount;
-        var totalAmount = rent + chargesAmount;
 
         return {
             days: days,
-            rentAmount: rent,
+            rentAmount: balance,
+            originalRentAmount: originalRent,
+            receivedPrincipal: receivedPrincipal,
             fineAmount: fineAmount,
             interestAmount: interestAmount,
             chargesAmount: chargesAmount,
-            totalAmount: totalAmount
+            totalAmount: balance + chargesAmount
         };
     }
 
     function updatedAmount(unit, month) {
-        var days = daysOverdue(unit, month);
-        if (days === null) return null;
-
-        var rent = rentForMonth(unit, selectedYear, month);
-        var fineRate = Number(state.settings.finePercent) / 100;
-        var monthlyInterestRate = Number(state.settings.dailyInterestPercent) / 100;
-        var dailyInterestRate = monthlyInterestRate / 30;
-
-        // Contrato V2.5:
-        // multa de 10% uma única vez + juros de mora de 1% a.m.
-        // pro rata die, sem capitalização e sem juros sobre a multa.
-        var multa = rent * fineRate;
-        var juros = rent * dailyInterestRate * days;
-
-        return rent + multa + juros;
+        var breakdown = lateChargeBreakdown(unit, month);
+        return breakdown ? breakdown.totalAmount : null;
     }
 
     function effectiveStatus(unit, month) {
@@ -5738,10 +5746,13 @@ function openPaymentAdjust(id, month, registerPayment) {
         registerPayment ? "Valor recebido nesta baixa" : "Valor principal recebido";
     document.getElementById("paymentAdjustRent").value =
         registerPayment ? remaining.toFixed(2) : (Number(payment.rentAmount) || 0).toFixed(2);
+    var suggestedCharges = registerPayment ? lateChargeBreakdown(unit, month) : null;
     document.getElementById("paymentAdjustFine").value =
-        registerPayment ? "0.00" : (Number(payment.fineAmount) || 0).toFixed(2);
+        registerPayment ? (Number(suggestedCharges && suggestedCharges.fineAmount) || 0).toFixed(2)
+            : (Number(payment.fineAmount) || 0).toFixed(2);
     document.getElementById("paymentAdjustInterest").value =
-        registerPayment ? "0.00" : (Number(payment.interestAmount) || 0).toFixed(2);
+        registerPayment ? (Number(suggestedCharges && suggestedCharges.interestAmount) || 0).toFixed(2)
+            : (Number(payment.interestAmount) || 0).toFixed(2);
     document.getElementById("paymentAdjustNotes").value =
         registerPayment ? "" : String(payment.notes || "");
 
@@ -5750,7 +5761,7 @@ function openPaymentAdjust(id, month, registerPayment) {
     summary.innerHTML = registerPayment
         ? "<span>Valor da parcela<strong>" + money(due) + "</strong></span>" +
           "<span>Já recebido<strong>" + money(received) + "</strong></span>" +
-          "<span>Saldo atual<strong>" + money(remaining) + "</strong></span>"
+          "<span>Saldo principal<strong>" + money(remaining) + "</strong></span>"
         : "";
 
     var history = document.getElementById("paymentAdjustHistory");
@@ -5758,11 +5769,19 @@ function openPaymentAdjust(id, month, registerPayment) {
         ? savedPayment.partialPayments : [];
     history.hidden = !entries.length;
     history.innerHTML = entries.length
-        ? "<strong>Pagamentos registrados</strong>" + entries.map(function (entry) {
-            return "<span>" + escapeHtml(formatTimelineDate(String(entry.paidAt || "").slice(0, 10))) +
-                " · " + money(Number(entry.totalAmount) || Number(entry.rentAmount) || 0) + "</span>";
+        ? "<strong>Pagamentos registrados</strong>" + entries.map(function (entry, entryIndex) {
+            return '<span class="partial-payment-row"><span>' +
+                escapeHtml(formatTimelineDate(String(entry.paidAt || "").slice(0, 10))) +
+                " · " + money(Number(entry.totalAmount) || Number(entry.rentAmount) || 0) +
+                '</span><button class="btn btn-ghost partial-receipt-btn" type="button" data-partial-receipt="' +
+                entryIndex + '">Comprovante</button></span>';
         }).join("")
         : "";
+    history.querySelectorAll("[data-partial-receipt]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            openPartialPaymentReceipt(id, month, Number(button.dataset.partialReceipt));
+        });
+    });
 
     document.getElementById("savePaymentAdjust").textContent =
         registerPayment ? "Registrar pagamento" : "Salvar ajuste";
@@ -7112,6 +7131,42 @@ function saveExpense() {
 		};
 	}
 
+    function openPartialPaymentReceipt(id, month, entryIndex) {
+        var unit = state.units.find(function (item) { return item.id === id; });
+        var payment = unit && getPaymentRecord(unit, selectedYear, month);
+        var entries = payment && Array.isArray(payment.partialPayments) ? payment.partialPayments : [];
+        var entry = entries[entryIndex];
+        if (!unit || !entry) return;
+
+        var installmentAmount = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
+        var receivedThroughEntry = entries.slice(0, entryIndex + 1).reduce(function (sum, item) {
+            return sum + Math.max(0, Number(item && item.rentAmount) || 0);
+        }, 0);
+        var balanceAfter = Math.max(0, installmentAmount - receivedThroughEntry);
+        receiptContext = {
+            unit: unit,
+            tenantName: unit.tenantName || "",
+            month: month,
+            year: selectedYear,
+            monthName: fullMonths[month],
+            issuedAt: formatDate(new Date()),
+            status: Number(entry.fineAmount) > 0 || Number(entry.interestAmount) > 0 ? "pago-atrasado" : "parcial",
+            isPartialReceipt: true,
+            installmentAmount: installmentAmount,
+            amount: Number(entry.rentAmount) || 0,
+            fineAmount: Number(entry.fineAmount) || 0,
+            interestAmount: Number(entry.interestAmount) || 0,
+            chargesAmount: (Number(entry.fineAmount) || 0) + (Number(entry.interestAmount) || 0),
+            totalAmount: Number(entry.totalAmount) || Number(entry.rentAmount) || 0,
+            paidAt: entry.paidAt,
+            balanceAfter: balanceAfter,
+            paymentNumber: entryIndex + 1
+        };
+        document.getElementById("receiptTitle").textContent = "Comprovante da baixa " + (entryIndex + 1);
+        receiptPreview.innerHTML = receiptMarkup(receiptContext);
+        ModalManager.open(receiptModal);
+    }
+
     function receiptMarkup(data) {
 		var receiver = state.settings.receiverName
 			? '<div class="receipt-line"><strong>Recebedor</strong><span>' +
@@ -7167,7 +7222,13 @@ function saveExpense() {
 			: "";
 
 		var receiptText =
-			data.status === "pago-atrasado"
+            data.isPartialReceipt
+                ? "Recebi a importância de " + money(totalRecebido) +
+                  " referente à baixa nº " + String(data.paymentNumber || 1) +
+                  " do aluguel da " + escapeHtml(data.unit.name) + " no mês de " +
+                  data.monthName + " de " + data.year + ". Saldo principal restante: " +
+                  money(data.balanceAfter) + "."
+			    : data.status === "pago-atrasado"
 				? "Recebi de forma integral a importância de " +
 				  money(totalRecebido) +
 				  " referente ao aluguel da " +
@@ -7192,16 +7253,20 @@ function saveExpense() {
 				  ".";
 
 		return (
-			'<div class="receipt-paper"><h3>Recibo de Aluguel</h3>' +
+			'<div class="receipt-paper"><h3>' + (data.isPartialReceipt ? "Recibo de Pagamento" : "Recibo de Aluguel") + '</h3>' +
 			receiver +
 			tenant +
 			'<div class="receipt-line"><strong>Unidade</strong><span>' +
 			escapeHtml(data.unit.name) +
 			"</span></div>" +
-			'<div class="receipt-line"><strong>Valor do aluguel</strong><span>' +
+			'<div class="receipt-line"><strong>' + (data.isPartialReceipt ? "Principal recebido" : "Valor do aluguel") + '</strong><span>' +
 			money(aluguel) +
 			"</span></div>" +
 			valoresAtraso +
+            (data.isPartialReceipt
+                ? '<div class="receipt-line"><strong>Valor da parcela</strong><span>' + money(data.installmentAmount) +
+                  '</span></div><div class="receipt-line"><strong>Saldo restante</strong><span>' + money(data.balanceAfter) + '</span></div>'
+                : "") +
 			'<div class="receipt-line"><strong>Referência</strong><span>' +
 			data.monthName +
 			" de " +
@@ -7344,7 +7409,7 @@ function saveExpense() {
 		ctx.fillStyle = "#0d5c58";
 		ctx.font = "bold 28px sans-serif";
 		ctx.textAlign = "left";
-		ctx.fillText("Recibo de Aluguel", contentMargin, margin + 60);
+		ctx.fillText(context.isPartialReceipt ? "Recibo de Pagamento" : "Recibo de Aluguel", contentMargin, margin + 60);
 
 		// ==========================================================
 		// DADOS
@@ -7371,13 +7436,18 @@ function saveExpense() {
 					(context.unit ? context.unit.name : "-")
 			},
 			{
-				label: "Valor do aluguel",
+				label: context.isPartialReceipt ? "Principal recebido" : "Valor do aluguel",
 				value:
 					aluguel > 0
 						? "R$ " + formatCurrency(aluguel)
 						: "-"
 			}
 		];
+
+        if (context.isPartialReceipt) {
+            details.push({ label: "Valor da parcela", value: "R$ " + formatCurrency(context.installmentAmount) });
+            details.push({ label: "Saldo restante", value: "R$ " + formatCurrency(context.balanceAfter) });
+        }
 
 		// Se estiver atrasado, evidencia multa, juros e total recebido
 		if (context.status === "pago-atrasado") {
@@ -7468,6 +7538,13 @@ function saveExpense() {
 
 		if (context.descriptionText) {
 			descriptionText = context.descriptionText;
+		} else if (context.isPartialReceipt) {
+            descriptionText =
+                "Recebi a importância de R$ " + formatCurrency(totalRecebido) +
+                " referente à baixa nº " + String(context.paymentNumber || 1) +
+                " do aluguel da " + unitName + " no mês de " + context.monthName +
+                " de " + context.year + ". Saldo principal restante: R$ " +
+                formatCurrency(context.balanceAfter) + ".";
 		} else if (context.status === "pago-atrasado") {
 			descriptionText =
 				"Recebi de forma integral a importância de R$ " +
