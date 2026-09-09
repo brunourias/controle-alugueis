@@ -3611,51 +3611,63 @@ var historyRent = document.getElementById("historyRent");
         return days > 0 ? days : null;
     }
 
-    function lateChargeBreakdown(unit, month) {
-        var overdueDays = daysOverdue(unit, month);
-        if (overdueDays === null) return null;
+    function lateChargeBreakdown(unit, month, calculationDate, ignoredEntryIndex) {
+        var due = dueDateFor(unit, month);
+        if (!due) return null;
+        due.setHours(0, 0, 0, 0);
+
+        var target = calculationDate instanceof Date ? new Date(calculationDate) : new Date();
+        if (isNaN(target.getTime())) return null;
+        target.setHours(0, 0, 0, 0);
 
         var originalRent = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
         var payment = getPaymentRecord(unit, selectedYear, month);
-        var entries = payment && Array.isArray(payment.partialPayments) ? payment.partialPayments : [];
-        var receivedPrincipal = paymentPrincipalReceived(payment);
+        var allEntries = payment && Array.isArray(payment.partialPayments) ? payment.partialPayments : [];
+        var entries = allEntries.filter(function (entry, index) {
+            if (index === ignoredEntryIndex) return false;
+            var entryDate = entry && entry.paidAt ? new Date(entry.paidAt) : null;
+            if (!entryDate || isNaN(entryDate.getTime())) return true;
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate <= target;
+        });
+        var receivedPrincipal = paymentPrincipalReceived({ partialPayments: entries });
         var balance = Math.max(0, originalRent - receivedPrincipal);
         var fineRate = Math.max(0, Number(state.settings.finePercent) || 0) / 100;
         var monthlyInterestRate = Math.max(0, Number(state.settings.dailyInterestPercent) || 0) / 100;
         var dailyInterestRate = monthlyInterestRate / 30;
 
-        // A multa é sugerida uma única vez. Depois da primeira baixa, os juros
-        // recomeçam na data daquela baixa e incidem somente sobre o saldo.
         var hasFinePayment = entries.some(function (entry) {
             return Number(entry && entry.fineAmount) > 0;
         });
-        var fineAmount = hasFinePayment ? 0 : balance * fineRate;
-        var interestStart = dueDateFor(unit, month);
-        if (entries.length) {
-            var latest = entries.reduce(function (value, entry) {
-                var candidate = entry && entry.paidAt ? new Date(entry.paidAt) : null;
-                return candidate && !isNaN(candidate.getTime()) && (!value || candidate > value) ? candidate : value;
-            }, null);
-            if (latest) { latest.setHours(0, 0, 0, 0); interestStart = latest; }
-        }
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-        var days = interestStart ? Math.max(0, Math.floor((today - interestStart) / 86400000)) : overdueDays;
-        var interestAmount = balance * dailyInterestRate * days;
+        var latestPaymentDate = entries.reduce(function (value, entry) {
+            var candidate = entry && entry.paidAt ? new Date(entry.paidAt) : null;
+            if (!candidate || isNaN(candidate.getTime())) return value;
+            candidate.setHours(0, 0, 0, 0);
+            return !value || candidate > value ? candidate : value;
+        }, null);
+        var interestStart = latestPaymentDate && latestPaymentDate > due ? latestPaymentDate : due;
+        var days = Math.max(0, Math.floor((target - interestStart) / 86400000));
+        var overdue = target > due;
+        var fineAmount = overdue && !hasFinePayment ? balance * fineRate : 0;
+        var interestAmount = overdue ? balance * dailyInterestRate * days : 0;
         var chargesAmount = fineAmount + interestAmount;
 
         return {
             days: days,
+            overdue: overdue,
+            calculationDate: target,
+            interestStart: interestStart,
             rentAmount: balance,
             originalRentAmount: originalRent,
             receivedPrincipal: receivedPrincipal,
+            fineRate: fineRate,
+            monthlyInterestRate: monthlyInterestRate,
             fineAmount: fineAmount,
             interestAmount: interestAmount,
             chargesAmount: chargesAmount,
             totalAmount: balance + chargesAmount
         };
     }
-
     function updatedAmount(unit, month) {
         var breakdown = lateChargeBreakdown(unit, month);
         return breakdown ? breakdown.totalAmount : null;
@@ -5859,7 +5871,9 @@ function partialEntriesPaidLate(unit, month, entries) {
             month: month,
             key: key,
             mode: editingEntry ? "edit-partial" : (registerPayment ? "register" : "adjust"),
-            entryIndex: editingEntry ? editEntryIndex : null
+            entryIndex: editingEntry ? editEntryIndex : null,
+            dueAmount: due,
+            receivedOther: editingEntry ? receivedOther : received
         };
 
         document.getElementById("paymentAdjustTitle").textContent =
@@ -5880,15 +5894,15 @@ function partialEntriesPaidLate(unit, month, entries) {
         setMoneyInput(document.getElementById("paymentAdjustRent"), editingEntry
             ? Number(editedEntry.rentAmount) || 0
             : (registerPayment ? remaining : Number(payment.rentAmount) || 0));
-        var suggestedCharges = registerPayment && !editingEntry ? lateChargeBreakdown(unit, month) : null;
-        setMoneyInput(document.getElementById("paymentAdjustFine"), editingEntry
-            ? Number(editedEntry.fineAmount) || 0
-            : (registerPayment ? Number(suggestedCharges && suggestedCharges.fineAmount) || 0
-                : Number(payment.fineAmount) || 0));
-        setMoneyInput(document.getElementById("paymentAdjustInterest"), editingEntry
-            ? Number(editedEntry.interestAmount) || 0
-            : (registerPayment ? Number(suggestedCharges && suggestedCharges.interestAmount) || 0
-                : Number(payment.interestAmount) || 0));
+        var suggestedCharges = registerPayment
+            ? lateChargeBreakdown(unit, month, paidDate, editingEntry ? editEntryIndex : undefined)
+            : null;
+        setMoneyInput(document.getElementById("paymentAdjustFine"), registerPayment
+            ? Number(suggestedCharges && suggestedCharges.fineAmount) || 0
+            : Number(payment.fineAmount) || 0);
+        setMoneyInput(document.getElementById("paymentAdjustInterest"), registerPayment
+            ? Number(suggestedCharges && suggestedCharges.interestAmount) || 0
+            : Number(payment.interestAmount) || 0);
         document.getElementById("paymentAdjustNotes").value = editingEntry
             ? String(editedEntry.notes || "") : (registerPayment ? "" : String(payment.notes || ""));
 
@@ -5899,7 +5913,12 @@ function partialEntriesPaidLate(unit, month, entries) {
               "<span>" + (editingEntry ? "Outras baixas" : "Já recebido") + "<strong>" +
               money(editingEntry ? receivedOther : received) + "</strong></span>" +
               "<span>" + (editingEntry ? "Máximo nesta baixa" : "Saldo principal") + "<strong>" +
-              money(editingEntry ? available : remaining) + "</strong></span>" : "";
+              money(editingEntry ? available : remaining) + "</strong></span>" +
+              '<span class="is-balance-after">Saldo após esta baixa<strong id="paymentAdjustBalanceAfter">' +
+              money(Math.max(0, due - (editingEntry ? receivedOther : received) -
+                  (moneyInputValue(document.getElementById("paymentAdjustRent")) || 0))) +
+              "</strong></span>" : "";
+        renderPaymentChargeCalculation(suggestedCharges);
 
         var history = document.getElementById("paymentAdjustHistory");
         history.hidden = !entries.length;
@@ -5936,6 +5955,10 @@ function partialEntriesPaidLate(unit, month, entries) {
         updatePaymentAdjustTotal();
         ModalManager.open(document.getElementById("paymentAdjustModal"));
     }
+
+document
+    .getElementById("paymentAdjustDate")
+    .addEventListener("change", recalculatePaymentCharges);
 
 document
     .getElementById("paymentAdjustRent")
@@ -9469,11 +9492,65 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         ModalManager.open(document.getElementById("paymentAdjustModal"));
     }
 
+    function paymentAdjustSelectedDate() {
+        var value = document.getElementById("paymentAdjustDate").value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+        var parts = value.split("-").map(Number);
+        return new Date(parts[0], parts[1] - 1, parts[2], 12);
+    }
+
+    function renderPaymentChargeCalculation(breakdown) {
+        var detail = document.getElementById("paymentAdjustChargeCalculation");
+        if (!detail) return;
+        if (!breakdown || !breakdown.overdue) {
+            detail.textContent = "Sem juros: a data informada não ultrapassa o vencimento.";
+            detail.classList.add("is-zero");
+            return;
+        }
+        detail.classList.remove("is-zero");
+        var rateLabel = (breakdown.monthlyInterestRate * 100).toLocaleString("pt-BR", {
+            minimumFractionDigits: 0, maximumFractionDigits: 2
+        });
+        detail.textContent = "Juros: " + money(breakdown.rentAmount) + " × " + rateLabel +
+            "% a.m. × " + breakdown.days + (breakdown.days === 1 ? " dia" : " dias") +
+            " ÷ 30 = " + money(breakdown.interestAmount) + ". Multa: " +
+            (breakdown.fineAmount > 0
+                ? money(breakdown.rentAmount) + " × " +
+                  (breakdown.fineRate * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) +
+                  "% = " + money(breakdown.fineAmount)
+                : "já considerada em uma baixa anterior") + ".";
+    }
+
+    function updatePaymentBalancePreview() {
+        if (!paymentAdjustContext ||
+            (paymentAdjustContext.mode !== "register" && paymentAdjustContext.mode !== "edit-partial")) return;
+        var output = document.getElementById("paymentAdjustBalanceAfter");
+        if (!output) return;
+        var amount = Math.max(0, moneyInputValue(document.getElementById("paymentAdjustRent")) || 0);
+        output.textContent = money(Math.max(0,
+            Number(paymentAdjustContext.dueAmount) - Number(paymentAdjustContext.receivedOther) - amount));
+    }
+
+    function recalculatePaymentCharges() {
+        if (!paymentAdjustContext ||
+            (paymentAdjustContext.mode !== "register" && paymentAdjustContext.mode !== "edit-partial")) return;
+        var unit = state.units.find(function (item) { return item.id === paymentAdjustContext.unitId; });
+        var date = paymentAdjustSelectedDate();
+        if (!unit || !date) return;
+        var breakdown = lateChargeBreakdown(unit, paymentAdjustContext.month, date,
+            paymentAdjustContext.mode === "edit-partial" ? Number(paymentAdjustContext.entryIndex) : undefined);
+        setMoneyInput(document.getElementById("paymentAdjustFine"), Number(breakdown && breakdown.fineAmount) || 0);
+        setMoneyInput(document.getElementById("paymentAdjustInterest"), Number(breakdown && breakdown.interestAmount) || 0);
+        renderPaymentChargeCalculation(breakdown);
+        updatePaymentAdjustTotal();
+    }
+
     function updatePaymentAdjustTotal() {
         var rent = moneyInputValue(document.getElementById("paymentAdjustRent")) || 0;
         var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
         var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
         setMoneyInput(document.getElementById("paymentAdjustTotal"), rent + fine + interest);
+        updatePaymentBalancePreview();
     }
 
     function savePaymentAdjust() {
