@@ -121,4 +121,11 @@ assert.match(app, /minimumFractionDigits:\s*2,[\s\S]{0,80}maximumFractionDigits:
 assert.match(app, /moneyInputValue\(expenseAmount\)/, "Gastos formatados devem ser convertidos antes de salvar");
 assert.match(app, /moneyInputValue\(el\.invoice\)/, "A fatura de energia formatada deve ser convertida antes do rateio");
 
+assert.match(index, /Juros de mora[\s\S]{0,160}id="paymentAdjustInterest"/, "O campo deve identificar claramente os juros de mora");
+assert.match(index, /id="paymentAdjustChargeCalculation"/, "O modal deve reservar espaço para a memória de cálculo");
+assert.match(app, /function recalculatePaymentCharges\(/, "Alterar a data deve recalcular os encargos");
+assert.match(app, /paymentAdjustDate"[\s\S]{0,100}addEventListener\("change", recalculatePaymentCharges\)/, "A data real deve acionar o recálculo");
+assert.match(app, /Saldo após esta baixa<strong id="paymentAdjustBalanceAfter"/, "O resumo deve antecipar o saldo restante");
+assert.match(app, /Juros: "[\s\S]{0,220}" ÷ 30 = "/, "A memória deve explicar a fórmula diária dos juros");
+
 console.log("Verificações de integridade concluídas.");
