@@ -4649,8 +4649,11 @@ var historyRent = document.getElementById("historyRent");
 					}
 
                     var status = displayStatus(unit, i);
+                    var partial = partialPaymentInfo(unit, i);
 
-                    var icon =
+                    var icon = partial
+                            ? "◐"
+                            :
                         status === "pago" || status === "pago-atrasado"
                             ? "✓"
                             : status === "atrasado"
@@ -4658,7 +4661,9 @@ var historyRent = document.getElementById("historyRent");
                             : "-";
 
                     var label =
-                        status === "pago-atrasado"
+                        partial
+                            ? "Parcial"
+                            : status === "pago-atrasado"
                             ? "Pago (atraso)"
                             : status === "pago"
                             ? "Pago"
@@ -4688,12 +4693,12 @@ var historyRent = document.getElementById("historyRent");
                             ? updatedAmount(unit, i)
                             : null;
 
-                    var statusAmount =
-                        amount === null
+                    var statusAmount = partial
+                        ? '<span class="status-amount">Recebido ' + money(partial.received) +
+                          '</span><span class="status-balance">Falta ' + money(partial.balance) + '</span>'
+                        : amount === null
                             ? ""
-                            : '<span class="status-amount">' +
-                              money(amount) +
-                              "</span>";
+                            : '<span class="status-amount">' + money(amount) + "</span>";
 
                     var ariaLabel = dayLabel
                         ? label + ", " + dayLabel
@@ -4749,7 +4754,7 @@ var historyRent = document.getElementById("historyRent");
                         '">' +
 
                         '<button class="status-btn chip-' +
-                        status +
+                        status + (partial ? " is-partial" : "") +
                         '" data-unit="' +
                         escapeHtml(unit.id) +
                         '" data-month="' +
@@ -5565,6 +5570,22 @@ function renderSummary() {
 		return unit.paymentHistory;
 	}
 
+    function paymentPrincipalReceived(payment) {
+        if (!payment || !Array.isArray(payment.partialPayments)) return 0;
+        return payment.partialPayments.reduce(function (sum, entry) {
+            return sum + Math.max(0, Number(entry && entry.rentAmount) || 0);
+        }, 0);
+    }
+
+    function partialPaymentInfo(unit, month) {
+        var payment = getPaymentRecord(unit, selectedYear, month);
+        if (!payment || !Array.isArray(payment.partialPayments) || !payment.partialPayments.length) return null;
+        var due = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
+        var received = Math.min(due, paymentPrincipalReceived(payment));
+        var balance = Math.max(0, due - received);
+        return balance > 0.009 ? { due: due, received: received, balance: balance, count: payment.partialPayments.length } : null;
+    }
+
     function toggleStatus(id, month) {
     if (!requireWorkspacePermission("managePayments")) return;
     var unit = state.units.find(function (item) {
@@ -5576,6 +5597,14 @@ function renderSummary() {
     var cycle = ["pendente", "pago", "pago-atrasado"];
     var current = logicalStatus(unit, month);
     var key = monthKey(month);
+
+    // Toda parcela em aberto passa pela tela de recebimento. Assim um valor
+    // menor que o aluguel não encerra a dívida por engano.
+    if (current === "pendente") {
+        openPaymentAdjust(id, month, true);
+        return;
+    }
+
     var next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
 
     // Garante que o histórico de pagamentos exista
@@ -5665,108 +5694,81 @@ function renderSummary() {
 	
 	var paymentAdjustContext = null;
 
-function openPaymentAdjust(id, month) {
+function openPaymentAdjust(id, month, registerPayment) {
     if (!requireWorkspacePermission("managePayments")) return;
-    var unit = state.units.find(function (item) {
-        return item.id === id;
-    });
-
+    var unit = state.units.find(function (item) { return item.id === id; });
     if (!unit || !isActive(unit, month)) return;
 
     var key = monthKey(month);
-
-    unit.paymentHistory =
-        unit.paymentHistory &&
-        typeof unit.paymentHistory === "object"
-            ? unit.paymentHistory
-            : {};
-
-    var payment = unit.paymentHistory[key];
-
-    /*
-     * Se o pagamento ainda não possui histórico,
-     * criamos apenas os valores iniciais para permitir
-     * o ajuste manual.
-     *
-     * O histórico só será efetivamente salvo quando
-     * o usuário clicar em "Salvar ajuste".
-     */
-    if (!payment) {
-        payment = {
-            paidAt: new Date().toISOString(),
-            rentAmount: rentForMonth(
-                unit,
-                selectedYear,
-                month
-            ),
-            interestAmount: 0,
-            totalAmount: rentForMonth(
-                unit,
-                selectedYear,
-                month
-            )
-        };
-    }
+    unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object"
+        ? unit.paymentHistory : {};
+    var savedPayment = unit.paymentHistory[key] || null;
+    var due = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
+    var received = savedPayment && Array.isArray(savedPayment.partialPayments)
+        ? paymentPrincipalReceived(savedPayment) : 0;
+    var remaining = Math.max(0, due - received);
+    var payment = savedPayment || {
+        paidAt: new Date().toISOString(),
+        rentAmount: due,
+        fineAmount: 0,
+        interestAmount: 0,
+        totalAmount: due
+    };
 
     paymentAdjustContext = {
         unitId: id,
         month: month,
-        key: key
+        key: key,
+        mode: registerPayment ? "register" : "adjust"
     };
 
     document.getElementById("paymentAdjustTitle").textContent =
-        "Ajustar pagamento";
-
+        registerPayment ? "Registrar pagamento" : "Ajustar pagamento";
     document.getElementById("paymentAdjustInfo").textContent =
-        unit.name +
-        " — " +
-        fullMonths[month] +
-        " de " +
-        selectedYear;
+        unit.name + " — " + fullMonths[month] + " de " + selectedYear;
 
-    /*
-     * Data real do pagamento
-     */
-    var paidDate = payment.paidAt
-        ? new Date(payment.paidAt)
-        : new Date();
+    var paidDate = registerPayment ? new Date() : (payment.paidAt ? new Date(payment.paidAt) : new Date());
+    var dateInput = document.getElementById("paymentAdjustDate");
+    dateInput.value = !isNaN(paidDate.getTime())
+        ? paidDate.getFullYear() + "-" + String(paidDate.getMonth() + 1).padStart(2, "0") + "-" +
+          String(paidDate.getDate()).padStart(2, "0")
+        : "";
 
-    var dateInput =
-        document.getElementById("paymentAdjustDate");
-
-    if (!isNaN(paidDate.getTime())) {
-        dateInput.value =
-            paidDate.getFullYear() +
-            "-" +
-            String(paidDate.getMonth() + 1).padStart(2, "0") +
-            "-" +
-            String(paidDate.getDate()).padStart(2, "0");
-    } else {
-        dateInput.value = "";
-    }
-
-    /*
-     * Valor do aluguel
-     */
+    document.getElementById("paymentAdjustRentLabel").textContent =
+        registerPayment ? "Valor recebido nesta baixa" : "Valor principal recebido";
     document.getElementById("paymentAdjustRent").value =
-        Number(payment.rentAmount) || 0;
-
-    /*
-     * Juros / encargos
-     */
+        registerPayment ? remaining.toFixed(2) : (Number(payment.rentAmount) || 0).toFixed(2);
+    document.getElementById("paymentAdjustFine").value =
+        registerPayment ? "0.00" : (Number(payment.fineAmount) || 0).toFixed(2);
     document.getElementById("paymentAdjustInterest").value =
-        Number(payment.interestAmount) || 0;
+        registerPayment ? "0.00" : (Number(payment.interestAmount) || 0).toFixed(2);
+    document.getElementById("paymentAdjustNotes").value =
+        registerPayment ? "" : String(payment.notes || "");
 
-    /*
-     * Total
-     */
+    var summary = document.getElementById("paymentAdjustSummary");
+    summary.hidden = !registerPayment;
+    summary.innerHTML = registerPayment
+        ? "<span>Valor da parcela<strong>" + money(due) + "</strong></span>" +
+          "<span>Já recebido<strong>" + money(received) + "</strong></span>" +
+          "<span>Saldo atual<strong>" + money(remaining) + "</strong></span>"
+        : "";
+
+    var history = document.getElementById("paymentAdjustHistory");
+    var entries = savedPayment && Array.isArray(savedPayment.partialPayments)
+        ? savedPayment.partialPayments : [];
+    history.hidden = !entries.length;
+    history.innerHTML = entries.length
+        ? "<strong>Pagamentos registrados</strong>" + entries.map(function (entry) {
+            return "<span>" + escapeHtml(formatTimelineDate(String(entry.paidAt || "").slice(0, 10))) +
+                " · " + money(Number(entry.totalAmount) || Number(entry.rentAmount) || 0) + "</span>";
+        }).join("")
+        : "";
+
+    document.getElementById("savePaymentAdjust").textContent =
+        registerPayment ? "Registrar pagamento" : "Salvar ajuste";
     updatePaymentAdjustTotal();
-
-    ModalManager.open(
-        document.getElementById("paymentAdjustModal")
-    );
+    ModalManager.open(document.getElementById("paymentAdjustModal"));
 }
-
 
 
 document
@@ -8906,7 +8908,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 var activeStatus = effectiveStatus(unit, month);
                 metrics.expected += activeRent;
 
-                if (activeStatus === "pago") {
+                var partialOpen = partialPaymentInfo(unit, month);
+                if (partialOpen) {
+                    metrics.received += partialOpen.received;
+                    if (activeStatus === "atrasado") {
+                        addOpenLate(partialOpen.balance);
+                        activeLateCounted = true;
+                    } else {
+                        metrics.pending += partialOpen.balance;
+                    }
+                } else if (activeStatus === "pago") {
                     var paidDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
                     var contractStart = isValidDateValue(unit.startDate)
                         ? new Date(unit.startDate + "T00:00:00")
@@ -9281,6 +9292,61 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!paymentAdjustContext) return;
         var activeUnit = state.units.find(function (item) { return item.id === paymentAdjustContext.unitId; });
         if (!activeUnit) return;
+
+        if (paymentAdjustContext.mode === "register") {
+            var due = Math.max(0, Number(rentForMonth(activeUnit, selectedYear, paymentAdjustContext.month)) || 0);
+            ensureFinancialHistory(activeUnit);
+            var existing = activeUnit.paymentHistory[paymentAdjustContext.key] || {};
+            var entries = Array.isArray(existing.partialPayments) ? existing.partialPayments.slice() : [];
+            var alreadyReceived = paymentPrincipalReceived({ partialPayments: entries });
+            var remaining = Math.max(0, due - alreadyReceived);
+            if (rent <= 0 || rent - remaining > 0.009) {
+                alert("Informe um valor maior que zero e não superior ao saldo de " + money(remaining) + ".");
+                return;
+            }
+            var entry = {
+                id: "payment-" + Date.now().toString(36),
+                paidAt: paidAt,
+                rentAmount: rent,
+                fineAmount: fine,
+                interestAmount: interest,
+                totalAmount: rent + fine + interest,
+                notes: notes
+            };
+            entries.push(entry);
+            var principalReceived = paymentPrincipalReceived({ partialPayments: entries });
+            var fineReceived = entries.reduce(function (sum, item) { return sum + (Number(item.fineAmount) || 0); }, 0);
+            var interestReceived = entries.reduce(function (sum, item) { return sum + (Number(item.interestAmount) || 0); }, 0);
+            var totalReceived = entries.reduce(function (sum, item) { return sum + (Number(item.totalAmount) || 0); }, 0);
+            var settled = principalReceived + 0.009 >= due;
+
+            createVersionedBackup(settled ? "Quitação de pagamento" : "Pagamento parcial", paymentAdjustContext.key);
+            recordOperation(settled ? "Pagamento quitado" : "Pagamento parcial registrado", paymentAdjustContext.key);
+            activeUnit.paymentHistory[paymentAdjustContext.key] = {
+                rentAmount: principalReceived,
+                fineAmount: fineReceived,
+                interestAmount: interestReceived,
+                chargesAmount: fineReceived + interestReceived,
+                totalAmount: totalReceived,
+                paidAt: paidAt,
+                notes: notes,
+                partialPayments: entries
+            };
+            activeUnit.status[paymentAdjustContext.key] = settled ? "pago" : "pendente";
+            activeUnit.paidLate = activeUnit.paidLate && typeof activeUnit.paidLate === "object"
+                ? activeUnit.paidLate : {};
+            if (settled && daysOverdue(activeUnit, paymentAdjustContext.month) !== null) {
+                activeUnit.paidLate[paymentAdjustContext.key] = true;
+            } else if (!settled) {
+                delete activeUnit.paidLate[paymentAdjustContext.key];
+            }
+            paymentAdjustContext = null;
+            saveState();
+            render();
+            ModalManager.close(document.getElementById("paymentAdjustModal"));
+            return;
+        }
+
         createVersionedBackup("Ajuste de pagamento", paymentAdjustContext.key);
         recordOperation("Ajuste de pagamento", paymentAdjustContext.key);
         ensureFinancialHistory(activeUnit);
