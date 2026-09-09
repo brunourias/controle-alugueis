@@ -7920,3 +7920,22 @@ button.energy-paid-indicator:focus-visible {
 input[data-money="true"] {
     font-variant-numeric: tabular-nums;
 }
+
+.payment-charge-calculation {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 9px 10px;
+    border-radius: 9px;
+    background: #fff8e5;
+    color: #725018;
+    font-size: .7rem;
+    line-height: 1.45;
+}
+.payment-charge-calculation.is-zero {
+    background: #eef8f6;
+    color: var(--teal-dark);
+}
+.payment-adjust-summary .is-balance-after {
+    border-color: color-mix(in srgb, var(--teal) 42%, var(--line));
+    background: color-mix(in srgb, var(--teal) 8%, white);
+}
