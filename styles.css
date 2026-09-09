@@ -7916,3 +7916,7 @@ button.energy-paid-indicator:focus-visible {
         flex: 1 1 auto;
     }
 }
+
+input[data-money="true"] {
+    font-variant-numeric: tabular-nums;
+}
