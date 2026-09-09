@@ -96,4 +96,10 @@ assert.match(app, /metrics\.received \+= partialOpen\.received/, "O painel deve 
 assert.match(index, /id="paymentAdjustSummary"/, "O modal deve exibir valor da parcela, recebido e saldo");
 assert.match(styles, /\.status-btn\.is-partial/, "A grade deve diferenciar visualmente pagamento parcial");
 
+assert.match(app, /function openPartialPaymentReceipt\(/, "Cada baixa parcial deve gerar seu próprio comprovante");
+assert.match(app, /Saldo principal restante:/, "O comprovante parcial deve informar o saldo após a baixa");
+assert.match(app, /var balance = Math\.max\(0, originalRent - receivedPrincipal\)/, "Encargos devem usar o saldo principal, não o aluguel original");
+assert.match(app, /var hasFinePayment = entries\.some/, "A multa não deve ser sugerida novamente após já ter sido recebida");
+assert.match(index, /id="paymentAdjustPolicy"/, "A política de encargos após baixa parcial deve estar explícita");
+
 console.log("Verificações de integridade concluídas.");
