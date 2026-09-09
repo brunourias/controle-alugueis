@@ -108,4 +108,17 @@ assert.match(app, /applyPartialPaymentEntries\(unit, month, key, entries\)/, "Ex
 assert.match(app, /mode === "edit-partial"/, "A edição deve atualizar a baixa existente sem criar outra");
 assert.match(app, /data-partial-delete/, "O histórico deve oferecer a ação Excluir");
 
+const monetaryInputs = [...index.matchAll(/<input\b[^>]*data-money="true"[^>]*>/gi)].map((match) => match[0]);
+assert.ok(monetaryInputs.length >= 10, "Campos monetários devem declarar a máscara brasileira");
+assert.deepEqual(
+    monetaryInputs.filter((tag) => /type="number"/i.test(tag)),
+    [],
+    "Campos monetários formatados não podem usar input number"
+);
+assert.match(app, /function parseMoneyValue\(/, "A máscara deve converter valores brasileiros com segurança");
+assert.match(app, /function maskMoneyInput\(/, "A máscara monetária deve ser aplicada durante a digitação");
+assert.match(app, /minimumFractionDigits:\s*2,[\s\S]{0,80}maximumFractionDigits:\s*2/, "Valores monetários devem manter duas casas decimais");
+assert.match(app, /moneyInputValue\(expenseAmount\)/, "Gastos formatados devem ser convertidos antes de salvar");
+assert.match(app, /moneyInputValue\(el\.invoice\)/, "A fatura de energia formatada deve ser convertida antes do rateio");
+
 console.log("Verificações de integridade concluídas.");
