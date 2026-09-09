@@ -7861,3 +7861,29 @@ button.energy-paid-indicator:focus-visible {
         grid-template-columns: 1fr;
     }
 }
+
+.payment-adjust-policy {
+    margin: 8px 0 2px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: #eef8f6;
+    color: var(--teal-dark);
+    font-size: .7rem;
+    line-height: 1.4;
+}
+.partial-payment-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 0 !important;
+}
+.partial-payment-row > span {
+    margin-top: 0;
+}
+.partial-receipt-btn {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 5px 9px;
+    font-size: .68rem;
+}
