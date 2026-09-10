@@ -4719,39 +4719,13 @@ var historyRent = document.getElementById("historyRent");
         }).filter(function (monthIndex) { return monthIndex >= 0; });
     }
 
-    function renderMobileMonthList(visibleUnits) {
-        if (!mobileMonthList) return;
-        var active = isMobileNavigation() && !mobileYearView;
-        mobileMonthList.hidden = !active;
-        tableWrap.hidden = active;
-        if (!active) return;
-        mobileMonthList.innerHTML = visibleUnits.length ? visibleUnits.map(function (unit) {
-            var activeContract = String(unit.tenantName || "").trim() && isActive(unit, mobileMonthIndex);
-            var status = activeContract ? displayStatus(unit, mobileMonthIndex) : "inativo";
-            var partial = activeContract ? partialPaymentInfo(unit, mobileMonthIndex) : null;
-            var label = partial ? "Pagamento parcial" : status === "pago-atrasado" ? "Pago com atraso" : status === "pago" ? "Pago" : status === "atrasado" ? "Em atraso" : status === "pendente" ? "Pendente" : "Sem contrato";
-            var balance = partial ? '<small>Saldo: ' + money(partial.balance) + '</small>' : "";
-            var paymentAction = !activeContract ? "" : '<button class="btn ' + ((status === "pago" || status === "pago-atrasado") ? "btn-ghost" : "btn-primary") + '" type="button" data-mobile-status-unit="' + escapeHtml(unit.id) + '">' + ((status === "pago" || status === "pago-atrasado") ? "Abrir recibo" : partial ? "Registrar nova baixa" : "Registrar pagamento") + '</button>';
-            return '<article class="mobile-month-unit"><button class="mobile-unit-identity" type="button" data-mobile-edit-unit="' + escapeHtml(unit.id) + '"><strong>' + escapeHtml(unit.name) + '</strong><span>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</span></button><div class="mobile-unit-status"><span class="mobile-status-badge status-' + escapeHtml(status) + '">' + escapeHtml(label) + '</span>' + balance + '</div><div class="mobile-unit-actions">' + paymentAction + energyPaidIndicator(unit.id, mobileMonthIndex) + '</div></article>';
-        }).join("") : '<div class="empty empty-inline"><p>Nenhuma unidade corresponde aos filtros.</p><button class="btn btn-ghost" type="button" data-clear-unit-filters>Limpar filtros</button></div>';
-        mobileMonthList.querySelectorAll("[data-mobile-status-unit]").forEach(function (button) { button.addEventListener("click", function () { toggleStatus(button.dataset.mobileStatusUnit, mobileMonthIndex); }); });
-        mobileMonthList.querySelectorAll("[data-mobile-edit-unit]").forEach(function (button) { button.addEventListener("click", function () { openModal(button.dataset.mobileEditUnit); }); });
-        var clear = mobileMonthList.querySelector("[data-clear-unit-filters]");
-        if (clear) clear.addEventListener("click", function () { unitSearch.value = ""; statusFilter.value = "todos"; render(); });
-    }
+    
 
     function renderGrid(visibleUnits) {
     var completedMonths = settledMonthIndexes(scopedUnits());
     var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
         return showSettledMonths || completedMonths.indexOf(index) < 0;
     });
-    if (isMobileNavigation() && !mobileYearView) renderedMonthIndexes = [mobileMonthIndex];
-    if (mobileMonthToolbar) {
-        mobileMonthToolbar.hidden = !isMobileNavigation();
-        mobileMonthLabel.textContent = mobileYearView ? "Ano inteiro · " + selectedYear : months[mobileMonthIndex] + " de " + selectedYear;
-        if (mobileToggleYear) mobileToggleYear.textContent = mobileYearView ? "Ver por mês" : "Ver ano inteiro";
-    }
-    renderMobileMonthList(visibleUnits);
     if (settledMonthsToolbar) {
         settledMonthsToolbar.hidden = isMobileNavigation() || completedMonths.length === 0;
         settledMonthsSummary.textContent = completedMonths.length
@@ -10800,16 +10774,6 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         ModalManager.close(energyRateModalElements().modal);
         closeMobileShortcut();
     });
-
-    document.getElementById("mobilePreviousMonth").addEventListener("click", function () {
-        if (mobileMonthIndex === 0) { mobileMonthIndex = 11; selectedYear -= 1; } else mobileMonthIndex -= 1;
-        render();
-    });
-    document.getElementById("mobileNextMonth").addEventListener("click", function () {
-        if (mobileMonthIndex === 11) { mobileMonthIndex = 0; selectedYear += 1; } else mobileMonthIndex += 1;
-        render();
-    });
-    if (mobileToggleYear) mobileToggleYear.addEventListener("click", function () { mobileYearView = !mobileYearView; render(); });
     var emptyAddUnit = document.getElementById("emptyAddUnit");
     if (emptyAddUnit) emptyAddUnit.addEventListener("click", function () { openModal(); });
     var mergeDataButton = document.getElementById("bannerMergeData");
