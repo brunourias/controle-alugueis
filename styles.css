@@ -8265,3 +8265,10 @@ input[data-money="true"] {
         display: grid !important;
     }
 }
+
+
+/* v245: troca a posição de Gastos e Cobranças na grade inicial mobile */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher [data-app-nav-key="expenses"] { order: 2; }
+    .app-navigation.is-launcher [data-app-nav-key="charges"] { order: 5; }
+}
