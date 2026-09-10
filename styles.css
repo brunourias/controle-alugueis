@@ -8254,3 +8254,14 @@ input[data-money="true"] {
         justify-self: center;
     }
 }
+
+
+/* v244: no celular, a grade de atalhos pertence somente à tela inicial */
+@media (max-width: 680px) {
+    .app-navigation:not(.is-launcher) {
+        display: none !important;
+    }
+    .app-navigation.is-launcher {
+        display: grid !important;
+    }
+}
