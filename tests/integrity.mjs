@@ -151,4 +151,6 @@ assert.match(styles, /overflow-x: auto !important/, "A grade anual deve permitir
 
 assert.match(styles, /\.status-cell \.receipt-btn,[\s\S]{0,220}width: 22px !important/, "Ícones mensais devem permanecer compactos sem sobreposição");
 
+assert.match(styles, /\.app-navigation:not\(\.is-launcher\)[\s\S]{0,80}display: none !important/, "Ao abrir uma área no celular, os atalhos devem sair de cena");
+
 console.log("Verificações de integridade concluídas.");
