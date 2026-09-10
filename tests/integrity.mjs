@@ -23,8 +23,8 @@ assert.match(index, /Juros de mora \(% ao mês\)/, "A unidade da taxa de juros d
 assert.match(app, /previousReading:/, "Sincronização deve preservar a leitura anterior");
 assert.match(
     app,
-    /Um rateio já salvo nunca deve reabrir a leitura anterior[\s\S]{0,300}previousInput\.readOnly = true/,
-    "Rateios salvos, inclusive legados, devem bloquear a leitura anterior"
+    /<output class="energy-reading-value"[\s\S]{0,300}data-energy-previous-unit/,
+    "A leitura anterior automática deve ser exibida como informação, sem controle editável"
 );
 assert.match(app, /meterReading:/, "Sincronização deve preservar a leitura atual");
 assert.match(app, /Consumo total por mês/, "Rateio deve exibir a evolução mensal do consumo total");
