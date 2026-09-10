@@ -149,4 +149,6 @@ assert.match(app, /data-empty-expense/, "Estados vazios devem oferecer uma próx
 assert.doesNotMatch(index, /id="mobileToggleYear"/, "A grade móvel não deve alternar para uma visão mensal separada");
 assert.match(styles, /overflow-x: auto !important/, "A grade anual deve permitir rolagem horizontal no celular");
 
+assert.match(styles, /\.status-cell \.receipt-btn,[\s\S]{0,220}width: 22px !important/, "Ícones mensais devem permanecer compactos sem sobreposição");
+
 console.log("Verificações de integridade concluídas.");
