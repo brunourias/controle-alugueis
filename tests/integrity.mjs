@@ -156,4 +156,8 @@ assert.match(styles, /\.app-navigation:not\(\.is-launcher\)[\s\S]{0,80}display: 
 assert.match(styles, /data-app-nav-key="expenses"\][^{]*\{ order: 2;/, "Gastos deve ocupar a posição anterior de Cobranças");
 assert.match(styles, /data-app-nav-key="charges"\][^{]*\{ order: 5;/, "Cobranças deve ocupar a posição anterior de Gastos");
 
+assert.match(app, /function paymentOccursAfterDueDay\(/, "Atraso deve comparar apenas o dia civil");
+assert.match(app, /return paidDay > dueDay;/, "Pagamento no próprio vencimento não pode ser marcado como atrasado");
+assert.doesNotMatch(app, /date > due/, "A classificação não deve comparar o horário do pagamento com o início do vencimento");
+
 console.log("Verificações de integridade concluídas.");
