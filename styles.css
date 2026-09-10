@@ -8086,3 +8086,106 @@ input[data-money="true"] {
         transition-duration: .01ms !important;
     }
 }
+
+
+/* UX v241 — conclusão da revisão de 15 pontos */
+@media (min-width: 681px) {
+    .app-navigation { width: 100%; grid-template-columns: repeat(6, minmax(110px, 1fr)) auto auto; }
+    .app-view { width: 100%; max-width: 1500px; margin-inline: auto; }
+    .reports-intro, .report-center-grid { max-width: 1280px; margin-inline: auto; }
+    .energy-rate-modal.workspace-modal { width: min(1240px, calc(100vw - 40px)); max-height: calc(100vh - 32px); }
+    .modal-backdrop:has(.unit-modal) { justify-content: flex-end; padding: 0; }
+    .unit-modal { width: min(620px, 92vw); height: 100vh; max-height: 100vh; margin: 0; border-radius: 18px 0 0 18px; }
+}
+
+.energy-reading-value {
+    min-height: auto;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #294f4b;
+}
+.modal-footer-title { margin-right: 8px; color: #55716e; font-size: .74rem; font-weight: 800; }
+.report-detail-content { min-height: 180px; padding-bottom: 84px; }
+.report-table-wrap { overflow: auto; border: 1px solid #d8e7e4; border-radius: 12px; }
+.report-table-wrap table { width: 100%; border-collapse: collapse; }
+.report-table-wrap th, .report-table-wrap td { padding: 10px 12px; border-bottom: 1px solid #e4efed; text-align: left; white-space: nowrap; }
+.report-table-wrap th { color: #075f5b; background: #f2f8f7; font-size: .76rem; }
+.report-detail-modal { width: min(980px, calc(100vw - 40px)); }
+
+.mobile-month-list { display: none; }
+.mobile-month-list[hidden] { display: none !important; }
+
+@media (max-width: 680px) {
+    .app-navigation.is-launcher {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: none;
+        align-items: stretch;
+    }
+    .app-navigation.is-launcher [data-app-nav-key="units"],
+    .app-navigation.is-launcher [data-app-nav-key="charges"],
+    .app-navigation.is-launcher #mobileEnergyRateNav {
+        min-height: 92px;
+        border: 1px solid #78cfc5;
+        background: #e9faf6;
+        color: #075f5b;
+        font-size: .92rem;
+    }
+    .app-navigation.is-launcher [data-app-nav-key="units"] { order: 1; }
+    .app-navigation.is-launcher [data-app-nav-key="charges"] { order: 2; }
+    .app-navigation.is-launcher #mobileEnergyRateNav { order: 3; grid-column: 1 / -1; }
+    .app-navigation.is-launcher [data-app-nav-key="financial"] { order: 4; }
+    .app-navigation.is-launcher [data-app-nav-key="expenses"] { order: 5; }
+    .app-navigation.is-launcher [data-app-nav-key="reports"] { order: 6; }
+    .app-navigation.is-launcher [data-app-nav-key="overview"] { order: 7; }
+    .app-navigation.is-launcher [data-app-nav-key="tax"] { order: 8; }
+    .app-navigation.is-launcher [data-app-nav-key="settings"] { order: 9; opacity: .82; }
+    .app-navigation.is-launcher #actionAlertNav { order: 10; }
+    .mobile-month-toolbar { grid-template-columns: 44px 1fr 44px; }
+    .mobile-toggle-year { grid-column: 1 / -1; width: 100%; min-height: 44px; font-size: .76rem !important; }
+    .mobile-month-list { display: grid; gap: 9px; }
+    .mobile-month-unit {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 9px 12px;
+        padding: 12px;
+        border: 1px solid #d7e7e4;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 4px 14px rgba(15,77,73,.05);
+    }
+    .mobile-unit-identity {
+        display: grid;
+        gap: 2px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+    }
+    .mobile-unit-identity strong { color: #075f5b; }
+    .mobile-unit-identity span, .mobile-unit-status small { color: #637d79; font-size: .74rem; }
+    .mobile-unit-status { display: grid; justify-items: end; align-content: start; gap: 3px; }
+    .mobile-status-badge { padding: 4px 7px; border-radius: 999px; background: #edf5f4; color: #536d69; font-size: .68rem; font-weight: 800; }
+    .mobile-status-badge.status-pago, .mobile-status-badge.status-pago-atrasado { background: #d6f7ef; color: #087467; }
+    .mobile-status-badge.status-atrasado { background: #ffe2e5; color: #aa263b; }
+    .mobile-status-badge.status-pendente { background: #eef3f4; color: #526a6d; }
+    .mobile-unit-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    .mobile-unit-actions .btn { min-height: 44px; }
+    .mobile-unit-actions .energy-paid-indicator { width: 44px; height: 44px; margin: 0; }
+    .receipt-btn, .payment-adjust-btn, .energy-paid-indicator,
+    .unit-more-btn, .pwa-status-dismiss,
+    #previousYear, #nextYear, #mobilePreviousMonth, #mobileNextMonth {
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+    .workspace-modal, .unit-modal, .settings-modal {
+        scroll-padding-bottom: calc(110px + env(safe-area-inset-bottom));
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+    .workspace-modal .settings-footer, .unit-modal .settings-footer, .settings-modal .settings-footer {
+        min-height: 66px;
+    }
+    .report-detail-modal { width: 100vw; height: 100dvh; max-height: none; border-radius: 0; }
+}
