@@ -161,3 +161,6 @@ assert.match(app, /return paidDay > dueDay;/, "Pagamento no próprio vencimento 
 assert.doesNotMatch(app, /date > due/, "A classificação não deve comparar o horário do pagamento com o início do vencimento");
 
 console.log("Verificações de integridade concluídas.");
+
+assert.match(app, /cloudGranularBaseline = granularSnapshot\(remoteForMerge\);/, "Mesclagem deve atualizar a base remota antes de salvar");
+assert.doesNotMatch(app, /function mergeCloudData\(\)[\s\S]*?saveState\(\);[\s\S]*?render\(\);[\s\S]*?subscribeCloud\(\);[\s\S]*?notifyUser/, "Mesclagem não deve reiniciar a assinatura antes de concluir a gravação");
