@@ -241,6 +241,7 @@ document.addEventListener("click", function (event) {
     var expenseCategories = state.expenseCategories;
     var selectedEmpreendimentoId = loadSelectedEmpreendimento();
     var selectedYear = new Date().getFullYear();
+    var mobileMonthIndex = new Date().getMonth();
     var editingId = null;
     var pendingRentChanges = [];
 	var pendingContractHistory = [];
@@ -285,6 +286,10 @@ document.addEventListener("click", function (event) {
     var settledMonthsToolbar = document.getElementById("settledMonthsToolbar");
     var settledMonthsSummary = document.getElementById("settledMonthsSummary");
     var toggleSettledMonths = document.getElementById("toggleSettledMonths");
+    var mobileMonthToolbar = document.getElementById("mobileMonthToolbar");
+    var mobileMonthLabel = document.getElementById("mobileMonthLabel");
+    var saveFeedback = document.getElementById("saveFeedback");
+    var saveFeedbackTimer = null;
     var summary = document.getElementById("summary");
     var expensesList = document.getElementById("expensesList");
     var toggleExpensesButton = document.getElementById("toggleExpenses");
@@ -1010,12 +1015,12 @@ var historyRent = document.getElementById("historyRent");
         if (firebaseUser && cloudWorkspaceReady && !canWriteWorkspace()) {
             setCloudError("Esta área está em modo consulta. Nenhuma alteração foi salva.");
             setSyncStatus("Modo consulta");
+            showSaveFeedback("Alteração não salva: área em modo consulta.", "error");
             activateWorkspace(cloudWorkspaceId).catch(function () {});
             return;
         }
-
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-
+        showSaveFeedback(firebaseUser ? "Salvo neste aparelho · sincronizando…" : "Salvo neste aparelho", "saving");
         if (!cloudApplyingRemote) scheduleCloudWrite();
     }
 
@@ -1040,9 +1045,18 @@ var historyRent = document.getElementById("historyRent");
         accountGatePending.hidden = !options.pending;
     }
 
+    function showSaveFeedback(message, tone) {
+        if (!saveFeedback) return;
+        window.clearTimeout(saveFeedbackTimer);
+        saveFeedback.textContent = message || "";
+        saveFeedback.hidden = !message;
+        saveFeedback.dataset.tone = tone || "success";
+        if (message) saveFeedbackTimer = window.setTimeout(function () { saveFeedback.hidden = true; }, tone === "error" ? 6000 : 3000);
+    }
+
     function setSyncStatus(message) {
         syncStatus.textContent = message;
-        if (/^Sincronizado/.test(String(message || ""))) cloudLastSyncAt = Date.now();
+        if (/^Sincronizado/.test(String(message || ""))) { cloudLastSyncAt = Date.now(); showSaveFeedback("Salvo na nuvem", "success"); }
         renderAccountHealth();
     }
 
@@ -1123,16 +1137,21 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function setCloudReconcilePrompt(remoteState) {
-        var message =
-            "Há dados diferentes entre a nuvem (" +
-            cloudCounts(remoteState) +
-            ") e este aparelho (" +
-            cloudCounts(state) +
-            "). Escolha qual versão deseja manter.";
+        var remoteUpdated = Number(remoteState && (remoteState.updatedAt || remoteState.lastUpdatedAt)) || 0;
+        var localUpdated = Number(state && (state.updatedAt || state.lastUpdatedAt)) || 0;
+        var recommendation = remoteUpdated && localUpdated
+            ? (remoteUpdated >= localUpdated ? "A nuvem parece ser a versão mais recente." : "Este aparelho parece ter alterações mais recentes.")
+            : "Por segurança, recomendamos manter a versão da nuvem.";
+        var message = "Encontramos versões diferentes. " + recommendation;
         cloudReconcileText.textContent = message;
         cloudReconcile.hidden = false;
         cloudBannerText.textContent = message;
         cloudBanner.hidden = false;
+        var comparison = document.getElementById("cloudComparison");
+        if (comparison) {
+            comparison.hidden = true;
+            comparison.innerHTML = "<strong>Comparação</strong><span>Nuvem: " + escapeHtml(cloudCounts(remoteState)) + "</span><span>Este aparelho: " + escapeHtml(cloudCounts(state)) + "</span><small>Substituir a nuvem envia todos os dados deste aparelho e sobrescreve a versão armazenada.</small>";
+        }
     }
 
     function sortObject(value) {
@@ -4027,6 +4046,18 @@ var historyRent = document.getElementById("historyRent");
 
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
+            var back = panel.querySelector(":scope > .mobile-view-back");
+            if (mobileNavigation && !launcherOnly && view === activeAppView) {
+                if (!back) {
+                    back = document.createElement("button");
+                    back.type = "button";
+                    back.className = "mobile-view-back";
+                    back.innerHTML = '<span aria-hidden="true">←</span> Início';
+                    back.addEventListener("click", closeMobileShortcut);
+                    panel.insertBefore(back, panel.firstChild);
+                }
+                back.hidden = false;
+            } else if (back) back.hidden = true;
             if (mobileNavigation) {
                 // No celular os atalhos são telas exclusivas: nunca deixa conteúdo
                 // de outro atalho visível. Na abertura, ficam somente os botões.
@@ -4653,6 +4684,11 @@ var historyRent = document.getElementById("historyRent");
     var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
         return showSettledMonths || completedMonths.indexOf(index) < 0;
     });
+    if (isMobileNavigation()) renderedMonthIndexes = [mobileMonthIndex];
+    if (mobileMonthToolbar) {
+        mobileMonthToolbar.hidden = !isMobileNavigation();
+        mobileMonthLabel.textContent = months[mobileMonthIndex] + " de " + selectedYear;
+    }
     if (settledMonthsToolbar) {
         settledMonthsToolbar.hidden = completedMonths.length === 0;
         settledMonthsSummary.textContent = completedMonths.length
@@ -5657,101 +5693,16 @@ function renderSummary() {
     }
 
     function toggleStatus(id, month) {
-    if (!requireWorkspacePermission("managePayments")) return;
-    var unit = state.units.find(function (item) {
-        return item.id === id;
-    });
-
-    if (!unit || !isActive(unit, month)) return;
-
-    var cycle = ["pendente", "pago", "pago-atrasado"];
-    var current = logicalStatus(unit, month);
-    var key = monthKey(month);
-
-    // Toda parcela em aberto passa pela tela de recebimento. Assim um valor
-    // menor que o aluguel não encerra a dívida por engano.
-    if (current === "pendente") {
+        if (!requireWorkspacePermission("managePayments")) return;
+        var unit = state.units.find(function (item) { return item.id === id; });
+        if (!unit || !isActive(unit, month)) return;
+        var current = logicalStatus(unit, month);
+        if (current === "pago" || current === "pago-atrasado") {
+            openReceipt(id, month);
+            return;
+        }
         openPaymentAdjust(id, month, true);
-        return;
     }
-
-    var next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
-
-    // Garante que o histórico de pagamentos exista
-    unit.paymentHistory =
-        unit.paymentHistory &&
-        typeof unit.paymentHistory === "object"
-            ? unit.paymentHistory
-            : {};
-
-    // ==========================================================
-    // PAGAMENTO COM ATRASO
-    // ==========================================================
-    if (next === "pago-atrasado") {
-        var payment = unit.paymentHistory[key];
-
-        // Se nunca houve registro desse pagamento, calcula agora
-        if (!payment) {
-            var aluguel = rentForMonth(unit, selectedYear, month);
-            var breakdown = lateChargeBreakdown(unit, month);
-
-            var totalAtualizado = breakdown
-                ? breakdown.totalAmount
-                : aluguel;
-
-            var multa = breakdown ? breakdown.fineAmount : 0;
-            var juros = breakdown ? breakdown.interestAmount : 0;
-
-            unit.paymentHistory[key] = {
-                paidAt: new Date().toISOString(),
-                rentAmount: aluguel,
-                fineAmount: multa,
-                interestAmount: juros,
-                chargesAmount: multa + juros,
-                totalAmount: totalAtualizado
-            };
-        }
-
-        // Marca como pago com atraso
-        unit.status[key] = "pago";
-
-        unit.paidLate =
-            unit.paidLate &&
-            typeof unit.paidLate === "object"
-                ? unit.paidLate
-                : {};
-
-        unit.paidLate[key] = true;
-    } else {
-        unit.status[key] =
-            next === "pago" ? "pago" : next;
-
-        // A baixa comum também precisa ter sua própria data. Assim, um
-        // registro de um contrato anterior na mesma competência não é
-        // reutilizado pelo recibo do inquilino atual.
-        if (next === "pago") {
-            unit.activePaymentDates =
-                unit.activePaymentDates &&
-                typeof unit.activePaymentDates === "object"
-                    ? unit.activePaymentDates
-                    : {};
-            unit.activePaymentDates[key] = new Date().toISOString();
-        }
-
-        unit.paidLate =
-            unit.paidLate &&
-            typeof unit.paidLate === "object"
-                ? unit.paidLate
-                : {};
-
-        if (next !== "pago-atrasado") {
-            delete unit.paidLate[key];
-        }
-    }
-
-    saveState();
-    render();
-}
 
     function collapseExpenseMonths() {
         expensesList
@@ -10342,14 +10293,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var invoiceAmount = Math.max(0, moneyInputValue(el.invoice) || 0);
         var billedKwh = Math.max(0, Number(el.billed.value) || 0);
         var rows = Array.prototype.slice.call(el.readings.querySelectorAll("[data-energy-unit]")).map(function (input) {
-            var previousInput = el.readings.querySelector('[data-energy-previous-unit="' + CSS.escape(input.dataset.energyUnit) + '"]');
-            return {
-                unitId: input.dataset.energyUnit,
-                unitName: input.dataset.energyName,
-                tenantName: input.dataset.energyTenant,
-                previousReading: previousInput ? previousInput.value : "",
-                meterReading: input.value
-            };
+            var previousControl = el.readings.querySelector('[data-energy-previous-unit="' + CSS.escape(input.dataset.energyUnit) + '"]');
+            var previousValue = previousControl
+                ? (previousControl.dataset.value !== undefined ? previousControl.dataset.value : previousControl.value)
+                : "";
+            return { unitId: input.dataset.energyUnit, unitName: input.dataset.energyName, tenantName: input.dataset.energyTenant, previousReading: previousValue, meterReading: input.value };
         });
         var result = EnergyCalculations.calculateAllocation(rows, invoiceAmount);
         result.billedKwh = billedKwh;
@@ -10362,9 +10310,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         calc.readings.forEach(function (row) {
             var card = el.readings.querySelector('[data-energy-card="' + CSS.escape(row.unitId) + '"]');
             var consumption = el.readings.querySelector('[data-energy-consumption="' + CSS.escape(row.unitId) + '"]');
-            var invalid = calc.errors.some(function (error) { return error.unitId === row.unitId; });
-            if (card) card.classList.toggle("is-invalid", invalid);
-            if (consumption) consumption.textContent = invalid ? "Leitura atual menor que a anterior" : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " kWh";
+            var currentInput = el.readings.querySelector('[data-energy-unit="' + CSS.escape(row.unitId) + '"]');
+            var informed = !!(currentInput && String(currentInput.value).trim());
+            var invalid = informed && calc.errors.some(function (error) { return error.unitId === row.unitId; });
+            if (card) {
+                card.classList.toggle("is-invalid", invalid);
+                card.classList.toggle("is-empty", !informed);
+            }
+            if (consumption) consumption.textContent = !informed ? "Informe a leitura atual" : (invalid ? "Leitura atual menor que a anterior" : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " kWh");
         });
         el.preview.innerHTML = '<div class="energy-metrics"><span><small>Consumo calculado</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/kWh</strong></span><span class="' + (calc.difference !== null && Math.abs(calc.difference) > 5 ? "warning" : "") + '"><small>Diferença da fatura</small><strong>' + (calc.difference === null ? "—" : calc.difference.toFixed(2).replace(".", ",") + " kWh") + '</strong></span></div>' +
             '<div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName) + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' kWh</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.distributedAmount) + '.</p>';
@@ -10418,9 +10371,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var units = state.units.filter(function (unit) { return unit.empreendimentoId === el.enterprise.value; });
         el.readings.innerHTML = units.length ? units.map(function (unit) {
             var previous = previousEnergyReading(unit.id, el.reference.value, el.enterprise.value);
-            return '<article class="energy-reading" data-energy-card="' + escapeHtml(unit.id) + '"><span class="energy-reading-identity"><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small><small class="energy-reading-consumption" data-energy-consumption="' + escapeHtml(unit.id) + '">Consumo: —</small></span><div class="energy-reading-fields"><label><span data-energy-previous-label="' + escapeHtml(unit.id) + '">' + (previous ? "Leitura anterior" : "Leitura inicial") + '</span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-previous-unit="' + escapeHtml(unit.id) + '" value="' + (previous ? previous.value.toFixed(2) : "") + '"' + (previous ? ' readonly aria-readonly="true" title="Preenchida automaticamente pelo último rateio"' : ' title="Informe a leitura inicial do medidor"') + '></label><label><span>Leitura atual</span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label></div></article>';
-        }).join("") : '<p class="settings-note">Nenhuma unidade cadastrada neste empreendimento.</p>';
+            var previousControl = previous
+                ? '<label class="energy-reading-previous"><span data-energy-previous-label="' + escapeHtml(unit.id) + '">Leitura anterior</span><output class="energy-reading-value" data-energy-previous-unit="' + escapeHtml(unit.id) + '" data-value="' + previous.value.toFixed(2) + '" title="Preenchida automaticamente pelo último rateio">' + previous.value.toFixed(2).replace(".", ",") + ' kWh</output></label>'
+                : '<label><span data-energy-previous-label="' + escapeHtml(unit.id) + '">Leitura inicial</span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-previous-unit="' + escapeHtml(unit.id) + '" title="Informe a leitura inicial do medidor"></label>';
+            return '<article class="energy-reading is-empty" data-energy-card="' + escapeHtml(unit.id) + '"><span class="energy-reading-identity"><strong>' + escapeHtml(unit.name) + '</strong><small>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</small><small class="energy-reading-consumption" data-energy-consumption="' + escapeHtml(unit.id) + '">Informe a leitura atual</small></span><div class="energy-reading-fields">' + previousControl + '<label><span>Leitura atual</span><input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" data-energy-unit="' + escapeHtml(unit.id) + '" data-energy-name="' + escapeHtml(unit.name) + '" data-energy-tenant="' + escapeHtml(unit.tenantName) + '"></label></div></article>';
+        }).join("") : '<div class="empty empty-inline"><p>Nenhuma unidade cadastrada neste empreendimento.</p><button class="btn btn-primary" type="button" data-energy-add-unit>Nova unidade</button></div>';
         el.readings.querySelectorAll("input").forEach(function (input) { input.addEventListener("input", renderEnergyRate); });
+        var addButton = el.readings.querySelector("[data-energy-add-unit]");
+        if (addButton) addButton.addEventListener("click", function () { ModalManager.close(el.modal); openModal(); });
         renderEnergyRate();
     }
 
@@ -10460,15 +10418,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var legacy = !Number.isFinite(Number(reading.meterReading));
             input.value = legacy ? Number(reading.kwh || 0).toFixed(2) : Number(reading.meterReading).toFixed(2);
             if (previousInput) {
-                // Um rateio já salvo nunca deve reabrir a leitura anterior
-                // para edição. Registros legados assumem zero como base porque
-                // armazenavam apenas o consumo mensal, não o medidor acumulado.
-                previousInput.readOnly = true;
-                previousInput.setAttribute("aria-readonly", "true");
-                previousInput.title = legacy
-                    ? "Base automática do registro antigo"
-                    : "Preenchida automaticamente pelo rateio salvo";
-                previousInput.value = Number(reading.previousReading || 0).toFixed(2);
+                var savedPrevious = Number(reading.previousReading || 0);
+                previousInput.dataset.value = savedPrevious.toFixed(2);
+                previousInput.title = legacy ? "Base automática do registro antigo" : "Preenchida automaticamente pelo rateio salvo";
+                if (previousInput.tagName === "OUTPUT") previousInput.textContent = savedPrevious.toFixed(2).replace(".", ",") + " kWh";
+                else { previousInput.value = savedPrevious.toFixed(2); previousInput.readOnly = true; previousInput.setAttribute("aria-readonly", "true"); }
                 var previousLabel = el.readings.querySelector('[data-energy-previous-label="' + CSS.escape(input.dataset.energyUnit) + '"]');
                 if (previousLabel) previousLabel.textContent = "Leitura anterior";
             }
@@ -10738,6 +10692,35 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             alert("O rateio foi preservado neste aparelho, mas a nuvem não confirmou a alteração. Verifique a conexão ou as permissões.");
         });
     }
+
+    document.getElementById("mobilePreviousMonth").addEventListener("click", function () {
+        if (mobileMonthIndex === 0) { mobileMonthIndex = 11; selectedYear -= 1; } else mobileMonthIndex -= 1;
+        render();
+    });
+    document.getElementById("mobileNextMonth").addEventListener("click", function () {
+        if (mobileMonthIndex === 11) { mobileMonthIndex = 0; selectedYear += 1; } else mobileMonthIndex += 1;
+        render();
+    });
+    var emptyAddUnit = document.getElementById("emptyAddUnit");
+    if (emptyAddUnit) emptyAddUnit.addEventListener("click", function () { openModal(); });
+    var compareDataButton = document.getElementById("bannerCompareData");
+    if (compareDataButton) compareDataButton.addEventListener("click", function () {
+        var comparison = document.getElementById("cloudComparison");
+        if (comparison) comparison.hidden = !comparison.hidden;
+    });
+    document.querySelectorAll("[data-report-destination]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var destination = button.dataset.reportDestination;
+            if (destination === "energy") { openEnergyRate(); return; }
+            if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
+            if (destination === "late") { financialReportExpanded = true; activeMobileShortcut = "overview"; showAppView("overview"); render(); return; }
+            activeMobileShortcut = destination === "expenses" ? "expenses" : "financial";
+            showAppView("financial");
+            if (destination === "expenses") expensesExpanded = true;
+            else summaryCardsExpanded = true;
+            render();
+        });
+    });
 
     document.getElementById("mobileEnergyRateNav").addEventListener("click", openEnergyRate);
     document.getElementById("desktopEnergyRateNav").addEventListener("click", openEnergyRate);
