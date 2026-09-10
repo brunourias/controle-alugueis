@@ -8189,3 +8189,29 @@ input[data-money="true"] {
     }
     .report-detail-modal { width: 100vw; height: 100dvh; max-height: none; border-radius: 0; }
 }
+
+
+/* v242: restaura a grade anual com rolagem horizontal no celular */
+@media (max-width: 680px) {
+    .units-view .table-wrap {
+        display: block !important;
+        overflow-x: auto !important;
+        overflow-y: visible;
+        overscroll-behavior-inline: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    .units-view #grid {
+        width: max-content !important;
+        min-width: 100% !important;
+        table-layout: auto !important;
+    }
+    .units-view #grid th:first-child {
+        width: 140px !important;
+        min-width: 140px !important;
+    }
+    .units-view #grid th:not(:first-child),
+    .units-view #grid td {
+        width: 82px !important;
+        min-width: 82px !important;
+    }
+}
