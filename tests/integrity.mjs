@@ -128,4 +128,24 @@ assert.match(app, /paymentAdjustDate"[\s\S]{0,100}addEventListener\("change", re
 assert.match(app, /Saldo após esta baixa<strong id="paymentAdjustBalanceAfter"/, "O resumo deve antecipar o saldo restante");
 assert.match(app, /Juros: "[\s\S]{0,220}" ÷ 30 = "/, "A memória deve explicar a fórmula diária dos juros");
 
+
+assert.doesNotMatch(index, /Pendente[\s\S]{0,80}Pago[\s\S]{0,80}Pago \(atraso\)/, "A interface não deve orientar alternância cíclica de estados");
+assert.match(app, /function mergeCloudData\(/, "Conflitos devem oferecer mesclagem automática compatível");
+assert.match(app, /Nuvem: "[\s\S]{0,180}versionDate/, "Conflitos devem informar data das versões");
+assert.match(app, /var informed = !!/, "Leitura vazia deve permanecer neutra");
+assert.match(app, /<output class="energy-reading-value"/, "Leitura anterior deve ser informação não editável");
+assert.match(app, /className = "mobile-view-back"/, "Telas móveis devem ter retorno explícito");
+assert.match(styles, /\.app-view \{ width: 100%; max-width: 1500px/, "Painéis analíticos devem aproveitar a largura");
+assert.ok((index.match(/class="report-card"/g) || []).length >= 7, "Central de relatórios deve reunir as análises principais");
+assert.match(styles, /\.modal-backdrop:has\(\.unit-modal\)/, "Edição extensa deve usar painel lateral no desktop");
+assert.match(styles, /#mobileEnergyRateNav[\s\S]{0,180}grid-column: 1 \/ -1/, "Atalhos móveis devem possuir hierarquia visual");
+assert.match(app, /function renderMobileMonthList\(/, "Celular deve oferecer lista vertical por mês");
+assert.match(index, /id="mobileToggleYear"/, "Celular deve permitir consultar o ano inteiro");
+assert.match(styles, /min-width: 44px !important;[\s\S]{0,80}min-height: 44px !important/, "Ações móveis pequenas devem possuir alvo de toque adequado");
+assert.match(styles, /scroll-padding-bottom: calc\(110px/, "Modais móveis devem reservar espaço para rodapé e teclado");
+assert.doesNotMatch(app, /\balert\(/, "Mensagens comuns não devem usar alertas nativos");
+assert.match(app, /function notifyUser\(/, "Mensagens transitórias devem usar feedback unificado");
+assert.match(app, /Salvo neste aparelho · sincronizando/, "O estado de salvamento deve ser visível");
+assert.match(app, /data-empty-expense/, "Estados vazios devem oferecer uma próxima ação");
+
 console.log("Verificações de integridade concluídas.");
