@@ -8272,3 +8272,19 @@ input[data-money="true"] {
     .app-navigation.is-launcher [data-app-nav-key="expenses"] { order: 2; }
     .app-navigation.is-launcher [data-app-nav-key="charges"] { order: 5; }
 }
+
+
+/* v247: acompanha a troca de posição entre Gastos e Cobranças no menu inicial */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher [data-app-nav-key="expenses"] {
+        border: 1px solid #78cfc5;
+        background: #e9faf6;
+        color: #075f5b;
+    }
+
+    .app-navigation.is-launcher [data-app-nav-key="charges"] {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, .76);
+        color: var(--muted);
+    }
+}
