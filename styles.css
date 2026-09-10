@@ -7939,3 +7939,150 @@ input[data-money="true"] {
     border-color: color-mix(in srgb, var(--teal) 42%, var(--line));
     background: color-mix(in srgb, var(--teal) 8%, white);
 }
+
+
+/* UX v240: navegação, feedback e fluxos responsivos */
+.save-feedback {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 1400;
+    max-width: min(360px, calc(100vw - 32px));
+    padding: 10px 14px;
+    border: 1px solid #99d6ce;
+    border-radius: 12px;
+    background: #ecfdf8;
+    color: #075f57;
+    box-shadow: 0 10px 30px rgba(15, 118, 110, .16);
+    font-weight: 700;
+}
+.save-feedback[data-tone="saving"] { background: #f0fdfa; }
+.save-feedback[data-tone="error"] { border-color: #fecaca; background: #fff1f2; color: #9f1239; }
+
+.cloud-comparison {
+    display: grid;
+    gap: 5px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.72);
+}
+.cloud-comparison[hidden] { display: none; }
+.cloud-comparison small { color: #7c2d12; }
+
+.mobile-view-back, .mobile-month-toolbar { display: none; }
+
+.report-center-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+.report-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 10px;
+    min-height: 118px;
+    padding: 18px;
+    border: 1px solid var(--border, #cfe3df);
+    border-radius: 16px;
+    background: #fff;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.report-card:hover { border-color: #58bdb1; box-shadow: 0 10px 24px rgba(15,118,110,.10); transform: translateY(-2px); }
+.report-card-icon { grid-row: 1 / span 2; font-size: 1.35rem; }
+.report-card strong { color: #064e49; font-size: 1rem; }
+.report-card small { color: #59706d; line-height: 1.4; }
+
+.energy-reading-value {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1px solid #d7e5e2;
+    border-radius: 11px;
+    background: #edf4f3;
+    color: #375c58;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.energy-reading.is-empty { border-color: #cfe3df; background: #fff; }
+.energy-reading.is-empty .energy-reading-consumption { color: #6b7f7c; }
+.energy-reading.is-invalid { border-color: #f3a4ac; background: #fff7f7; }
+
+.workspace-modal { width: min(1180px, calc(100vw - 48px)); }
+
+@media (max-width: 900px) {
+    .report-center-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+    .mobile-view-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 10px;
+        padding: 7px 10px;
+        border: 0;
+        border-radius: 9px;
+        background: #edf7f5;
+        color: #0f766e;
+        font: inherit;
+        font-weight: 800;
+    }
+    .mobile-month-toolbar {
+        display: grid;
+        grid-template-columns: 42px 1fr 42px;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+        padding: 6px;
+        border: 1px solid #d8e7e4;
+        border-radius: 12px;
+        background: #f8fbfa;
+        text-align: center;
+    }
+    .mobile-month-toolbar .btn { min-width: 40px; padding: 6px; font-size: 1.35rem; }
+    .units-view .table-wrap { overflow-x: hidden; }
+    .units-view #grid { width: 100%; min-width: 0; table-layout: fixed; }
+    .units-view #grid th:first-child { width: 44%; min-width: 0; }
+    .units-view #grid th:not(:first-child), .units-view #grid td { width: 56%; min-width: 0; }
+    .report-center-grid { grid-template-columns: 1fr; gap: 10px; }
+    .report-card { min-height: 94px; padding: 14px; }
+    .modal-backdrop:has(.workspace-modal) { padding: 0; align-items: stretch; }
+    .workspace-modal {
+        width: 100vw;
+        max-width: none;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+        overflow-x: hidden;
+    }
+    .workspace-modal .settings-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 4;
+        margin-inline: -12px;
+        padding-inline: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        background: rgba(255,255,255,.96);
+        backdrop-filter: blur(8px);
+    }
+    .save-feedback { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); }
+    .cloud-banner-actions { flex-wrap: wrap; }
+    .cloud-banner-actions .btn { flex: 1 1 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
