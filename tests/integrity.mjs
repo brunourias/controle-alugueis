@@ -153,4 +153,7 @@ assert.match(styles, /\.status-cell \.receipt-btn,[\s\S]{0,220}width: 22px !impo
 
 assert.match(styles, /\.app-navigation:not\(\.is-launcher\)[\s\S]{0,80}display: none !important/, "Ao abrir uma área no celular, os atalhos devem sair de cena");
 
+assert.match(styles, /data-app-nav-key="expenses"\][^{]*\{ order: 2;/, "Gastos deve ocupar a posição anterior de Cobranças");
+assert.match(styles, /data-app-nav-key="charges"\][^{]*\{ order: 5;/, "Cobranças deve ocupar a posição anterior de Gastos");
+
 console.log("Verificações de integridade concluídas.");
