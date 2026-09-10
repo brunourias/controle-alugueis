@@ -162,5 +162,6 @@ assert.doesNotMatch(app, /date > due/, "A classificação não deve comparar o h
 
 console.log("Verificações de integridade concluídas.");
 
-assert.match(app, /cloudGranularBaseline = granularSnapshot\(remoteForMerge\);/, "Mesclagem deve atualizar a base remota antes de salvar");
-assert.doesNotMatch(app, /function mergeCloudData\(\)[\s\S]*?saveState\(\);[\s\S]*?render\(\);[\s\S]*?subscribeCloud\(\);[\s\S]*?notifyUser/, "Mesclagem não deve reiniciar a assinatura antes de concluir a gravação");
+const mergeCloudDataSource = app.slice(app.indexOf("function mergeCloudData"), app.indexOf("function chooseCloudData"));
+assert.match(mergeCloudDataSource, /cloudGranularBaseline = granularSnapshot\(remoteForMerge\);/, "Mesclagem deve atualizar a base remota antes de salvar");
+assert.doesNotMatch(mergeCloudDataSource, /subscribeCloud\(\)/, "Mesclagem não deve reiniciar a assinatura antes de concluir a gravação");
