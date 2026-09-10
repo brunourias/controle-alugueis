@@ -2362,15 +2362,20 @@ var historyRent = document.getElementById("historyRent");
 
     function mergeCloudData() {
         if (!cloudPendingRemote) return;
-        state = mergeStateVersions(cloudPendingRemote, state);
+        var remoteForMerge = cloudPendingRemote;
+        state = mergeStateVersions(remoteForMerge, state);
         expenseCategories = state.expenseCategories;
+
+        // A gravação da mesclagem deve partir exatamente da versão remota
+        // apresentada ao usuário. Caso contrário, o controle de concorrência
+        // interpreta a própria mesclagem como um novo conflito.
+        cloudGranularBaseline = granularSnapshot(remoteForMerge);
         cloudPendingRemote = null;
         cloudReconcile.hidden = true;
         cloudBanner.hidden = true;
         saveState();
         render();
-        subscribeCloud();
-        notifyUser("Dados compatíveis mesclados. Salvando na nuvem…", "saving");
+        notifyUser("Dados mesclados. Salvando na nuvem…", "saving");
     }
 
     function chooseCloudData() {
