@@ -3740,12 +3740,17 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function isPaidLate(unit, month) {
-        return (
-            isActive(unit, month) &&
-            statusFor(unit, month) === "pago" &&
-            unit.paidLate &&
-            unit.paidLate[monthKey(month)] === true
-        );
+        if (!isActive(unit, month) || statusFor(unit, month) !== "pago" ||
+            !unit.paidLate || unit.paidLate[monthKey(month)] !== true) return false;
+        var payment = getPaymentRecord(unit, selectedYear, month);
+        if (!payment) return true;
+        var entries = Array.isArray(payment.partialPayments) && payment.partialPayments.length
+            ? payment.partialPayments : [payment];
+        return entries.some(function (entry) {
+            return Number(entry && entry.fineAmount) > 0 ||
+                Number(entry && entry.interestAmount) > 0 ||
+                paymentOccursAfterDueDay(unit, month, entry && entry.paidAt);
+        });
     }
     //--------------------------------------------------------------------------------------------
     function logicalStatus(unit, month) {
@@ -5750,13 +5755,20 @@ function renderSummary() {
 	
 	var paymentAdjustContext = null;
 
-function partialEntriesPaidLate(unit, month, entries) {
+function paymentOccursAfterDueDay(unit, month, paidAt) {
         var due = dueDateFor(unit, month);
+        var paid = paidAt ? new Date(paidAt) : null;
+        if (!due || !paid || isNaN(due.getTime()) || isNaN(paid.getTime())) return false;
+        var dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+        var paidDay = new Date(paid.getFullYear(), paid.getMonth(), paid.getDate()).getTime();
+        return paidDay > dueDay;
+    }
+
+    function partialEntriesPaidLate(unit, month, entries) {
         return (entries || []).some(function (entry) {
-            var date = entry && entry.paidAt ? new Date(entry.paidAt) : null;
             return Number(entry && entry.fineAmount) > 0 ||
                 Number(entry && entry.interestAmount) > 0 ||
-                (due && date && !isNaN(date.getTime()) && date > due);
+                paymentOccursAfterDueDay(unit, month, entry && entry.paidAt);
         });
     }
 
