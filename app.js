@@ -242,6 +242,7 @@ document.addEventListener("click", function (event) {
     var selectedEmpreendimentoId = loadSelectedEmpreendimento();
     var selectedYear = new Date().getFullYear();
     var mobileMonthIndex = new Date().getMonth();
+    var mobileYearView = false;
     var editingId = null;
     var pendingRentChanges = [];
 	var pendingContractHistory = [];
@@ -288,6 +289,8 @@ document.addEventListener("click", function (event) {
     var toggleSettledMonths = document.getElementById("toggleSettledMonths");
     var mobileMonthToolbar = document.getElementById("mobileMonthToolbar");
     var mobileMonthLabel = document.getElementById("mobileMonthLabel");
+    var mobileMonthList = document.getElementById("mobileMonthList");
+    var mobileToggleYear = document.getElementById("mobileToggleYear");
     var saveFeedback = document.getElementById("saveFeedback");
     var saveFeedbackTimer = null;
     var summary = document.getElementById("summary");
@@ -1019,6 +1022,7 @@ var historyRent = document.getElementById("historyRent");
             activateWorkspace(cloudWorkspaceId).catch(function () {});
             return;
         }
+        state.lastUpdatedAt = Date.now();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         showSaveFeedback(firebaseUser ? "Salvo neste aparelho · sincronizando…" : "Salvo neste aparelho", "saving");
         if (!cloudApplyingRemote) scheduleCloudWrite();
@@ -1043,6 +1047,10 @@ var historyRent = document.getElementById("historyRent");
         accountGateMessage.textContent = options.message || "Entre ou crie sua conta para solicitar acesso à plataforma.";
         accountGateAuth.hidden = !!options.pending || !!options.verifying;
         accountGatePending.hidden = !options.pending;
+    }
+
+    function notifyUser(message, tone) {
+        showSaveFeedback(message, tone || (/erro|não|falha|inválid/i.test(String(message || "")) ? "error" : "success"));
     }
 
     function showSaveFeedback(message, tone) {
@@ -1137,12 +1145,12 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function setCloudReconcilePrompt(remoteState) {
-        var remoteUpdated = Number(remoteState && (remoteState.updatedAt || remoteState.lastUpdatedAt)) || 0;
+        var remoteUpdated = Number(remoteState && (remoteState.updatedAt || remoteState.lastUpdatedAt)) || Number(cloudUpdatedAt) || 0;
         var localUpdated = Number(state && (state.updatedAt || state.lastUpdatedAt)) || 0;
-        var recommendation = remoteUpdated && localUpdated
-            ? (remoteUpdated >= localUpdated ? "A nuvem parece ser a versão mais recente." : "Este aparelho parece ter alterações mais recentes.")
-            : "Por segurança, recomendamos manter a versão da nuvem.";
-        var message = "Encontramos versões diferentes. " + recommendation;
+        function versionDate(value) { return value ? new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "horário indisponível"; }
+        var remoteNewer = !localUpdated || (remoteUpdated && remoteUpdated >= localUpdated);
+        var recommendation = remoteNewer ? "Recomendado: usar a versão da nuvem." : "Este aparelho possui alterações mais recentes.";
+        var message = "Versões diferentes. Nuvem: " + versionDate(remoteUpdated) + " · aparelho: " + versionDate(localUpdated) + ". " + recommendation;
         cloudReconcileText.textContent = message;
         cloudReconcile.hidden = false;
         cloudBannerText.textContent = message;
@@ -1150,7 +1158,7 @@ var historyRent = document.getElementById("historyRent");
         var comparison = document.getElementById("cloudComparison");
         if (comparison) {
             comparison.hidden = true;
-            comparison.innerHTML = "<strong>Comparação</strong><span>Nuvem: " + escapeHtml(cloudCounts(remoteState)) + "</span><span>Este aparelho: " + escapeHtml(cloudCounts(state)) + "</span><small>Substituir a nuvem envia todos os dados deste aparelho e sobrescreve a versão armazenada.</small>";
+            comparison.innerHTML = "<strong>Comparação detalhada</strong><span>Nuvem: " + escapeHtml(cloudCounts(remoteState)) + " · " + escapeHtml(versionDate(remoteUpdated)) + "</span><span>Este aparelho: " + escapeHtml(cloudCounts(state)) + " · " + escapeHtml(versionDate(localUpdated)) + "</span><small>Mesclar mantém registros exclusivos das duas versões e escolhe o registro atualizado mais recentemente quando o mesmo item existir nos dois lugares.</small>";
         }
     }
 
@@ -2333,6 +2341,38 @@ var historyRent = document.getElementById("historyRent");
     }
 
 
+    function mergeStateVersions(remoteValue, localValue) {
+        var remote = normalizeState(JSON.parse(JSON.stringify(remoteValue || {})));
+        var local = normalizeState(JSON.parse(JSON.stringify(localValue || {})));
+        var merged = Object.assign({}, remote);
+        Object.keys(local).forEach(function (key) {
+            if (!Array.isArray(local[key])) { if (key !== "lastUpdatedAt" && local[key] !== undefined) merged[key] = local[key]; return; }
+            var byId = {};
+            (remote[key] || []).forEach(function (item) { byId[String(item.id || JSON.stringify(item))] = item; });
+            local[key].forEach(function (item) {
+                var id = String(item.id || JSON.stringify(item));
+                var current = byId[id];
+                if (!current || Number(item.updatedAt || item.lastUpdatedAt || 0) > Number(current.updatedAt || current.lastUpdatedAt || 0)) byId[id] = item;
+            });
+            merged[key] = Object.keys(byId).map(function (id) { return byId[id]; });
+        });
+        merged.lastUpdatedAt = Date.now();
+        return normalizeState(merged);
+    }
+
+    function mergeCloudData() {
+        if (!cloudPendingRemote) return;
+        state = mergeStateVersions(cloudPendingRemote, state);
+        expenseCategories = state.expenseCategories;
+        cloudPendingRemote = null;
+        cloudReconcile.hidden = true;
+        cloudBanner.hidden = true;
+        saveState();
+        render();
+        subscribeCloud();
+        notifyUser("Dados compatíveis mesclados. Salvando na nuvem…", "saving");
+    }
+
     function chooseCloudData() {
         if (!cloudPendingRemote) return;
 
@@ -3293,7 +3333,7 @@ var historyRent = document.getElementById("historyRent");
 
     function requireSensitiveAccess(action, callback) {
         if (!lockConfig) {
-            window.alert("Defina um PIN em Configurações > Segurança para confirmar " + action + ".");
+            window.notifyUser("Defina um PIN em Configurações > Segurança para confirmar " + action + ".");
             return;
         }
         sensitiveAction = callback;
@@ -3350,7 +3390,7 @@ var historyRent = document.getElementById("historyRent");
             try {
                 imported = JSON.parse(reader.result);
             } catch (error) {
-                window.alert(
+                window.notifyUser(
                     "Não foi possível importar: o arquivo não contém um JSON válido."
                 );
                 return;
@@ -3378,7 +3418,7 @@ var historyRent = document.getElementById("historyRent");
                 (imported.expenseCategories !== undefined &&
                     !Array.isArray(imported.expenseCategories))
             ) {
-                window.alert(
+                window.notifyUser(
                     "Não foi possível importar: o backup não tem um formato reconhecido."
                 );
                 return;
@@ -3402,7 +3442,7 @@ var historyRent = document.getElementById("historyRent");
             render();
         };
         reader.onerror = function () {
-            window.alert("Não foi possível ler o arquivo de backup.");
+            window.notifyUser("Não foi possível ler o arquivo de backup.");
         };
         reader.readAsText(file);
     }
@@ -4679,18 +4719,41 @@ var historyRent = document.getElementById("historyRent");
         }).filter(function (monthIndex) { return monthIndex >= 0; });
     }
 
+    function renderMobileMonthList(visibleUnits) {
+        if (!mobileMonthList) return;
+        var active = isMobileNavigation() && !mobileYearView;
+        mobileMonthList.hidden = !active;
+        tableWrap.hidden = active;
+        if (!active) return;
+        mobileMonthList.innerHTML = visibleUnits.length ? visibleUnits.map(function (unit) {
+            var activeContract = String(unit.tenantName || "").trim() && isActive(unit, mobileMonthIndex);
+            var status = activeContract ? displayStatus(unit, mobileMonthIndex) : "inativo";
+            var partial = activeContract ? partialPaymentInfo(unit, mobileMonthIndex) : null;
+            var label = partial ? "Pagamento parcial" : status === "pago-atrasado" ? "Pago com atraso" : status === "pago" ? "Pago" : status === "atrasado" ? "Em atraso" : status === "pendente" ? "Pendente" : "Sem contrato";
+            var balance = partial ? '<small>Saldo: ' + money(partial.balance) + '</small>' : "";
+            var paymentAction = !activeContract ? "" : '<button class="btn ' + ((status === "pago" || status === "pago-atrasado") ? "btn-ghost" : "btn-primary") + '" type="button" data-mobile-status-unit="' + escapeHtml(unit.id) + '">' + ((status === "pago" || status === "pago-atrasado") ? "Abrir recibo" : partial ? "Registrar nova baixa" : "Registrar pagamento") + '</button>';
+            return '<article class="mobile-month-unit"><button class="mobile-unit-identity" type="button" data-mobile-edit-unit="' + escapeHtml(unit.id) + '"><strong>' + escapeHtml(unit.name) + '</strong><span>' + escapeHtml(String(unit.tenantName || "").trim() || "Sem inquilino") + '</span></button><div class="mobile-unit-status"><span class="mobile-status-badge status-' + escapeHtml(status) + '">' + escapeHtml(label) + '</span>' + balance + '</div><div class="mobile-unit-actions">' + paymentAction + energyPaidIndicator(unit.id, mobileMonthIndex) + '</div></article>';
+        }).join("") : '<div class="empty empty-inline"><p>Nenhuma unidade corresponde aos filtros.</p><button class="btn btn-ghost" type="button" data-clear-unit-filters>Limpar filtros</button></div>';
+        mobileMonthList.querySelectorAll("[data-mobile-status-unit]").forEach(function (button) { button.addEventListener("click", function () { toggleStatus(button.dataset.mobileStatusUnit, mobileMonthIndex); }); });
+        mobileMonthList.querySelectorAll("[data-mobile-edit-unit]").forEach(function (button) { button.addEventListener("click", function () { openModal(button.dataset.mobileEditUnit); }); });
+        var clear = mobileMonthList.querySelector("[data-clear-unit-filters]");
+        if (clear) clear.addEventListener("click", function () { unitSearch.value = ""; statusFilter.value = "todos"; render(); });
+    }
+
     function renderGrid(visibleUnits) {
     var completedMonths = settledMonthIndexes(scopedUnits());
     var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
         return showSettledMonths || completedMonths.indexOf(index) < 0;
     });
-    if (isMobileNavigation()) renderedMonthIndexes = [mobileMonthIndex];
+    if (isMobileNavigation() && !mobileYearView) renderedMonthIndexes = [mobileMonthIndex];
     if (mobileMonthToolbar) {
         mobileMonthToolbar.hidden = !isMobileNavigation();
-        mobileMonthLabel.textContent = months[mobileMonthIndex] + " de " + selectedYear;
+        mobileMonthLabel.textContent = mobileYearView ? "Ano inteiro · " + selectedYear : months[mobileMonthIndex] + " de " + selectedYear;
+        if (mobileToggleYear) mobileToggleYear.textContent = mobileYearView ? "Ver por mês" : "Ver ano inteiro";
     }
+    renderMobileMonthList(visibleUnits);
     if (settledMonthsToolbar) {
-        settledMonthsToolbar.hidden = completedMonths.length === 0;
+        settledMonthsToolbar.hidden = isMobileNavigation() || completedMonths.length === 0;
         settledMonthsSummary.textContent = completedMonths.length
             ? completedMonths.length +
                 (completedMonths.length === 1 ? " mês concluído " : " meses concluídos ") +
@@ -5454,9 +5517,7 @@ function renderSummary() {
 
         if (!yearExpenses.length) {
             expensesPreview.innerHTML =
-                '<p class="expenses-empty">Nenhum gasto registrado em ' +
-                selectedYear +
-                ".</p>";
+                '<div class="empty empty-inline"><p>Nenhum gasto registrado em ' + selectedYear + '.</p><button class="btn btn-primary" type="button" data-empty-expense>+ Registrar primeiro gasto</button></div>';
             expensesList.innerHTML = "";
             expensesList.hidden = true;
             toggleExpensesButton.hidden = true;
@@ -8126,7 +8187,7 @@ function saveExpense() {
 				`);
             printWindow.document.close();
         } else {
-            alert(
+            notifyUser(
                 "Por favor, permita pop-ups no navegador para gerar o relatório."
             );
         }
@@ -8145,7 +8206,7 @@ function saveExpense() {
         var printWindow = window.open("", "_blank");
 
         if (!printWindow) {
-            alert("Por favor, permita pop-ups para gerar o PDF do recibo.");
+            notifyUser("Por favor, permita pop-ups para gerar o PDF do recibo.");
             return;
         }
 
@@ -9330,12 +9391,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var contract = pendingContractHistory[index];
         if (!unit || !contract) return;
         if (String(unit.tenantName || "").trim()) {
-            alert("Esta unidade já possui um contrato ativo. Encerre-o antes de reativar um contrato antigo.");
+            notifyUser("Esta unidade já possui um contrato ativo. Encerre-o antes de reativar um contrato antigo.");
             return;
         }
         var startDate = resolveHistoryDate(contract, "start", false);
         if (!startDate) {
-            alert("Este contrato não possui uma data de início válida.");
+            notifyUser("Este contrato não possui uma data de início válida.");
             return;
         }
         unit.tenantName = contract.tenantName || "";
@@ -9512,7 +9573,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
         var notes = document.getElementById("paymentAdjustNotes").value.trim();
         if (!dateValue || !Number.isFinite(rent) || rent < 0 || fine < 0 || interest < 0) {
-            alert("Informe a data e valores válidos, sem números negativos.");
+            notifyUser("Informe a data e valores válidos, sem números negativos.");
             return;
         }
         var dateParts = dateValue.split("-");
@@ -9560,7 +9621,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             }, 0);
             var available = Math.max(0, due - receivedOther);
             if (rent <= 0 || rent - available > 0.009) {
-                alert("Informe um valor maior que zero e não superior ao saldo disponível de " + money(available) + ".");
+                notifyUser("Informe um valor maior que zero e não superior ao saldo disponível de " + money(available) + ".");
                 return;
             }
 
@@ -10605,7 +10666,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function openEnergyRate() {
         if (!requireWorkspacePermission("manageExpenses")) return;
         if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === selectedEmpreendimentoId; })) {
-            alert("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio.");
+            notifyUser("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio.");
             return;
         }
         var el = energyRateModalElements(), now = new Date();
@@ -10641,12 +10702,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         // Rateios antigos não possuíam vencimento. Eles precisam continuar
         // editáveis; a obrigatoriedade vale somente para um novo lançamento.
         if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh || (!existing && !el.dueDate.value)) {
-            alert(existing
+            notifyUser(existing
                 ? "Informe referência, valor da fatura e as leituras dos medidores."
                 : "Informe referência, vencimento, valor da fatura e as leituras dos medidores.");
             return;
         }
-        if (calc.errors.length) { alert(calc.errors[0].message); return; }
+        if (calc.errors.length) { notifyUser(calc.errors[0].message); return; }
         var nowIso = new Date().toISOString();
         var savedAllocation;
         if (existing) {
@@ -10683,15 +10744,62 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderEnergyHistory();
         render();
         persistEnergyAllocationNow(savedAllocation).then(function (result) {
-            alert(result.cloud
+            notifyUser(result.cloud
                 ? (existing ? "Alterações salvas e confirmadas na nuvem." : "Rateio salvo e confirmado na nuvem.")
                 : (existing ? "Alterações salvas neste aparelho. A nuvem sincronizará quando estiver disponível." : "Rateio salvo neste aparelho. A nuvem sincronizará quando estiver disponível."));
         }).catch(function (error) {
             setCloudError(cloudErrorMessage(error));
             setSyncStatus("Rateio salvo apenas neste aparelho");
-            alert("O rateio foi preservado neste aparelho, mas a nuvem não confirmou a alteração. Verifique a conexão ou as permissões.");
+            notifyUser("O rateio foi preservado neste aparelho, mas a nuvem não confirmou a alteração. Verifique a conexão ou as permissões.");
         });
     }
+
+    function openReportDetail(kind) {
+        var existing = document.getElementById("reportDetailModal");
+        if (!existing) {
+            existing = document.createElement("div");
+            existing.id = "reportDetailModal";
+            existing.className = "modal-backdrop";
+            existing.hidden = true;
+            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><div class="settings-heading"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2></div></div><div id="reportDetailContent" class="report-detail-content"></div><div class="modal-actions settings-footer"><span class="modal-footer-title">Relatório detalhado</span><button class="btn btn-ghost" type="button" data-close-report>Fechar</button></div></div>';
+            document.body.appendChild(existing);
+            existing.querySelector("[data-close-report]").addEventListener("click", function () { ModalManager.close(existing); });
+            existing.addEventListener("click", function (event) { if (event.target === existing) ModalManager.close(existing); });
+        }
+        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : "Comparativo entre empreendimentos";
+        var rows = [];
+        if (kind === "tenant") {
+            scopedUnits().forEach(function (unit) { rows.push([unit.name, String(unit.tenantName || "").trim() || "Sem inquilino", money(rentForMonth(unit, selectedYear, mobileMonthIndex)), displayStatus(unit, mobileMonthIndex)]); });
+        } else if (kind === "partial") {
+            scopedUnits().forEach(function (unit) { months.forEach(function (_, month) { var info = partialPaymentInfo(unit, month); if (info) rows.push([unit.name, months[month], money(info.received), money(info.balance)]); }); });
+        } else {
+            state.empreendimentos.forEach(function (enterprise) {
+                var units = state.units.filter(function (unit) { return unit.empreendimentoId === enterprise.id; });
+                var metrics = months.reduce(function (acc, _, month) { var item = monthlyFinancialMetrics(units, selectedYear, month); acc.received += item.received; acc.pending += item.pending; return acc; }, { received: 0, pending: 0 });
+                rows.push([enterprise.name, String(units.length), money(metrics.received), money(metrics.pending)]);
+            });
+        }
+        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
+        existing.querySelector("#reportDetailTitle").textContent = title;
+        existing.querySelector("#reportDetailContent").innerHTML = rows.length ? '<div class="report-table-wrap"><table><thead><tr>' + headings.map(function (item) { return "<th>" + escapeHtml(item) + "</th>"; }).join("") + '</tr></thead><tbody>' + rows.map(function (row) { return "<tr>" + row.map(function (cell) { return "<td>" + escapeHtml(String(cell)) + "</td>"; }).join("") + "</tr>"; }).join("") + '</tbody></table></div>' : '<div class="empty empty-inline"><p>Nenhum dado disponível para este relatório em ' + selectedYear + '.</p><button class="btn btn-primary" type="button" data-report-empty-action>Ir para unidades</button></div>';
+        var emptyAction = existing.querySelector("[data-report-empty-action]");
+        if (emptyAction) emptyAction.addEventListener("click", function () { ModalManager.close(existing); activeMobileShortcut = "units"; showAppView("units"); });
+        ModalManager.open(existing);
+    }
+
+    document.addEventListener("click", function (event) {
+        var expenseEmpty = event.target.closest("[data-empty-expense]");
+        if (expenseEmpty) openExpenseModal();
+    });
+    document.addEventListener("focusin", function (event) {
+        if (!isMobileNavigation() || !event.target.matches(".modal input, .modal select, .modal textarea")) return;
+        window.setTimeout(function () { event.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 180);
+    });
+    var energyBackHome = document.getElementById("energyBackHome");
+    if (energyBackHome) energyBackHome.addEventListener("click", function () {
+        ModalManager.close(energyRateModalElements().modal);
+        closeMobileShortcut();
+    });
 
     document.getElementById("mobilePreviousMonth").addEventListener("click", function () {
         if (mobileMonthIndex === 0) { mobileMonthIndex = 11; selectedYear -= 1; } else mobileMonthIndex -= 1;
@@ -10701,8 +10809,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (mobileMonthIndex === 11) { mobileMonthIndex = 0; selectedYear += 1; } else mobileMonthIndex += 1;
         render();
     });
+    if (mobileToggleYear) mobileToggleYear.addEventListener("click", function () { mobileYearView = !mobileYearView; render(); });
     var emptyAddUnit = document.getElementById("emptyAddUnit");
     if (emptyAddUnit) emptyAddUnit.addEventListener("click", function () { openModal(); });
+    var mergeDataButton = document.getElementById("bannerMergeData");
+    if (mergeDataButton) mergeDataButton.addEventListener("click", mergeCloudData);
     var compareDataButton = document.getElementById("bannerCompareData");
     if (compareDataButton) compareDataButton.addEventListener("click", function () {
         var comparison = document.getElementById("cloudComparison");
@@ -10712,13 +10823,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         button.addEventListener("click", function () {
             var destination = button.dataset.reportDestination;
             if (destination === "energy") { openEnergyRate(); return; }
+            if (destination === "tenant" || destination === "partial" || destination === "enterprises") { openReportDetail(destination); return; }
             if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
             if (destination === "late") { financialReportExpanded = true; activeMobileShortcut = "overview"; showAppView("overview"); render(); return; }
-            activeMobileShortcut = destination === "expenses" ? "expenses" : "financial";
-            showAppView("financial");
-            if (destination === "expenses") expensesExpanded = true;
-            else summaryCardsExpanded = true;
-            render();
+            activeMobileShortcut = "expenses"; showAppView("financial"); expensesExpanded = true; render();
         });
     });
 
