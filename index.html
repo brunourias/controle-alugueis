@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=240" />
+        <link rel="stylesheet" href="styles.css?v=241" />
     
 <style>
     /* Histórico de contratos */
@@ -182,7 +182,7 @@
                         class="btn btn-ghost"
                         type="button"
                     >Substituir a nuvem por este aparelho</button>
-                <button id="bannerCompareData" class="btn btn-ghost" type="button">Comparar</button>
+                <button id="bannerCompareData" class="btn btn-ghost" type="button">Comparar dados</button><button id="bannerMergeData" class="btn btn-ghost" type="button">Mesclar automaticamente</button>
                 </div>
                 <div id="cloudComparison" class="cloud-comparison" hidden></div>
             </div>
@@ -263,7 +263,7 @@
                 <button id="toggleSettledMonths" class="btn btn-ghost" type="button">Reexibir meses concluídos</button>
             </div>
 
-            <div id="mobileMonthToolbar" class="mobile-month-toolbar" hidden><button id="mobilePreviousMonth" class="btn btn-ghost" type="button" aria-label="Mês anterior">‹</button><strong id="mobileMonthLabel"></strong><button id="mobileNextMonth" class="btn btn-ghost" type="button" aria-label="Próximo mês">›</button></div>
+            <div id="mobileMonthToolbar" class="mobile-month-toolbar" hidden><button id="mobilePreviousMonth" class="btn btn-ghost" type="button" aria-label="Mês anterior">‹</button><strong id="mobileMonthLabel"></strong><button id="mobileNextMonth" class="btn btn-ghost" type="button" aria-label="Próximo mês">›</button><button id="mobileToggleYear" class="btn btn-ghost mobile-toggle-year" type="button">Ver ano inteiro</button></div><div id="mobileMonthList" class="mobile-month-list" hidden></div>
 
             <div class="table-wrap">
                 <table id="grid">
@@ -352,10 +352,12 @@
                 </section>
                 <div class="report-center-grid">
                     <button id="printAnnual" class="report-card" type="button"><span class="report-card-icon">📅</span><strong>Resumo anual</strong><small>Recebimentos, atrasos e resultado consolidado.</small></button>
-                    <button class="report-card" type="button" data-report-destination="financial"><span class="report-card-icon">💰</span><strong>Financeiro</strong><small>Indicadores, entradas, gastos e inadimplência.</small></button>
+                    <button class="report-card" type="button" data-report-destination="tenant"><span class="report-card-icon">👤</span><strong>Extrato por inquilino</strong><small>Contratos, pagamentos e recibos de cada pessoa.</small></button>
+                    <button class="report-card" type="button" data-report-destination="late"><span class="report-card-icon">⏱️</span><strong>Inadimplência</strong><small>Parcelas vencidas, saldos e cobranças realizadas.</small></button>
+                    <button class="report-card" type="button" data-report-destination="partial"><span class="report-card-icon">◐</span><strong>Pagamentos parciais</strong><small>Baixas efetuadas e saldo restante por parcela.</small></button>
                     <button class="report-card" type="button" data-report-destination="energy"><span class="report-card-icon">⚡</span><strong>Energia</strong><small>Rateios, evolução e comparação de consumo.</small></button>
-                    <button class="report-card" type="button" data-report-destination="late"><span class="report-card-icon">⏱️</span><strong>Atrasos e cobranças</strong><small>Parcelas vencidas e histórico de contatos.</small></button>
-                    <button class="report-card" type="button" data-report-destination="expenses"><span class="report-card-icon">🧾</span><strong>Gastos</strong><small>Despesas por período e categoria.</small></button>
+                    <button class="report-card" type="button" data-report-destination="expenses"><span class="report-card-icon">🧾</span><strong>Gastos por categoria</strong><small>Despesas agrupadas por período e finalidade.</small></button>
+                    <button class="report-card" type="button" data-report-destination="enterprises"><span class="report-card-icon">🏢</span><strong>Comparativo entre empreendimentos</strong><small>Receitas, gastos, ocupação e inadimplência.</small></button>
                     <button class="report-card" type="button" data-report-destination="tax"><span class="report-card-icon">📄</span><strong>Imposto de Renda</strong><small>Conferência fiscal e valores do Carnê-Leão.</small></button>
                 </div>
             </section>
@@ -533,7 +535,7 @@
             </div>
         </div>
 
-        <div class="modal-backdrop" id="energyRateModal" hidden><div class="modal energy-rate-modal workspace-modal"><div class="settings-heading"><div><h2>Rateio de energia</h2><p>Divida a fatura integral proporcionalmente ao consumo medido.</p></div></div><section class="energy-rate-form"><div class="energy-rate-inputs"><label class="energy-rate-reference-field">Referência<input id="energyRateReference" type="month" required></label><label class="energy-rate-enterprise-field" hidden>Empreendimento<select id="energyRateEnterprise"></select></label><label class="energy-rate-invoice-field">Valor total da fatura (R$)<input id="energyRateInvoice" type="text" inputmode="decimal" required data-money="true"></label><label class="energy-rate-due-field">Vencimento<input id="energyRateDueDate" type="date" required></label><label class="energy-rate-billed-field" hidden>Consumo da fatura (kWh)<input id="energyRateBilledKwh" type="number" min="0" step="0.01" inputmode="decimal"></label></div><p id="energyRateModeNotice" class="energy-rate-mode-notice"></p><h3>Leituras por unidade</h3><div id="energyRateReadings" class="energy-rate-readings"></div><div id="energyRatePreview" class="energy-rate-preview"></div><div id="energyConsumptionAlerts" class="energy-consumption-alerts"></div></section><details class="settings-panel energy-billing-panel"><summary><span class="settings-panel-icon">💰</span><span><strong>Controle de cobrança</strong><small>Valores recebidos, pendentes e vencidos.</small></span></summary><div class="settings-panel-content"><div id="energyBillingSummary" class="energy-billing-summary"></div></div></details><details class="settings-panel energy-comparison-panel"><summary><span class="settings-panel-icon">📊</span><span><strong>Comparativo de consumo</strong><small>Veja quem consumiu mais nesta referência.</small></span></summary><div class="settings-panel-content"><div id="energyRateComparison" class="energy-rate-comparison"></div></div></details><details class="settings-panel energy-historical-panel"><summary><span class="settings-panel-icon">📈</span><span><strong>Histórico de consumo</strong><small>Compare as unidades ao longo do ano.</small></span></summary><div class="settings-panel-content"><div id="energyHistoricalComparison" class="energy-historical-comparison"></div></div></details><details class="settings-panel"><summary><span class="settings-panel-icon">🗂️</span><span><strong>Histórico de rateios</strong><small>Abra uma competência e gere a imagem individual.</small></span></summary><div class="settings-panel-content"><div id="energyRateHistory" class="energy-rate-history"></div></div></details><div class="modal-actions settings-footer"><button id="cancelEnergyRate" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span><button id="saveEnergyRate" class="btn btn-primary" type="button">Salvar rateio</button></div></div></div>
+        <div class="modal-backdrop" id="energyRateModal" hidden><div class="modal energy-rate-modal workspace-modal"><button id="energyBackHome" class="mobile-view-back energy-back-home" type="button"><span aria-hidden="true">←</span> Início · Rateio de energia</button><div class="settings-heading"><div><h2>Rateio de energia</h2><p>Divida a fatura integral proporcionalmente ao consumo medido.</p></div></div><section class="energy-rate-form"><div class="energy-rate-inputs"><label class="energy-rate-reference-field">Referência<input id="energyRateReference" type="month" required></label><label class="energy-rate-enterprise-field" hidden>Empreendimento<select id="energyRateEnterprise"></select></label><label class="energy-rate-invoice-field">Valor total da fatura (R$)<input id="energyRateInvoice" type="text" inputmode="decimal" required data-money="true"></label><label class="energy-rate-due-field">Vencimento<input id="energyRateDueDate" type="date" required></label><label class="energy-rate-billed-field" hidden>Consumo da fatura (kWh)<input id="energyRateBilledKwh" type="number" min="0" step="0.01" inputmode="decimal"></label></div><p id="energyRateModeNotice" class="energy-rate-mode-notice"></p><h3>Leituras por unidade</h3><div id="energyRateReadings" class="energy-rate-readings"></div><div id="energyRatePreview" class="energy-rate-preview"></div><div id="energyConsumptionAlerts" class="energy-consumption-alerts"></div></section><details class="settings-panel energy-billing-panel"><summary><span class="settings-panel-icon">💰</span><span><strong>Controle de cobrança</strong><small>Valores recebidos, pendentes e vencidos.</small></span></summary><div class="settings-panel-content"><div id="energyBillingSummary" class="energy-billing-summary"></div></div></details><details class="settings-panel energy-comparison-panel"><summary><span class="settings-panel-icon">📊</span><span><strong>Comparativo de consumo</strong><small>Veja quem consumiu mais nesta referência.</small></span></summary><div class="settings-panel-content"><div id="energyRateComparison" class="energy-rate-comparison"></div></div></details><details class="settings-panel energy-historical-panel"><summary><span class="settings-panel-icon">📈</span><span><strong>Histórico de consumo</strong><small>Compare as unidades ao longo do ano.</small></span></summary><div class="settings-panel-content"><div id="energyHistoricalComparison" class="energy-historical-comparison"></div></div></details><details class="settings-panel"><summary><span class="settings-panel-icon">🗂️</span><span><strong>Histórico de rateios</strong><small>Abra uma competência e gere a imagem individual.</small></span></summary><div class="settings-panel-content"><div id="energyRateHistory" class="energy-rate-history"></div></div></details><div class="modal-actions settings-footer"><span class="modal-footer-title">Rateio de energia</span><button id="cancelEnergyRate" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span><button id="saveEnergyRate" class="btn btn-primary" type="button">Salvar rateio</button></div></div></div>
 
         <!-- Modal de Gasto -->
         <div class="modal-backdrop" id="expenseModal" hidden>
@@ -1040,7 +1042,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=240"></script>
-    <script src="app.js?v=240"></script>
+    <script src="energy-calculations.js?v=241"></script>
+    <script src="app.js?v=241"></script>
     </body>
 </html>
