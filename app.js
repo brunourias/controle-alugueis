@@ -5566,7 +5566,12 @@ function renderSummary() {
             group.items.push(expense);
         });
 
+        var actualExpenseMonth =
+            selectedYear === new Date().getFullYear() ? new Date().getMonth() : -1;
+
         groups.sort(function (a, b) {
+            if (a.month === actualExpenseMonth) return -1;
+            if (b.month === actualExpenseMonth) return 1;
             return a.month - b.month;
         });
 
@@ -5625,14 +5630,19 @@ function renderSummary() {
                     })
                     .join("");
 					
-					var currentMonthClass =
-					selectedYear === new Date().getFullYear() &&
-					group.month === new Date().getMonth()
-						? " month-current"
-						: "";
-						
+                    var isCurrentExpenseMonth = group.month === actualExpenseMonth;
+                    var currentMonthClass = isCurrentExpenseMonth
+                        ? " month-current"
+                        : "";
+                    var currentMonthDetailsClass = isCurrentExpenseMonth
+                        ? " is-current-expense-month"
+                        : "";
+                    var openCurrentMonth = isCurrentExpenseMonth && expensesExpanded
+                        ? " open"
+                        : "";
+
                 return (
-                    '<details class="expense-month">' +
+                    '<details class="expense-month' + currentMonthDetailsClass + '"' + openCurrentMonth + '>' +
                     '<summary class="expense-month-header' + currentMonthClass + '">' +
                     '<div class="expense-month-title">' +
                     "<h3>" +
