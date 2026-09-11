@@ -165,3 +165,8 @@ console.log("Verificações de integridade concluídas.");
 const mergeCloudDataSource = app.slice(app.indexOf("function mergeCloudData"), app.indexOf("function chooseCloudData"));
 assert.match(mergeCloudDataSource, /cloudGranularBaseline = granularSnapshot\(remoteForMerge\);/, "Mesclagem deve atualizar a base remota antes de salvar");
 assert.doesNotMatch(mergeCloudDataSource, /subscribeCloud\(\)/, "Mesclagem não deve reiniciar a assinatura antes de concluir a gravação");
+
+assert.match(app, /var actualExpenseMonth =/, "Gastos devem identificar o mês corrente");
+assert.match(app, /is-current-expense-month/, "Gastos devem destacar o mês corrente");
+assert.match(app, /openCurrentMonth/, "O mês corrente de gastos deve abrir por padrão");
+assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, "Histórico de gastos deve usar grade compacta no desktop");
