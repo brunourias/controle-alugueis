@@ -8288,3 +8288,93 @@ input[data-money="true"] {
         color: var(--muted);
     }
 }
+
+
+/* v249: histórico de gastos compacto, com prioridade para o mês atual */
+.expenses-dashboard #expensesList {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    align-items: start;
+}
+
+.expenses-dashboard .expense-month,
+.expenses-dashboard .expense-month + .expense-month {
+    min-width: 0;
+    margin-top: 0;
+    overflow: hidden;
+    border: 1px solid #dce9e7;
+    border-radius: 12px;
+    background: #fbfdfd;
+}
+
+.expenses-dashboard .expense-month[open] {
+    grid-column: 1 / -1;
+    background: #fff;
+}
+
+.expenses-dashboard .expense-month-header {
+    min-height: 44px;
+    padding: 6px 10px 6px 28px;
+}
+
+.expenses-dashboard .expense-month-header::before {
+    left: 10px;
+    font-size: .68rem;
+}
+
+.expenses-dashboard .expense-month-title {
+    min-width: 0;
+}
+
+.expenses-dashboard .expense-month-header h3 {
+    overflow: hidden;
+    font-size: .8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.expenses-dashboard .expense-month-title small {
+    font-size: .61rem;
+}
+
+.expenses-dashboard .expense-month-header strong {
+    font-size: .73rem;
+}
+
+.expenses-dashboard .expense-month.is-current-expense-month {
+    grid-column: 1 / -1;
+    border-color: #7acfc5;
+    background: #eefaf7;
+    box-shadow: 0 3px 10px rgba(15, 118, 110, .06);
+}
+
+.expenses-dashboard .expense-month.is-current-expense-month .expense-month-header {
+    min-height: 48px;
+}
+
+.expenses-dashboard .expense-month[open] .expense-row {
+    margin-inline: 10px;
+}
+
+@media (max-width: 820px) {
+    .expenses-dashboard #expensesList {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+}
+
+@media (max-width: 420px) {
+    .expenses-dashboard .expense-month-header {
+        min-height: 42px;
+        padding-right: 8px;
+    }
+
+    .expenses-dashboard .expense-month-header strong {
+        font-size: .68rem;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-row {
+        margin-inline: 6px;
+    }
+}
