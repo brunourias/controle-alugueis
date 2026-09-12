@@ -5495,6 +5495,7 @@ function renderSummary() {
             : "Sem categoria principal";
 
         if (!yearExpenses.length) {
+            expensesPreview.hidden = false;
             expensesPreview.innerHTML =
                 '<div class="empty empty-inline"><p>Nenhum gasto registrado em ' + selectedYear + '.</p><button class="btn btn-primary" type="button" data-empty-expense>+ Registrar primeiro gasto</button></div>';
             expensesList.innerHTML = "";
@@ -5503,43 +5504,10 @@ function renderSummary() {
             return;
         }
 
-        var recentExpenses = yearExpenses
-            .slice()
-            .sort(function (a, b) {
-                var byCreation = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
-                if (byCreation) return byCreation;
-                return String(b.date || b.ym).localeCompare(String(a.date || a.ym));
-            })
-            .slice(0, 3);
-
-        expensesPreview.innerHTML =
-            '<div class="expenses-preview-heading">Últimos lançamentos</div>' +
-            '<div class="expenses-preview-list">' +
-            recentExpenses
-                .map(function (expense) {
-                    var dateLabel = expense.date
-                        ? formatExpenseDate(expense.date)
-                        : fullMonths[Number(expense.ym.slice(5, 7)) - 1];
-
-                    return (
-                        '<div class="expenses-preview-row">' +
-                        '<div><strong>' +
-                        escapeHtml(expense.category || "Sem categoria") +
-                        "</strong>" +
-                        '<span>' +
-                        escapeHtml(dateLabel) +
-                        (expense.description
-                            ? " · " + escapeHtml(expense.description)
-                            : "") +
-                        "</span></div>" +
-                        "<b>" +
-                        money(expense.amount) +
-                        "</b>" +
-                        "</div>"
-                    );
-                })
-                .join("") +
-            "</div>";
+        // O mês corrente já concentra a operação diária; evita repetir os
+        // mesmos gastos em uma prévia adicional.
+        expensesPreview.innerHTML = "";
+        expensesPreview.hidden = true;
 
         var groups = [];
 
