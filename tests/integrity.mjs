@@ -205,4 +205,4 @@ assert.match(app, /var historicReceivedCounted = false;/, "Total recebido deve i
 assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento histórico deve ser somado somente uma vez por competência");
 assert.match(app, /!active && \(ledgerStatus === "paid"/, "Contrato histórico não deve duplicar recebimento do contrato ativo na mesma competência");
 
-assert.match(app, /if \\(!contract \\|\\| active\\) return;/, "A parcela visível deve ser contabilizada somente uma vez por unidade e competência");
+assert.match(app, /if \(!contract \|\| active\) return;/, "A parcela visível deve ser contabilizada somente uma vez por unidade e competência");
