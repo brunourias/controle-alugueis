@@ -170,3 +170,9 @@ assert.match(app, /var actualExpenseMonth =/, "Gastos devem identificar o mês c
 assert.match(app, /is-current-expense-month/, "Gastos devem destacar o mês corrente");
 assert.match(app, /openCurrentMonth/, "O mês corrente de gastos deve abrir por padrão");
 assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, "Histórico de gastos deve usar grade compacta no desktop");
+
+assert.match(app, /if \(cards\) cards\.hidden = false;/, "Indicadores financeiros devem permanecer visíveis");
+assert.match(app, /toggleExpensesButton\.hidden = true;[\s\S]*?expensesList\.hidden = false;/, "Cobranças não devem exibir controle de ocultar");
+assert.match(app, /detail\.hidden = false;[\s\S]*?toggle\.hidden = true;/, "Conferência do IR deve permanecer aberta");
+assert.match(app, /lateReport\.hidden = false;/, "Atrasos da visão geral devem permanecer visíveis");
+assert.doesNotMatch(app, /id="toggleActionCenter"[^>]*>Ocultar/, "Cobranças não devem renderizar botão Ocultar");
