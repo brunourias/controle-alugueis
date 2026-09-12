@@ -37,8 +37,8 @@ assert.match(app, /Auth\.Persistence\.LOCAL/, "Autenticação deve persistir ap�
 assert.match(app, /rememberPwaUpdateSession\(\)/, "Atualização deve preservar a sessão desbloqueada");
 assert.match(
     app,
-    /var monthIndex = month - 1;[\s\S]{0,160}return new Date\(year, monthIndex,/,
-    "Primeiro vencimento deve usar o mês local informado, sem avançar um mês"
+    /return candidate < start \? start : candidate;/,
+    "Primeiro vencimento não pode anteceder a locação nem duplicar a parcela seguinte"
 );
 
 const ids = [...index.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
@@ -187,3 +187,13 @@ assert.match(app, /if \(!yearExpenses\.length\)[\s\S]{0,100}expensesPreview\.hid
 assert.match(app, /function paidLateOccurrenceIsValid\(/, "Contador de atrasos deve revalidar ocorrências históricas");
 assert.match(app, /history\[key\] === true && paidLateOccurrenceIsValid\(unit, y, m\)/, "Marcador antigo não pode criar atraso sem validar o pagamento");
 assert.match(app, /new Date\(paid\.getFullYear\(\), paid\.getMonth\(\), paid\.getDate\(\)\)\.getTime\(\)/, "Recorrência deve comparar somente o dia civil do pagamento");
+
+assert.match(index, /id="paymentAdjustAgreement"/, "Baixa parcial deve permitir acordo para o saldo");
+assert.match(index, /id="paymentAdjustAgreementDueDate"/, "Acordo deve registrar novo vencimento do saldo");
+assert.match(app, /function dueDateForCollection\(/, "Cobrança deve respeitar o vencimento específico do saldo");
+assert.match(app, /balanceDueDate: settled \? ""/, "Quitação deve encerrar o vencimento do acordo");
+assert.match(app, /function historicPaymentOccurredLate\(/, "Baixa histórica deve validar atraso pela data real");
+assert.match(app, /delete historicUnit\.lateLedger\[historicPaymentAdjustContext\.key\]/, "Baixa histórica pontual deve remover marcador de atraso");
+assert.match(app, /statuses\[key\] === "atrasado" \|\|[\s\S]{0,80}y === selectedYear/, "Contador de 12 meses deve incluir atrasos persistidos de outro ano");
+assert.match(app, /latestInterestSettlementDate/, "Juros só devem reiniciar após encargos efetivamente recebidos");
+assert.match(app, /hasBalanceAgreement \? "Acordo" : "Parcial"/, "Parcela negociada deve exibir o estado Acordo");
