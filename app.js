@@ -9700,7 +9700,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 ? "Correção de baixa parcial"
                 : (willSettle ? "Quitação de pagamento" : "Pagamento parcial");
             createVersionedBackup(action, paymentAdjustContext.key);
-            var preview = applyPartialPaymentEntries(activeUnit, paymentAdjustContext.month, paymentAdjustContext.key, entries, agreementDueDate || existing.balanceDueDate);
+            var preview = applyPartialPaymentEntries(
+                activeUnit,
+                paymentAdjustContext.month,
+                paymentAdjustContext.key,
+                entries,
+                agreementToggle && agreementToggle.checked ? agreementDueDate : ""
+            );
             recordOperation(editingEntry ? "Baixa parcial corrigida" :
                 (preview.settled ? "Pagamento quitado" : "Pagamento parcial registrado"), paymentAdjustContext.key);
             paymentAdjustContext = null;
