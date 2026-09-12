@@ -169,7 +169,7 @@ assert.doesNotMatch(mergeCloudDataSource, /subscribeCloud\(\)/, "Mesclagem não 
 assert.match(app, /var actualExpenseMonth =/, "Gastos devem identificar o mês corrente");
 assert.match(app, /is-current-expense-month/, "Gastos devem destacar o mês corrente");
 assert.match(app, /openCurrentMonth/, "O mês corrente de gastos deve abrir por padrão");
-assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, "Histórico de gastos deve usar grade compacta no desktop");
+assert.match(styles, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/, "Histórico de gastos deve usar grade compacta no desktop");
 
 assert.match(app, /if \(cards\) cards\.hidden = false;/, "Indicadores financeiros devem permanecer visíveis");
 assert.match(app, /toggleExpensesButton\.hidden = true;[\s\S]*?expensesList\.hidden = false;/, "Cobranças não devem exibir controle de ocultar");
@@ -177,5 +177,5 @@ assert.match(app, /detail\.hidden = false;[\s\S]*?toggle\.hidden = true;/, "Conf
 assert.match(app, /lateReport\.hidden = false;/, "Atrasos da visão geral devem permanecer visíveis");
 assert.doesNotMatch(app, /id="toggleActionCenter"[^>]*>Ocultar/, "Cobranças não devem renderizar botão Ocultar");
 
-assert.match(css, /expense-month:not\(\.is-current-expense-month\) \.expense-month-header/, "Meses anteriores devem usar cartões próprios no celular");
-assert.match(css, /grid-template-columns: minmax\(0, 1fr\) auto 30px;/, "Lançamentos do mês atual devem ter colunas legíveis no celular");
+assert.match(styles, /expense-month:not\(\.is-current-expense-month\) \.expense-month-header/, "Meses anteriores devem usar cartões próprios no celular");
+assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) auto 30px;/, "Lançamentos do mês atual devem ter colunas legíveis no celular");
