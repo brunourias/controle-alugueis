@@ -9193,6 +9193,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var ledgerStatus = ledger[key];
             var activeLateCounted = false;
             var historicLateCounted = false;
+            var historicReceivedCounted = false;
 
             // Contrato ativo: previsto, pago, pendente ou atrasado conforme o status da parcela.
             if (active) {
@@ -9260,8 +9261,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 if (ledgerStatus === true || ledgerStatus === "open") {
                     addOpenLate(historicRent);
                     historicLateCounted = true;
-                } else if (historicPaid) {
+                } else if (historicPaid && !historicReceivedCounted) {
                     metrics.received += Math.max(0, Number(payment && payment.rentAmount) || historicRent);
+                    historicReceivedCounted = true;
                 }
             });
 
@@ -9324,25 +9326,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function historicalInterestAmount(unit, year, month) {
-        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
-        var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        if (!payment) return 0;
 
-        // Só há juros recebidos quando a parcela está efetivamente paga com atraso.
-        var paidLateCurrent = isActive(unit, month) &&
-            statusFor(unit, month) === "pago" &&
-            unit.paidLate && unit.paidLate[key] === true;
-        var historicPaymentDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
-        var activeStart = isActive(unit, month) && isValidDateValue(unit.startDate)
-            ? new Date(unit.startDate + "T00:00:00")
-            : null;
-        var paidBeforeNewContract = activeStart && historicPaymentDate &&
-            !isNaN(historicPaymentDate.getTime()) && historicPaymentDate < activeStart;
-        var paidLateHistoric = ledger[key] === "paid" ||
-            (payment && payment.historicContractId && paymentWasLate(unit, key)) ||
-            paidBeforeNewContract && paymentWasLate(unit, key);
-
-        if (!payment || (!paidLateCurrent && !paidLateHistoric)) return 0;
+        // Juros digitados em uma baixa representam valor efetivamente recebido.
+        // Por isso entram no total imediatamente, inclusive enquanto ainda resta
+        // saldo principal em um pagamento parcial.
         return recordedInterestAmount(payment);
     }
 
