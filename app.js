@@ -3811,6 +3811,20 @@ var historyRent = document.getElementById("historyRent");
         return digits ? "https://wa.me/" + digits : "";
     }
 
+    function historicPaymentOccurredLate(unit, contract, key, paidAt, fine, interest) {
+        if (Number(fine) > 0 || Number(interest) > 0) return true;
+        if (!isValidStartYm(key) || !paidAt) return false;
+        var parts = key.split("-").map(Number);
+        var dueDay = Number(contract && contract.dueDay);
+        if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) dueDay = Number(unit && unit.dueDay);
+        if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) return false;
+        var due = new Date(parts[0], parts[1] - 1, Math.min(dueDay, new Date(parts[0], parts[1], 0).getDate()));
+        var paid = new Date(paidAt);
+        if (isNaN(paid.getTime())) return false;
+        return new Date(paid.getFullYear(), paid.getMonth(), paid.getDate()).getTime() >
+            new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+    }
+
     function paidLateOccurrenceIsValid(unit, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         if (!unit.paidLate || unit.paidLate[key] !== true) return false;
@@ -3865,8 +3879,8 @@ var historyRent = document.getElementById("historyRent");
             // Para meses fora do ano selecionado, não tentamos recalcular a data;
             // usamos apenas o status persistido.
             if (
-                y === selectedYear &&
-                (statuses[key] === "atrasado" || effectiveStatus(unit, m) === "atrasado")
+                statuses[key] === "atrasado" ||
+                (y === selectedYear && effectiveStatus(unit, m) === "atrasado")
             ) {
                 count += 1;
             }
@@ -5975,6 +5989,14 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
         updatePaymentAdjustTotal();
         ModalManager.open(document.getElementById("paymentAdjustModal"));
     }
+
+document
+    .getElementById("paymentAdjustAgreement")
+    .addEventListener("change", function (event) {
+        var label = document.getElementById("paymentAdjustAgreementDueLabel");
+        label.hidden = !event.currentTarget.checked;
+        if (event.currentTarget.checked) document.getElementById("paymentAdjustAgreementDueDate").focus();
+    });
 
 document
     .getElementById("paymentAdjustDate")
@@ -9508,6 +9530,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         setMoneyInput(document.getElementById("paymentAdjustFine"), 0);
         setMoneyInput(document.getElementById("paymentAdjustInterest"), 0);
         document.getElementById("paymentAdjustNotes").value = "";
+        document.getElementById("paymentAgreementFields").hidden = true;
+        document.getElementById("paymentAdjustAgreement").checked = false;
+        document.getElementById("paymentAdjustAgreementDueLabel").hidden = true;
+        document.getElementById("paymentAdjustAgreementDueDate").value = "";
         updatePaymentAdjustTotal();
         ModalManager.open(document.getElementById("paymentAdjustModal"));
     }
@@ -9598,13 +9624,18 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             createVersionedBackup("Baixa de parcela histórica", historicPaymentAdjustContext.key);
             recordOperation("Baixa de parcela histórica", historicPaymentAdjustContext.key);
             ensureFinancialHistory(historicUnit);
-            historicUnit.lateLedger[historicPaymentAdjustContext.key] = "paid";
+            var historyIndex = historicPaymentAdjustContext.contractIndex;
+            var historicContract = historicUnit.contractHistory[historyIndex] || null;
+            if (historicPaymentOccurredLate(historicUnit, historicContract, historicPaymentAdjustContext.key, paidAt, fine, interest)) {
+                historicUnit.lateLedger[historicPaymentAdjustContext.key] = "paid";
+            } else {
+                delete historicUnit.lateLedger[historicPaymentAdjustContext.key];
+            }
             historicUnit.paymentHistory[historicPaymentAdjustContext.key] = {
                 rentAmount: rent, fineAmount: fine, interestAmount: interest,
                 chargesAmount: fine + interest, totalAmount: rent + fine + interest,
                 paidAt: paidAt, notes: notes, historicContractId: historicPaymentAdjustContext.contractId
             };
-            var historyIndex = historicPaymentAdjustContext.contractIndex;
             historicPaymentAdjustContext = null;
             saveState();
             ModalManager.close(document.getElementById("paymentAdjustModal"));
