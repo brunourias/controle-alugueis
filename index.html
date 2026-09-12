@@ -869,6 +869,18 @@
 					</div>
 				</details>
 
+                <div id="paymentAgreementFields" class="payment-agreement-fields">
+                    <label class="payment-agreement-toggle">
+                        <input type="checkbox" id="paymentAdjustAgreement" />
+                        <span>Houve acordo para o saldo restante</span>
+                    </label>
+                    <label id="paymentAdjustAgreementDueLabel" hidden>
+                        Novo vencimento do saldo
+                        <input type="date" id="paymentAdjustAgreementDueDate" />
+                    </label>
+                    <small>Esta data vale somente para o saldo desta parcela e não altera os próximos aluguéis.</small>
+                </div>
+
 				<details class="settings-panel">
 					<summary>
 						<span>Multas e encargos</span>
