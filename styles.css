@@ -8378,3 +8378,101 @@ input[data-money="true"] {
         margin-inline: 6px;
     }
 }
+
+
+/* v251: leitura confortável do histórico de gastos no celular */
+@media (max-width: 520px) {
+    .expenses-dashboard #expensesList {
+        gap: 7px;
+    }
+
+    .expenses-dashboard .expense-month:not(.is-current-expense-month) .expense-month-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: center;
+        justify-content: stretch;
+        gap: 2px;
+        min-height: 58px;
+        padding: 7px 8px 7px 25px;
+    }
+
+    .expenses-dashboard .expense-month:not(.is-current-expense-month) .expense-month-header::before {
+        left: 8px;
+    }
+
+    .expenses-dashboard .expense-month:not(.is-current-expense-month) .expense-month-title small {
+        display: none;
+    }
+
+    .expenses-dashboard .expense-month:not(.is-current-expense-month) .expense-month-header h3 {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    .expenses-dashboard .expense-month:not(.is-current-expense-month) .expense-month-header strong {
+        overflow: hidden;
+        font-size: .69rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .expenses-dashboard .expense-month.is-current-expense-month .expense-month-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 4px 8px;
+        padding: 8px 9px 8px 27px;
+    }
+
+    .expenses-dashboard .expense-month.is-current-expense-month .expense-month-title small {
+        display: block;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-row {
+        grid-template-columns: minmax(0, 1fr) auto 30px;
+        grid-template-rows: auto auto;
+        gap: 2px 7px;
+        margin-inline: 7px;
+        padding: 9px 2px;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-date {
+        grid-column: 1;
+        grid-row: 2;
+        padding: 0;
+        color: var(--muted);
+        font-size: .64rem;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-row-main {
+        grid-column: 1;
+        grid-row: 1;
+        display: block;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-row-main strong,
+    .expenses-dashboard .expense-month[open] .expense-row-main span {
+        font-size: .72rem;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-row-main span {
+        display: inline;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-row > b {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: center;
+        font-size: .7rem;
+    }
+
+    .expenses-dashboard .expense-month[open] .expense-edit {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        align-self: center;
+        width: 30px;
+        height: 30px;
+    }
+}
