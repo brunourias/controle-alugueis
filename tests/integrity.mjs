@@ -203,3 +203,4 @@ assert.match(app, /agreementToggle && agreementToggle\.checked \? agreementDueDa
 assert.match(app, /function historicalInterestAmount[\s\S]{0,500}return recordedInterestAmount\(payment\);/, "Total juros deve incluir encargos efetivamente recebidos em baixas parciais");
 assert.match(app, /var historicReceivedCounted = false;/, "Total recebido deve impedir duplicidade histórica");
 assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento histórico deve ser somado somente uma vez por competência");
+assert.match(app, /!active && \(ledgerStatus === "paid"/, "Contrato histórico não deve duplicar recebimento do contrato ativo na mesma competência");
