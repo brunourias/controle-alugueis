@@ -247,10 +247,10 @@ document.addEventListener("click", function (event) {
     var pendingRentChanges = [];
 	var pendingContractHistory = [];
     var editingExpenseId = null;
-    var expensesExpanded = false;
-    var summaryCardsExpanded = false;
-    var taxDashboardExpanded = false;
-    var financialReportExpanded = false;
+    var expensesExpanded = true;
+    var summaryCardsExpanded = true;
+    var taxDashboardExpanded = true;
+    var financialReportExpanded = true;
     var actionCenterExpanded = false;
     // A tela inicial prioriza a operação diária. Financeiro e relatórios
     // concentram informações de análise, sem poluir a rotina de cobrança.
@@ -4553,7 +4553,7 @@ var historyRent = document.getElementById("historyRent");
         container.classList.remove("is-compact");
         container.hidden = !actionCenterExpanded;
         container.innerHTML = actionCenterExpanded
-            ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button class="btn btn-ghost" id="toggleActionCenter" type="button" aria-expanded="true">Ocultar</button></div></div><div class="action-center-detail">' + detail + '</div>'
+            ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '</div></div><div class="action-center-detail">' + detail + '</div>'
             : "";
 
         var toggleActionCenter = document.getElementById("toggleActionCenter");
@@ -5361,10 +5361,10 @@ function renderSummary() {
     var toggleFinancialReport = document.getElementById("toggleFinancialReport");
     if (lateReport) {
         lateReport.innerHTML = report;
-        lateReport.hidden = !financialReportExpanded;
+        lateReport.hidden = false;
     }
     if (toggleFinancialReport) {
-        toggleFinancialReport.textContent = financialReportExpanded ? "Ocultar" : "Mostrar";
+        toggleFinancialReport.hidden = true;
     }
 
     var homeSnapshot = document.getElementById("homeSnapshot");
@@ -5402,10 +5402,10 @@ function renderSummary() {
         var container = document.getElementById("summary");
         // Quando fechado, o próprio contêiner sai do fluxo. Assim não sobra
         // uma faixa vazia entre o cabeçalho financeiro e os gastos.
-        if (cards) cards.hidden = !summaryCardsExpanded;
-        if (container) container.hidden = !summaryCardsExpanded;
+        if (cards) cards.hidden = false;
+        if (container) container.hidden = false;
         var btn = document.getElementById("toggleSummaryCards");
-        if (btn) btn.textContent = summaryCardsExpanded ? "Ocultar indicadores" : "Ver indicadores";
+        if (btn) btn.hidden = true;
     }
 
 
@@ -5436,13 +5436,8 @@ function renderSummary() {
         var reviewTotal = review.reduce(function (sum, expense) { return sum + expense.amount; }, 0);
         var base = Math.max(0, rentalReceived - deductibleTotal);
 
-        detail.hidden = !taxDashboardExpanded;
-        toggle.textContent = taxDashboardExpanded ? "Ocultar conferência" : "Ver conferência";
-        toggle.onclick = function () {
-            taxDashboardExpanded = !taxDashboardExpanded;
-            renderTaxDashboard();
-        };
-        if (!taxDashboardExpanded) return;
+        detail.hidden = false;
+        toggle.hidden = true;
 
         var reviewRows = review.slice().sort(function (a, b) {
             return String(b.date).localeCompare(String(a.date));
@@ -5678,11 +5673,8 @@ function renderSummary() {
 
     function applyExpensesVisibility() {
         var hasGroups = expenseMonths().length > 0;
-        toggleExpensesButton.hidden = !hasGroups;
-        toggleExpensesButton.textContent = expensesExpanded
-            ? "Ocultar meses"
-            : "Mostrar meses";
-        expensesList.hidden = hasGroups && !expensesExpanded;
+        toggleExpensesButton.hidden = true;
+        expensesList.hidden = false;
     }
 
     function toggleExpensesVisibility() {
