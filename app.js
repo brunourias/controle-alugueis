@@ -3601,12 +3601,17 @@ var historyRent = document.getElementById("historyRent");
     function firstContractDueDate(unit) {
         if (!unit || !isValidDateValue(unit.startDate)) return null;
         var parts = unit.startDate.split("-").map(Number);
-        var year = parts[0];
-        var month = parts[1];
-        var day = parts[2];
-        var monthIndex = month - 1;
-        var lastDay = new Date(year, monthIndex + 1, 0).getDate();
-        return new Date(year, monthIndex, Math.min(day, lastDay));
+        var start = new Date(parts[0], parts[1] - 1, parts[2]);
+        var dueDay = Number(unit.dueDay);
+        if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) return start;
+
+        function candidateFor(year, month) {
+            return new Date(year, month, Math.min(dueDay, new Date(year, month + 1, 0).getDate()));
+        }
+
+        var candidate = candidateFor(start.getFullYear(), start.getMonth());
+        if (candidate < start) candidate = candidateFor(start.getFullYear(), start.getMonth() + 1);
+        return candidate;
     }
 
     function dueDateFor(unit, month) {
@@ -3621,49 +3626,41 @@ var historyRent = document.getElementById("historyRent");
         return new Date(selectedYear, month, Math.min(dueDay, lastDay));
     }
 
+
+    function dueDateForCollection(unit, month) {
+        var payment = getPaymentRecord(unit, selectedYear, month);
+        var balanceDueDate = payment && isValidDateValue(payment.balanceDueDate)
+            ? payment.balanceDueDate
+            : "";
+        if (balanceDueDate && partialPaymentInfo(unit, month)) {
+            return new Date(balanceDueDate + "T00:00:00");
+        }
+        return dueDateFor(unit, month);
+    }
+
     var DUE_SOON_DAYS = 5;
 
     function dueReminder(unit, limitDays) {
         var today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        // O ano pode vir da interface como texto; nunca esconda o lembrete
-        // apenas por essa diferença de tipo.
         if (Number(selectedYear) !== today.getFullYear()) return null;
 
-        var m = today.getMonth();
-        var status = String(statusFor(unit, m) || "").toLowerCase();
-        var dueDay = Number(unit && unit.dueDay);
+        var month = today.getMonth();
+        if (!isActive(unit, month) || statusFor(unit, month) !== "pendente") return null;
+        if (daysOverdue(unit, month) !== null) return null;
 
-        // Para o próprio dia exibido no cartão ("Vence dia X"), a parcela
-        // pendente deve ser sinalizada mesmo se dados antigos de início/fim
-        // do contrato estiverem incompletos. Esse é o alerta operacional.
-        if (
-            String(unit && unit.tenantName || "").trim() &&
-            status === "pendente" &&
-            Number.isInteger(dueDay) &&
-            dueDay === today.getDate()
-        ) {
-            return 0;
-        }
-
-        if (!isActive(unit, m) || status !== "pendente") return null;
-        if (daysOverdue(unit, m) !== null) return null;
-
-        var due = dueDateFor(unit, m);
+        var due = dueDateForCollection(unit, month);
         if (!due) return null;
-
         var days = Math.round((due - today) / 86400000);
         var windowDays = Number.isInteger(Number(limitDays))
             ? Number(limitDays)
             : Number(state.settings.reminderDays || DUE_SOON_DAYS);
-        if (days < 0 || days > windowDays) return null;
-        return days;
+        return days >= 0 && days <= windowDays ? days : null;
     }
 
     function daysOverdue(unit, month) {
         if (!isActive(unit, month)) return null;
-        var dueDate = dueDateFor(unit, month);
+        var dueDate = dueDateForCollection(unit, month);
         if (!dueDate) return null;
         var today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -3676,7 +3673,7 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function lateChargeBreakdown(unit, month, calculationDate, ignoredEntryIndex) {
-        var due = dueDateFor(unit, month);
+        var due = dueDateForCollection(unit, month);
         if (!due) return null;
         due.setHours(0, 0, 0, 0);
 
@@ -3703,13 +3700,16 @@ var historyRent = document.getElementById("historyRent");
         var hasFinePayment = entries.some(function (entry) {
             return Number(entry && entry.fineAmount) > 0;
         });
-        var latestPaymentDate = entries.reduce(function (value, entry) {
+        var latestInterestSettlementDate = entries.reduce(function (value, entry) {
+            if (Number(entry && entry.interestAmount) <= 0) return value;
             var candidate = entry && entry.paidAt ? new Date(entry.paidAt) : null;
             if (!candidate || isNaN(candidate.getTime())) return value;
             candidate.setHours(0, 0, 0, 0);
             return !value || candidate > value ? candidate : value;
         }, null);
-        var interestStart = latestPaymentDate && latestPaymentDate > due ? latestPaymentDate : due;
+        var interestStart = latestInterestSettlementDate && latestInterestSettlementDate > due
+            ? latestInterestSettlementDate
+            : due;
         var days = Math.max(0, Math.floor((target - interestStart) / 86400000));
         var overdue = target > due;
         var fineAmount = overdue && !hasFinePayment ? balance * fineRate : 0;
