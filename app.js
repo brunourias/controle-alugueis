@@ -5735,7 +5735,13 @@ function renderSummary() {
         var due = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
         var received = Math.min(due, paymentPrincipalReceived(payment));
         var balance = Math.max(0, due - received);
-        return balance > 0.009 ? { due: due, received: received, balance: balance, count: payment.partialPayments.length } : null;
+        return balance > 0.009 ? {
+            due: due,
+            received: received,
+            balance: balance,
+            count: payment.partialPayments.length,
+            balanceDueDate: isValidDateValue(payment.balanceDueDate) ? payment.balanceDueDate : ""
+        } : null;
     }
 
     function toggleStatus(id, month) {
@@ -5778,7 +5784,7 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
         });
     }
 
-    function applyPartialPaymentEntries(unit, month, key, entries) {
+    function applyPartialPaymentEntries(unit, month, key, entries, balanceDueDate) {
         ensureFinancialHistory(unit);
         entries = (entries || []).filter(Boolean);
         unit.paidLate = unit.paidLate && typeof unit.paidLate === "object" ? unit.paidLate : {};
@@ -5811,7 +5817,8 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
             totalAmount: total,
             paidAt: latest.paidAt,
             notes: String(latest.notes || ""),
-            partialPayments: entries
+            partialPayments: entries,
+            balanceDueDate: settled ? "" : (isValidDateValue(balanceDueDate) ? balanceDueDate : "")
         };
         unit.status[key] = settled ? "pago" : "pendente";
         if (settled) {
@@ -5841,7 +5848,7 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
         createVersionedBackup("Exclusão de baixa parcial", key);
         recordOperation("Baixa parcial excluída", key);
         entries.splice(entryIndex, 1);
-        applyPartialPaymentEntries(unit, month, key, entries);
+        applyPartialPaymentEntries(unit, month, key, entries, payment.balanceDueDate);
         saveState();
         render();
         openPaymentAdjust(id, month, true);
@@ -5909,6 +5916,15 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
             : Number(payment.interestAmount) || 0);
         document.getElementById("paymentAdjustNotes").value = editingEntry
             ? String(editedEntry.notes || "") : (registerPayment ? "" : String(payment.notes || ""));
+
+        var agreementFields = document.getElementById("paymentAgreementFields");
+        var agreementToggle = document.getElementById("paymentAdjustAgreement");
+        var agreementDueLabel = document.getElementById("paymentAdjustAgreementDueLabel");
+        var agreementDueInput = document.getElementById("paymentAdjustAgreementDueDate");
+        agreementFields.hidden = !registerPayment;
+        agreementToggle.checked = registerPayment && isValidDateValue(savedPayment && savedPayment.balanceDueDate);
+        agreementDueInput.value = agreementToggle.checked ? savedPayment.balanceDueDate : "";
+        agreementDueLabel.hidden = !agreementToggle.checked;
 
         var summary = document.getElementById("paymentAdjustSummary");
         summary.hidden = !registerPayment;
@@ -9564,6 +9580,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
         var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
         var notes = document.getElementById("paymentAdjustNotes").value.trim();
+        var agreementToggle = document.getElementById("paymentAdjustAgreement");
+        var agreementDueInput = document.getElementById("paymentAdjustAgreementDueDate");
+        var agreementDueDate = agreementToggle && agreementToggle.checked
+            ? agreementDueInput.value
+            : "";
         if (!dateValue || !Number.isFinite(rent) || rent < 0 || fine < 0 || interest < 0) {
             notifyUser("Informe a data e valores válidos, sem números negativos.");
             return;
@@ -9630,11 +9651,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             else entries.push(entry);
 
             var willSettle = receivedOther + rent + 0.009 >= due;
+            if (!willSettle && agreementToggle && agreementToggle.checked) {
+                if (!isValidDateValue(agreementDueDate) || agreementDueDate < dateValue) {
+                    notifyUser("Informe um novo vencimento igual ou posterior à data desta baixa.");
+                    agreementDueInput.focus();
+                    return;
+                }
+            } else if (willSettle) {
+                agreementDueDate = "";
+            }
             var action = editingEntry
                 ? "Correção de baixa parcial"
                 : (willSettle ? "Quitação de pagamento" : "Pagamento parcial");
             createVersionedBackup(action, paymentAdjustContext.key);
-            var preview = applyPartialPaymentEntries(activeUnit, paymentAdjustContext.month, paymentAdjustContext.key, entries);
+            var preview = applyPartialPaymentEntries(activeUnit, paymentAdjustContext.month, paymentAdjustContext.key, entries, agreementDueDate || existing.balanceDueDate);
             recordOperation(editingEntry ? "Baixa parcial corrigida" :
                 (preview.settled ? "Pagamento quitado" : "Pagamento parcial registrado"), paymentAdjustContext.key);
             paymentAdjustContext = null;
