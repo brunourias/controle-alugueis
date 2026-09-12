@@ -9237,10 +9237,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
              */
             var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
             history.forEach(function (contract) {
-                // A grade exibe uma única parcela por unidade e competência.
-                // Se o contrato atual já cobre o mês, o histórico não pode
-                // acrescentar um segundo recebimento ou atraso no mesmo rodapé.
-                if (!contract || active) return;
+                // Contratos distintos podem gerar duas parcelas legítimas na
+                // mesma competência (fim de um contrato e início de outro).
+                // O vínculo histórico do pagamento preserva ambos os recebimentos.
+                if (!contract) return;
                 var contractStartYm = contract.startYm || contractMonthValue(contract.startDate);
                 var contractEndYm = contract.endYm || contractMonthValue(contract.endDate);
                 if (!isValidStartYm(contractStartYm) || !isValidStartYm(contractEndYm) ||
