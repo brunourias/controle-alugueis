@@ -9237,7 +9237,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
              */
             var history = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
             history.forEach(function (contract) {
-                if (!contract) return;
+                // A grade exibe uma única parcela por unidade e competência.
+                // Se o contrato atual já cobre o mês, o histórico não pode
+                // acrescentar um segundo recebimento ou atraso no mesmo rodapé.
+                if (!contract || active) return;
                 var contractStartYm = contract.startYm || contractMonthValue(contract.startDate);
                 var contractEndYm = contract.endYm || contractMonthValue(contract.endDate);
                 if (!isValidStartYm(contractStartYm) || !isValidStartYm(contractEndYm) ||
