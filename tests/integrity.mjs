@@ -176,3 +176,6 @@ assert.match(app, /toggleExpensesButton\.hidden = true;[\s\S]*?expensesList\.hid
 assert.match(app, /detail\.hidden = false;[\s\S]*?toggle\.hidden = true;/, "Conferência do IR deve permanecer aberta");
 assert.match(app, /lateReport\.hidden = false;/, "Atrasos da visão geral devem permanecer visíveis");
 assert.doesNotMatch(app, /id="toggleActionCenter"[^>]*>Ocultar/, "Cobranças não devem renderizar botão Ocultar");
+
+assert.match(css, /expense-month:not\(\.is-current-expense-month\) \.expense-month-header/, "Meses anteriores devem usar cartões próprios no celular");
+assert.match(css, /grid-template-columns: minmax\(0, 1fr\) auto 30px;/, "Lançamentos do mês atual devem ter colunas legíveis no celular");
