@@ -3610,8 +3610,9 @@ var historyRent = document.getElementById("historyRent");
         }
 
         var candidate = candidateFor(start.getFullYear(), start.getMonth());
-        if (candidate < start) candidate = candidateFor(start.getFullYear(), start.getMonth() + 1);
-        return candidate;
+        // A primeira parcela nunca vence antes do início e também não é
+        // empurrada para o mês seguinte, o que duplicaria o vencimento.
+        return candidate < start ? start : candidate;
     }
 
     function dueDateFor(unit, month) {
