@@ -4848,6 +4848,7 @@ var historyRent = document.getElementById("historyRent");
 
                     var status = displayStatus(unit, i);
                     var partial = partialPaymentInfo(unit, i);
+                    var hasBalanceAgreement = !!(partial && isValidDateValue(partial.balanceDueDate));
 
                     var icon = partial
                             ? "◐"
@@ -4860,7 +4861,7 @@ var historyRent = document.getElementById("historyRent");
 
                     var label =
                         partial
-                            ? "Parcial"
+                            ? (hasBalanceAgreement ? "Acordo" : "Parcial")
                             : status === "pago-atrasado"
                             ? "Pago (atraso)"
                             : status === "pago"
@@ -4893,7 +4894,10 @@ var historyRent = document.getElementById("historyRent");
 
                     var statusAmount = partial
                         ? '<span class="status-amount">Recebido ' + money(partial.received) +
-                          '</span><span class="status-balance">Falta ' + money(partial.balance) + '</span>'
+                          '</span><span class="status-balance">Falta ' + money(partial.balance) + '</span>' +
+                          (hasBalanceAgreement
+                              ? '<span class="status-days">Saldo vence ' + escapeHtml(formatTimelineDate(partial.balanceDueDate)) + '</span>'
+                              : '')
                         : amount === null
                             ? ""
                             : '<span class="status-amount">' + money(amount) + "</span>";
