@@ -179,3 +179,7 @@ assert.doesNotMatch(app, /id="toggleActionCenter"[^>]*>Ocultar/, "Cobranças nã
 
 assert.match(styles, /expense-month:not\(\.is-current-expense-month\) \.expense-month-header/, "Meses anteriores devem usar cartões próprios no celular");
 assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) auto 30px;/, "Lançamentos do mês atual devem ter colunas legíveis no celular");
+
+assert.doesNotMatch(app, /Últimos lançamentos/, "Gastos não devem repetir o mês atual em uma prévia");
+assert.match(app, /expensesPreview\.hidden = true;/, "A prévia redundante de gastos deve permanecer oculta");
+assert.match(app, /if \(!yearExpenses\.length\)[\s\S]{0,100}expensesPreview\.hidden = false;/, "O estado vazio de gastos deve continuar visível");
