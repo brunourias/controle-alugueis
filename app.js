@@ -9253,10 +9253,15 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 var paidBeforeNewContract = activeStartDate && historicPaymentDate &&
                     !isNaN(historicPaymentDate.getTime()) &&
                     historicPaymentDate < activeStartDate;
-                var historicPaid = ledgerStatus === "paid" ||
-                    (payment && payment.historicContractId === contract.id) ||
+                // Um marcador genérico de pagamento não deve reabrir a
+                // competência de um contrato anterior quando já existe contrato
+                // ativo no mesmo mês. Só atribuímos o recebimento ao histórico
+                // durante sobreposição se o próprio pagamento o identificar ou
+                // se ele ocorreu antes do início do novo contrato.
+                var historicPaid = (payment && payment.historicContractId === contract.id) ||
                     paidBeforeNewContract ||
-                    (!active && paymentIsConfirmedForTotals(unit, key, payment));
+                    (!active && (ledgerStatus === "paid" ||
+                        paymentIsConfirmedForTotals(unit, key, payment)));
 
                 if (ledgerStatus === true || ledgerStatus === "open") {
                     addOpenLate(historicRent);
