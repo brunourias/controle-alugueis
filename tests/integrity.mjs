@@ -183,3 +183,7 @@ assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) auto 30px;/, "Lan�
 assert.doesNotMatch(app, /Últimos lançamentos/, "Gastos não devem repetir o mês atual em uma prévia");
 assert.match(app, /expensesPreview\.hidden = true;/, "A prévia redundante de gastos deve permanecer oculta");
 assert.match(app, /if \(!yearExpenses\.length\)[\s\S]{0,100}expensesPreview\.hidden = false;/, "O estado vazio de gastos deve continuar visível");
+
+assert.match(app, /function paidLateOccurrenceIsValid\(/, "Contador de atrasos deve revalidar ocorrências históricas");
+assert.match(app, /history\[key\] === true && paidLateOccurrenceIsValid\(unit, y, m\)/, "Marcador antigo não pode criar atraso sem validar o pagamento");
+assert.match(app, /new Date\(paid\.getFullYear\(\), paid\.getMonth\(\), paid\.getDate\(\)\)\.getTime\(\)/, "Recorrência deve comparar somente o dia civil do pagamento");
