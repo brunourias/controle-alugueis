@@ -3811,6 +3811,37 @@ var historyRent = document.getElementById("historyRent");
         return digits ? "https://wa.me/" + digits : "";
     }
 
+    function paidLateOccurrenceIsValid(unit, year, month) {
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        if (!unit.paidLate || unit.paidLate[key] !== true) return false;
+
+        var payment = getPaymentRecord(unit, year, month);
+        if (!payment) return true;
+
+        var due = null;
+        var firstDueDate = firstContractDueDate(unit);
+        if (firstDueDate && key === unit.startYm) {
+            due = firstDueDate;
+        } else {
+            var dueDay = Number(unit.dueDay);
+            if (Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31) {
+                due = new Date(year, month, Math.min(dueDay, new Date(year, month + 1, 0).getDate()));
+            }
+        }
+
+        var entries = Array.isArray(payment.partialPayments) && payment.partialPayments.length
+            ? payment.partialPayments
+            : [payment];
+
+        return entries.some(function (entry) {
+            if (Number(entry && entry.fineAmount) > 0 || Number(entry && entry.interestAmount) > 0) return true;
+            var paid = entry && entry.paidAt ? new Date(entry.paidAt) : null;
+            if (!due || !paid || isNaN(paid.getTime())) return false;
+            return new Date(paid.getFullYear(), paid.getMonth(), paid.getDate()).getTime() >
+                new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+        });
+    }
+
     function lateOccurrencesLast12Months(unit, referenceYear, referenceMonth) {
         if (!unit) return 0;
 
@@ -3825,7 +3856,7 @@ var historyRent = document.getElementById("historyRent");
             if (m < 0) { m += 12; y -= 1; }
             var key = String(y) + "-" + String(m + 1).padStart(2, "0");
 
-            if (history[key] === true) {
+            if (history[key] === true && paidLateOccurrenceIsValid(unit, y, m)) {
                 count += 1;
                 continue;
             }
