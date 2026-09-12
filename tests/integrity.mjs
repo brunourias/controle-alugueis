@@ -197,3 +197,5 @@ assert.match(app, /delete historicUnit\.lateLedger\[historicPaymentAdjustContext
 assert.match(app, /statuses\[key\] === "atrasado" \|\|[\s\S]{0,80}y === selectedYear/, "Contador de 12 meses deve incluir atrasos persistidos de outro ano");
 assert.match(app, /latestInterestSettlementDate/, "Juros só devem reiniciar após encargos efetivamente recebidos");
 assert.match(app, /hasBalanceAgreement \? "Acordo" : "Parcial"/, "Parcela negociada deve exibir o estado Acordo");
+
+assert.match(app, /agreementToggle && agreementToggle\.checked \? agreementDueDate : ""/, "Desmarcar o acordo deve remover o vencimento específico");
