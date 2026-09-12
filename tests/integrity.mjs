@@ -104,7 +104,7 @@ assert.match(index, /id="paymentAdjustPolicy"/, "A política de encargos após b
 
 assert.match(app, /function editPartialPayment\(/, "Baixas parciais devem permitir correção");
 assert.match(app, /function deletePartialPayment\(/, "Baixas parciais devem permitir exclusão");
-assert.match(app, /applyPartialPaymentEntries\(unit, month, key, entries\)/, "Excluir uma baixa deve recalcular saldo e status");
+assert.match(app, /applyPartialPaymentEntries\(unit, month, key, entries, payment\.balanceDueDate\)/, "Excluir uma baixa deve recalcular saldo, status e preservar o acordo");
 assert.match(app, /mode === "edit-partial"/, "A edição deve atualizar a baixa existente sem criar outra");
 assert.match(app, /data-partial-delete/, "O histórico deve oferecer a ação Excluir");
 
@@ -199,3 +199,7 @@ assert.match(app, /latestInterestSettlementDate/, "Juros só devem reiniciar ap�
 assert.match(app, /hasBalanceAgreement \? "Acordo" : "Parcial"/, "Parcela negociada deve exibir o estado Acordo");
 
 assert.match(app, /agreementToggle && agreementToggle\.checked \? agreementDueDate : ""/, "Desmarcar o acordo deve remover o vencimento específico");
+
+assert.match(app, /function historicalInterestAmount[\s\S]{0,500}return recordedInterestAmount\(payment\);/, "Total juros deve incluir encargos efetivamente recebidos em baixas parciais");
+assert.match(app, /var historicReceivedCounted = false;/, "Total recebido deve impedir duplicidade histórica");
+assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento histórico deve ser somado somente uma vez por competência");
