@@ -5920,13 +5920,16 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
               String(paidDate.getDate()).padStart(2, "0") : "";
 
         document.getElementById("paymentAdjustRentLabel").textContent =
-            registerPayment ? "Valor recebido nesta baixa" : "Valor principal recebido";
-        setMoneyInput(document.getElementById("paymentAdjustRent"), editingEntry
-            ? Number(editedEntry.rentAmount) || 0
-            : (registerPayment ? remaining : Number(payment.rentAmount) || 0));
+            registerPayment ? "Valor total recebido nesta baixa" : "Valor principal recebido";
         var suggestedCharges = registerPayment
             ? lateChargeBreakdown(unit, month, paidDate, editingEntry ? editEntryIndex : undefined)
             : null;
+        setMoneyInput(document.getElementById("paymentAdjustRent"), editingEntry
+            ? Number(editedEntry.rentAmount) + Number(editedEntry.fineAmount || 0) + Number(editedEntry.interestAmount || 0)
+            : (registerPayment
+                ? remaining + Number(suggestedCharges && suggestedCharges.fineAmount || 0) +
+                    Number(suggestedCharges && suggestedCharges.interestAmount || 0)
+                : Number(payment.rentAmount) || 0));
         setMoneyInput(document.getElementById("paymentAdjustFine"), registerPayment
             ? Number(suggestedCharges && suggestedCharges.fineAmount) || 0
             : Number(payment.fineAmount) || 0);
@@ -9575,8 +9578,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var output = document.getElementById("paymentAdjustBalanceAfter");
         if (!output) return;
         var amount = Math.max(0, moneyInputValue(document.getElementById("paymentAdjustRent")) || 0);
+        var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
+        var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
+        var principal = (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")
+            ? Math.max(0, amount - fine - interest) : amount;
         output.textContent = money(Math.max(0,
-            Number(paymentAdjustContext.dueAmount) - Number(paymentAdjustContext.receivedOther) - amount));
+            Number(paymentAdjustContext.dueAmount) - Number(paymentAdjustContext.receivedOther) - principal));
     }
 
     function recalculatePaymentCharges() {
@@ -9597,7 +9604,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var rent = moneyInputValue(document.getElementById("paymentAdjustRent")) || 0;
         var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
         var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
-        setMoneyInput(document.getElementById("paymentAdjustTotal"), rent + fine + interest);
+        setMoneyInput(document.getElementById("paymentAdjustTotal"),
+            paymentAdjustContext && (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")
+                ? rent : rent + fine + interest);
         updatePaymentBalancePreview();
     }
 
@@ -9666,24 +9675,33 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 return sum + (index === entryIndex ? 0 : Math.max(0, Number(item && item.rentAmount) || 0));
             }, 0);
             var available = Math.max(0, due - receivedOther);
-            if (rent <= 0 || rent - available > 0.009) {
-                notifyUser("Informe um valor maior que zero e não superior ao saldo disponível de " + money(available) + ".");
+            var chargeTotal = fine + interest;
+            var principal = Math.max(0, rent - chargeTotal);
+            var maximumTotal = available + chargeTotal;
+            if (rent <= 0 || (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")
+                ? rent - maximumTotal > 0.009
+                : rent - available > 0.009) {
+                notifyUser("Informe um valor maior que zero e não superior ao total devido de " + money(maximumTotal) + ".");
+                return;
+            }
+            if ((paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial") && principal <= 0 && rent < chargeTotal - 0.009) {
+                notifyUser("O valor recebido não cobre os encargos calculados para esta baixa.");
                 return;
             }
 
             var entry = {
                 id: previousEntry && previousEntry.id ? previousEntry.id : "payment-" + Date.now().toString(36),
                 paidAt: paidAt,
-                rentAmount: rent,
+                rentAmount: (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial") ? principal : rent,
                 fineAmount: fine,
                 interestAmount: interest,
-                totalAmount: rent + fine + interest,
+                totalAmount: (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial") ? rent : rent + fine + interest,
                 notes: notes
             };
             if (editingEntry) entries[entryIndex] = entry;
             else entries.push(entry);
 
-            var willSettle = receivedOther + rent + 0.009 >= due;
+            var willSettle = receivedOther + principal + 0.009 >= due;
             if (!willSettle && agreementToggle && agreementToggle.checked) {
                 if (!isValidDateValue(agreementDueDate) || agreementDueDate < dateValue) {
                     notifyUser("Informe um novo vencimento igual ou posterior à data desta baixa.");
