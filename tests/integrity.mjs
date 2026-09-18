@@ -206,4 +206,5 @@ assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento hist
 assert.match(app, /Contratos distintos podem gerar duas parcelas legítimas/, "Contratos distintos da mesma competência devem preservar seus recebimentos");
 assert.match(app, /Valor total recebido nesta baixa/, "Baixa parcial deve receber o valor total pago pelo inquilino");
 assert.match(app, /principal = Math.max\(0, rent - chargeTotal\)/, "Baixa parcial deve separar encargos do principal");
+assert.match(app, /totalReceived: totalReceived/, "Cartão da parcela deve exibir o total efetivamente recebido");
 assert.match(app, /!active && \(ledgerStatus === "paid"/, "Contrato histórico não deve duplicar recebimento do contrato ativo na mesma competência");
