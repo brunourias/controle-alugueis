@@ -4894,7 +4894,7 @@ var historyRent = document.getElementById("historyRent");
                             : null;
 
                     var statusAmount = partial
-                        ? '<span class="status-amount">Recebido ' + money(partial.received) +
+                        ? '<span class="status-amount">Recebido ' + money(partial.totalReceived) +
                           '</span><span class="status-balance">Falta ' + money(partial.balance) + '</span>' +
                           (hasBalanceAgreement
                               ? '<span class="status-days">Saldo vence ' + escapeHtml(formatTimelineDate(partial.balanceDueDate)) + '</span>'
@@ -5753,10 +5753,14 @@ function renderSummary() {
         if (!payment || !Array.isArray(payment.partialPayments) || !payment.partialPayments.length) return null;
         var due = Math.max(0, Number(rentForMonth(unit, selectedYear, month)) || 0);
         var received = Math.min(due, paymentPrincipalReceived(payment));
+        var totalReceived = payment.partialPayments.reduce(function (sum, entry) {
+            return sum + Math.max(0, Number(entry && entry.totalAmount) || Number(entry && entry.rentAmount) || 0);
+        }, 0);
         var balance = Math.max(0, due - received);
         return balance > 0.009 ? {
             due: due,
             received: received,
+            totalReceived: totalReceived,
             balance: balance,
             count: payment.partialPayments.length,
             balanceDueDate: isValidDateValue(payment.balanceDueDate) ? payment.balanceDueDate : ""
