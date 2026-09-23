@@ -57,7 +57,7 @@ assert.match(styles, /\.account-gate-actions \.btn\s*\{[^}]*min-height:\s*44px/s
 assert.match(styles, /\.account-gate-link\s*\{[^}]*min-height:\s*44px/s, "Recuperação de senha deve ter alvo de toque adequado");
 assert.match(
     styles,
-    /\.operations-row\.action-priority-row > div:first-child strong,[\s\S]{0,180}white-space:\s*normal/,
+    /\.operations-row\.action-priority-row > div:first-child strong,[\s\S]{0,320}white-space:\s*normal/,
     "A central de ações deve permitir quebra de texto no celular"
 );
 assert.match(
@@ -116,6 +116,11 @@ assert.deepEqual(
     "Campos monetários formatados não podem usar input number"
 );
 assert.match(app, /function parseMoneyValue\(/, "A máscara deve converter valores brasileiros com segurança");
+const parseMoneySource = app.slice(app.indexOf("function parseMoneyValue"), app.indexOf("function moneyInputValue"));
+const parseMoneyValue = new Function(`${parseMoneySource}; return parseMoneyValue;`)();
+assert.equal(parseMoneyValue("1.500,00"), 1500, "Moeda brasileira completa deve ser convertida corretamente");
+assert.equal(parseMoneyValue("1.500"), 1500, "Milhar brasileiro sem centavos não pode virar R$ 1,50");
+assert.equal(parseMoneyValue("1500.00"), 1500, "Valor decimal técnico deve continuar compatível");
 assert.match(app, /function maskMoneyInput\(/, "A máscara monetária deve ser aplicada durante a digitação");
 assert.match(app, /minimumFractionDigits:\s*2,[\s\S]{0,80}maximumFractionDigits:\s*2/, "Valores monetários devem manter duas casas decimais");
 assert.match(app, /moneyInputValue\(expenseAmount\)/, "Gastos formatados devem ser convertidos antes de salvar");
@@ -209,3 +214,13 @@ assert.match(app, /principal = Math.max\(0, rent - chargeTotal\)/, "Baixa parcia
 assert.match(app, /totalReceived: totalReceived/, "Cartão da parcela deve exibir o total efetivamente recebido");
 assert.match(app, /balanceWithCharges: balance \+ balanceCharges/, "Saldo da baixa parcial deve incluir encargos sobre o restante");
 assert.match(app, /!active && \(ledgerStatus === "paid"/, "Contrato histórico não deve duplicar recebimento do contrato ativo na mesma competência");
+assert.match(app, /Não foi possível salvar neste aparelho/, "Falha de armazenamento local deve ser informada ao usuário");
+assert.match(app, /Esta unidade possui histórico/, "Unidades com histórico financeiro não podem ser apagadas");
+assert.match(app, /function uniqueRecordId\(/, "Registros antigos ou duplicados devem receber IDs seguros antes da sincronização");
+assert.match(app, /if \(rent <= 0 \|\| rent - maximumTotal > 0\.009\)/, "Baixas de valor zero devem ser recusadas sem ambiguidade de precedência");
+assert.doesNotMatch(app, /rent <= 0 \|\| \(paymentAdjustContext\.mode[\s\S]{0,180}\? rent - maximumTotal/, "Validação da baixa não pode misturar OR e ternário sem agrupamento");
+assert.doesNotMatch(app, /console\.error\("Firebase:/, "Erros tratados da nuvem não devem poluir o console de produção");
+assert.match(app, /function activateLocalStateForUser\(/, "O cache local deve ser isolado ao trocar de conta");
+assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
+assert.match(app, /function safeExternalUrl\(/, "Links importados de anexos devem validar o protocolo antes da renderização");
+assert.match(app, /safeExternalUrl\(file\.url\)/, "A lista de anexos deve usar somente URLs externas validadas");

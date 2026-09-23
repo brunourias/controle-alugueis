@@ -168,6 +168,7 @@ document.addEventListener("click", function (event) {
 }, true);
 
     var STORAGE_KEY = "controle-alugueis-v1";
+    var LOCAL_STATE_OWNER_KEY = "controle-alugueis-local-owner";
     var LOCK_STORAGE_KEY = "controle-alugueis-lock";
     var SETUP_FLAG_KEY = "controle-alugueis-lock-setup";
     var OFFLINE_ACCESS_KEY = "controle-alugueis-offline-access";
@@ -497,6 +498,20 @@ var historyRent = document.getElementById("historyRent");
         );
     }
 
+    function uniqueRecordId(value, usedIds, prefix) {
+        var candidate = typeof value === "string" ? value.trim() : "";
+        // IDs viram identificadores de documentos no Firestore. Barras criariam
+        // caminhos inválidos e chaves especiais não devem chegar aos mapas internos.
+        candidate = candidate.replace(/[\\/]/g, "-");
+        if (!candidate || candidate === "__proto__" || candidate === "constructor" || usedIds[candidate]) {
+            do {
+                candidate = String(prefix || "item") + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+            } while (usedIds[candidate]);
+        }
+        usedIds[candidate] = true;
+        return candidate;
+    }
+
     function normalizeEmpreendimentos(empreendimentos) {
         var result = [];
         var ids = [];
@@ -548,15 +563,22 @@ var historyRent = document.getElementById("historyRent");
                   );
               })
             : [];
+        var unitIds = Object.create(null);
         saved.units.forEach(function (unit) {
             normalizeUnit(unit);
+            unit.id = uniqueRecordId(unit.id, unitIds, "unit");
+            unit.name = typeof unit.name === "string" && unit.name.trim()
+                ? unit.name.trim().slice(0, 120)
+                : "Unidade sem nome";
             if (validIds.indexOf(unit.empreendimentoId) < 0)
                 unit.empreendimentoId = validIds[0];
         });
         saved.settings = normalizeSettings(saved.settings);
         saved.expenseCategories = normalizeCategories(saved.expenseCategories);
         saved.expenses = normalizeExpenses(saved.expenses);
+        var expenseIds = Object.create(null);
         saved.expenses.forEach(function (expense) {
+            expense.id = uniqueRecordId(expense.id, expenseIds, "expense");
             if (validIds.indexOf(expense.empreendimentoId) < 0)
                 expense.empreendimentoId = validIds[0];
         });
@@ -585,6 +607,10 @@ var historyRent = document.getElementById("historyRent");
                 createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString(),
                 updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : (typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString())
             }; }) : [];
+        var energyIds = Object.create(null);
+        saved.energyAllocations.forEach(function (allocation) {
+            allocation.id = uniqueRecordId(allocation.id, energyIds, "energy");
+        });
         saved.tasks = Array.isArray(saved.tasks) ? saved.tasks.filter(function (task) {
             return task && typeof task === "object" && typeof task.title === "string";
         }).map(function (task) {
@@ -593,6 +619,10 @@ var historyRent = document.getElementById("historyRent");
                 dueDate: isValidDateValue(task.dueDate) ? task.dueDate : "", done: task.done === true,
                 createdAt: typeof task.createdAt === "string" ? task.createdAt : new Date().toISOString() };
         }) : [];
+        var taskIds = Object.create(null);
+        saved.tasks.forEach(function (task) {
+            task.id = uniqueRecordId(task.id, taskIds, "task");
+        });
         saved.renewalDecisions = saved.renewalDecisions && typeof saved.renewalDecisions === "object" ? saved.renewalDecisions : {};
         return saved;
     }
@@ -712,13 +742,15 @@ var historyRent = document.getElementById("historyRent");
             finePercent:
                 settings &&
                 Number.isFinite(Number(settings.finePercent)) &&
-                Number(settings.finePercent) >= 0
+                Number(settings.finePercent) >= 0 &&
+                Number(settings.finePercent) <= 100
                     ? Number(settings.finePercent)
                     : DEFAULT_SETTINGS.finePercent,
             dailyInterestPercent:
                 settings &&
                 Number.isFinite(Number(settings.dailyInterestPercent)) &&
-                Number(settings.dailyInterestPercent) >= 0
+                Number(settings.dailyInterestPercent) >= 0 &&
+                Number(settings.dailyInterestPercent) <= 100
                     ? (Number(settings.dailyInterestPercent) === 0.3
                         ? DEFAULT_SETTINGS.dailyInterestPercent
                         : Number(settings.dailyInterestPercent))
@@ -975,14 +1007,23 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function loadState() {
+        var rawState = null;
         try {
-            var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+            rawState = localStorage.getItem(STORAGE_KEY);
+            var saved = JSON.parse(rawState || "null");
 
             if (saved && typeof saved === "object" && !Array.isArray(saved)) {
                 return normalizeState(saved);
             }
         } catch (error) {
-            // Usa um estado limpo quando o armazenamento estiver inválido
+            // Preserva uma cópia recuperável antes de abrir um estado limpo.
+            if (rawState) {
+                try {
+                    localStorage.setItem(STORAGE_KEY + "-corrompido-" + Date.now(), rawState);
+                } catch (backupError) {
+                    // O armazenamento pode estar cheio; a inicialização ainda deve continuar.
+                }
+            }
         }
 
         return normalizeState({
@@ -992,6 +1033,52 @@ var historyRent = document.getElementById("historyRent");
             expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(),
             expenses: [],
         });
+    }
+
+    function userStateStorageKey(uid) {
+        return STORAGE_KEY + "-user-" + String(uid || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+    }
+
+    function activateLocalStateForUser(user) {
+        if (!user || !user.uid) return;
+        var uid = String(user.uid);
+        var previousOwner = localStorage.getItem(LOCAL_STATE_OWNER_KEY) || "";
+        try {
+            if (!previousOwner) {
+                // Primeira execução após a migração: associa o cache existente
+                // à conta autenticada sem apagar dados que já estavam no aparelho.
+                localStorage.setItem(LOCAL_STATE_OWNER_KEY, uid);
+                localStorage.setItem(userStateStorageKey(uid), JSON.stringify(state));
+                return;
+            }
+            if (previousOwner === uid) return;
+
+            // Preserva o cache da conta anterior e abre somente o cache da conta atual.
+            localStorage.setItem(userStateStorageKey(previousOwner), JSON.stringify(state));
+            var ownRaw = localStorage.getItem(userStateStorageKey(uid));
+            state = ownRaw
+                ? normalizeState(JSON.parse(ownRaw))
+                : normalizeState({
+                    units: [], empreendimentos: [], settings: DEFAULT_SETTINGS,
+                    expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(), expenses: []
+                });
+            expenseCategories = state.expenseCategories;
+            localStorage.setItem(LOCAL_STATE_OWNER_KEY, uid);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            selectedEmpreendimentoId = loadSelectedEmpreendimento();
+        } catch (error) {
+            showSaveFeedback("Não foi possível separar os dados locais desta conta. A sincronização foi interrompida por segurança.", "error");
+            throw error;
+        }
+    }
+
+    function writeLocalStateSnapshot(value) {
+        var serialized = JSON.stringify(value);
+        localStorage.setItem(STORAGE_KEY, serialized);
+        if (firebaseUser && firebaseUser.uid) {
+            localStorage.setItem(LOCAL_STATE_OWNER_KEY, firebaseUser.uid);
+            localStorage.setItem(userStateStorageKey(firebaseUser.uid), serialized);
+        }
     }
 
     function rememberOfflineAccess(user) {
@@ -1023,9 +1110,19 @@ var historyRent = document.getElementById("historyRent");
             return;
         }
         state.lastUpdatedAt = Date.now();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        showSaveFeedback(firebaseUser ? "Salvo neste aparelho · sincronizando…" : "Salvo neste aparelho", "saving");
+        var savedLocally = false;
+        try {
+            writeLocalStateSnapshot(state);
+            savedLocally = true;
+        } catch (error) {
+            showSaveFeedback("Não foi possível salvar neste aparelho. Exporte um backup e libere espaço.", "error");
+            setSyncStatus(firebaseUser ? "Falha local — tentando salvar na nuvem" : "Alterações ainda não salvas");
+        }
+        if (savedLocally) {
+            showSaveFeedback(firebaseUser ? "Salvo neste aparelho · sincronizando…" : "Salvo neste aparelho", "saving");
+        }
         if (!cloudApplyingRemote) scheduleCloudWrite();
+        return savedLocally;
     }
 
     function setCloudError(message) {
@@ -1069,10 +1166,6 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function cloudErrorMessage(error) {
-        console.error("Firebase:", error);
-        console.error("Código:", error && error.code);
-        console.error("Mensagem:", error && error.message);
-
         var code = error && error.code ? error.code : "";
 
         if (code === "auth/invalid-email") return "Informe um e-mail válido.";
@@ -1085,6 +1178,9 @@ var historyRent = document.getElementById("historyRent");
 
         if (code === "auth/operation-not-allowed")
             return "O login por e-mail e senha ainda não está habilitado no Firebase.";
+
+        if (code === "auth/unauthorized-domain")
+            return "Este endereço ainda não está autorizado para login. Use o endereço oficial do aplicativo.";
 
         if (code === "auth/too-many-requests")
             return "Muitas tentativas foram feitas neste aparelho. Aguarde alguns minutos antes de tentar novamente.";
@@ -2533,6 +2629,19 @@ var historyRent = document.getElementById("historyRent");
 
     function handleCloudAuthState(user) {
         firebaseUser = user;
+        if (user) {
+            try {
+                activateLocalStateForUser(user);
+            } catch (storageError) {
+                firebaseUser = null;
+                setAccountGate(true, {
+                    title: "Dados locais indisponíveis",
+                    message: "Libere espaço neste aparelho e tente entrar novamente.",
+                    pending: false
+                });
+                return;
+            }
+        }
         var resumeAfterUpdate = canResumePwaUpdate(user);
 
         setCloudError("");
@@ -3461,10 +3570,17 @@ var historyRent = document.getElementById("historyRent");
 
     function parseMoneyValue(value) {
         if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
-        var text = String(value == null ? "" : value).trim();
+        var text = String(value == null ? "" : value).trim().replace(/\s/g, "").replace(/R\$/gi, "");
         if (!text) return NaN;
-        if (text.indexOf(",") >= 0) text = text.replace(/\./g, "").replace(",", ".");
-        else text = text.replace(/[^0-9.-]/g, "");
+        text = text.replace(/[^0-9,.-]/g, "");
+        if (text.indexOf(",") >= 0) {
+            text = text.replace(/\./g, "").replace(",", ".");
+        } else {
+            var dotParts = text.replace(/^-/, "").split(".");
+            if (dotParts.length > 2 || (dotParts.length === 2 && dotParts[1].length === 3)) {
+                text = text.replace(/\./g, "");
+            }
+        }
         var parsed = Number(text);
         return Number.isFinite(parsed) ? parsed : NaN;
     }
@@ -6048,7 +6164,10 @@ document
         if (!attachmentList) return;
         var files = unit && Array.isArray(unit.attachments) ? unit.attachments : [];
         attachmentList.innerHTML = files.length ? files.map(function (file) {
-            return '<a class="attachment-row" href="' + escapeHtml(file.url) + '" target="_blank" rel="noopener noreferrer">📎 ' + escapeHtml(file.name) + '<span>' + escapeHtml(formatTimelineDate(String(file.createdAt || "").slice(0,10))) + '</span></a>';
+            var safeUrl = safeExternalUrl(file.url);
+            return safeUrl
+                ? '<a class="attachment-row" href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer">📎 ' + escapeHtml(file.name) + '<span>' + escapeHtml(formatTimelineDate(String(file.createdAt || "").slice(0,10))) + '</span></a>'
+                : '<div class="attachment-row" aria-disabled="true">📎 ' + escapeHtml(file.name) + '<span>Link inválido</span></div>';
         }).join("") : '<p class="rent-changes-empty">Nenhum documento anexado.</p>';
     }
 
@@ -6916,17 +7035,17 @@ function saveExpense() {
         var reminder = Number(reminderDays.value);
         var followUp = Number(overdueFollowUpDays.value);
         var adjustment = Number(defaultAdjustmentPercent.value);
-        if (!Number.isFinite(fine) || fine < 0) {
+        if (!Number.isFinite(fine) || fine < 0 || fine > 100) {
             finePercent.setCustomValidity(
-                "Informe um percentual válido igual ou maior que zero."
+                "Informe um percentual entre 0 e 100%."
             );
             finePercent.reportValidity();
             finePercent.focus();
             return;
         }
-        if (!Number.isFinite(interest) || interest < 0) {
+        if (!Number.isFinite(interest) || interest < 0 || interest > 100) {
             dailyInterestPercent.setCustomValidity(
-                "Informe um percentual válido igual ou maior que zero."
+                "Informe um percentual mensal entre 0 e 100%."
             );
             dailyInterestPercent.reportValidity();
             dailyInterestPercent.focus();
@@ -7236,6 +7355,15 @@ function saveExpense() {
                 "'": "&#039;",
             }[character];
         });
+    }
+
+    function safeExternalUrl(value) {
+        try {
+            var parsed = new URL(String(value || ""), window.location.href);
+            return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : "";
+        } catch (error) {
+            return "";
+        }
     }
 
     function formatDate(value) {
@@ -9690,9 +9818,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var chargeTotal = fine + interest;
             var principal = Math.max(0, rent - chargeTotal);
             var maximumTotal = available + chargeTotal;
-            if (rent <= 0 || (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")
-                ? rent - maximumTotal > 0.009
-                : rent - available > 0.009) {
+            if (rent <= 0 || rent - maximumTotal > 0.009) {
                 notifyUser("Informe um valor maior que zero e não superior ao total devido de " + money(maximumTotal) + ".");
                 return;
             }
@@ -9916,8 +10042,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function deleteUnitNow() {
         if (!requireWorkspacePermission("manageContracts")) return;
-        if (!editingId || !window.confirm("Excluir esta unidade e seus registros?")) return;
+        if (!editingId) return;
         var unit = state.units.find(function (item) { return item.id === editingId; });
+        var hasHistory = !!(unit && (
+            (unit.contractHistory && unit.contractHistory.length) ||
+            (unit.paymentHistory && Object.keys(unit.paymentHistory).length) ||
+            (unit.lateLedger && Object.keys(unit.lateLedger).length) ||
+            (unit.chargeLog && unit.chargeLog.length) ||
+            (unit.attachments && unit.attachments.length)
+        ));
+        if (hasHistory) {
+            notifyUser("Esta unidade possui histórico. Encerre o contrato e mantenha o cadastro para preservar pagamentos e recibos.", "error");
+            return;
+        }
+        if (!window.confirm("Excluir esta unidade sem histórico?")) return;
         createVersionedBackup("Exclusão de unidade", unit ? unit.name : "");
         recordOperation("Unidade excluída", unit ? unit.name : "");
         state.units = state.units.filter(function (item) { return item.id !== editingId; });
@@ -10230,7 +10368,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function applyRemoteState(payload) {
         cloudApplyingRemote = true;
         state = normalizeState(payload); expenseCategories = state.expenseCategories;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        writeLocalStateSnapshot(state);
         cloudGranularBaseline = granularSnapshot(state);
         renderEmpreendimentoFilter(); render();
         cloudApplyingRemote = false;
@@ -10315,7 +10453,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                     empreendimentos: state.empreendimentos,
                     energyAllocations: mergedEnergy
                 }).energyAllocations;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                writeLocalStateSnapshot(state);
                 render();
                 return migrateSeparatedFinancialDataIfNeeded().then(function () {
                     finishCloudReconciliation();
@@ -10393,9 +10531,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return migrateSeparatedFinancialDataIfNeeded().then(function () {
                 saveWorkspaceSelection();
                 subscribeCloud();
+                setSyncStatus("Sincronizado");
+                renderWorkspaceControls();
             });
-            setSyncStatus("Sincronizado");
-            renderWorkspaceControls();
         });
     }
 
