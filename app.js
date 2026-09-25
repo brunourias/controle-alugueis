@@ -138,11 +138,9 @@ const ModalManager = (() => {
         // O Resumo do Ano possui seu próprio manipulador logo abaixo.
         if (annualReport && annualReport.style.display !== "none") return;
 
-        if (event.state && event.state.controleAlugueisRoot) {
-            window.setTimeout(function () {
-                if (!getOpenModal()) history.back();
-            }, 0);
-        }
+        // Sem conteúdo sobreposto, a restauração da tela interna é tratada
+        // pelo histórico de navegação móvel. Na raiz, o próximo Voltar pode
+        // sair normalmente do aplicativo.
     });
 
     return {
@@ -4355,6 +4353,10 @@ var historyRent = document.getElementById("historyRent");
 
     function closeMobileShortcut() {
         if (!isMobileNavigation()) return;
+        if (history.state && history.state.controleAlugueisNavigation) {
+            history.back();
+            return;
+        }
         mobileLauncherActive = true;
         activeMobileShortcut = "";
         activeAppView = "home";
@@ -4364,12 +4366,60 @@ var historyRent = document.getElementById("historyRent");
         scrollPageToTop();
     }
 
-    function showAppView(view) {
+    function mobileNavigationState() {
+        return {
+            controleAlugueisNavigation: true,
+            appView: activeAppView,
+            mobileShortcut: activeMobileShortcut,
+            mobileLauncher: mobileLauncherActive,
+            actionCenterExpanded: actionCenterExpanded === true
+        };
+    }
+
+    function pushMobileNavigationState() {
+        if (!isMobileNavigation()) return;
+        var next = mobileNavigationState();
+        var current = history.state || {};
+        if (current.controleAlugueisNavigation &&
+            current.appView === next.appView &&
+            current.mobileShortcut === next.mobileShortcut &&
+            current.mobileLauncher === next.mobileLauncher &&
+            current.actionCenterExpanded === next.actionCenterExpanded) return;
+        history.pushState(next, "");
+    }
+
+    function restoreMobileNavigationState(saved) {
+        if (!isMobileNavigation() || ModalManager.getOpenModal()) return;
+        saved = saved || {};
+        if (saved.controleAlugueisNavigation) {
+            activeAppView = ["home", "overview", "units", "financial", "reports", "tax"]
+                .indexOf(saved.appView) >= 0 ? saved.appView : "home";
+            activeMobileShortcut = typeof saved.mobileShortcut === "string"
+                ? saved.mobileShortcut : "";
+            mobileLauncherActive = saved.mobileLauncher === true;
+            actionCenterExpanded = saved.actionCenterExpanded === true;
+        } else {
+            activeAppView = "home";
+            activeMobileShortcut = "";
+            mobileLauncherActive = true;
+            actionCenterExpanded = false;
+        }
+        renderAppNavigation();
+        renderActionCenter();
+        scrollPageToTop();
+        if (!mobileLauncherActive && activeAppView === "units") {
+            window.setTimeout(focusCurrentMonthInGrid, 0);
+        }
+    }
+
+    function showAppView(view, options) {
+        options = options || {};
         collapseRetractablePanels();
         activeAppView = view;
         if (isMobileNavigation()) {
             mobileLauncherActive = false;
             renderAppNavigation();
+            if (!options.fromHistory) pushMobileNavigationState();
             window.setTimeout(function () {
                 var panel = document.querySelector('[data-app-view-panel="' + view + '"]');
                 if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -4380,6 +4430,14 @@ var historyRent = document.getElementById("historyRent");
         renderAppNavigation();
         scrollPageToTop();
     }
+
+    window.addEventListener("popstate", function (event) {
+        // Os manipuladores de modal fecham primeiro o conteúdo sobreposto.
+        // Depois disso, o estado subjacente pode ser reaplicado com segurança.
+        window.setTimeout(function () {
+            if (!ModalManager.getOpenModal()) restoreMobileNavigationState(event.state);
+        }, 0);
+    });
 
     function render() {
         if (tableWrap.scrollLeft > 0) lastGridScrollLeft = tableWrap.scrollLeft;

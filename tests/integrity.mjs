@@ -224,3 +224,7 @@ assert.match(app, /function activateLocalStateForUser\(/, "O cache local deve se
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
 assert.match(app, /function safeExternalUrl\(/, "Links importados de anexos devem validar o protocolo antes da renderização");
 assert.match(app, /safeExternalUrl\(file\.url\)/, "A lista de anexos deve usar somente URLs externas validadas");
+assert.match(app, /function pushMobileNavigationState\(/, "Telas móveis devem criar entradas próprias no histórico");
+assert.match(app, /function restoreMobileNavigationState\(/, "Voltar no celular deve restaurar a tela anterior do app");
+assert.match(app, /current\.controleAlugueisNavigation/, "Navegação móvel não deve duplicar o mesmo estado no histórico");
+assert.doesNotMatch(app, /event\.state && event\.state\.controleAlugueisRoot[\s\S]{0,180}history\.back\(\)/, "A raiz não pode forçar um segundo Voltar e fechar o app");
