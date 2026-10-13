@@ -5281,7 +5281,7 @@ var historyRent = document.getElementById("historyRent");
             .join("") +
         "</tr>" +
 
-        '<tr><th scope="row">Juros e multa recebidos</th>' +
+        '<tr><th scope="row">Juros e Multa</th>' +
         renderedMonthIndexes
             .map(function (i) {
                 var totals = scopedUnits().reduce(

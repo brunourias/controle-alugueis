@@ -206,7 +206,7 @@ assert.match(app, /hasBalanceAgreement \? "Acordo" : "Parcial"/, "Parcela negoci
 assert.match(app, /agreementToggle && agreementToggle\.checked \? agreementDueDate : ""/, "Desmarcar o acordo deve remover o vencimento específico");
 
 assert.match(app, /function historicalInterestAmount[\s\S]{0,500}return recordedInterestAmount\(payment\);/, "Total juros deve incluir encargos efetivamente recebidos em baixas parciais");
-assert.match(app, /Juros e multa recebidos/, "Rodapé financeiro deve identificar juros e multa recebidos");
+assert.match(app, /Juros e Multa/, "Rodapé financeiro deve identificar juros e multa");
 assert.match(app, /function historicalFineAmount[\s\S]{0,180}return recordedFineAmount\(payment\);/, "Total de multa deve usar somente o valor efetivamente recebido");
 assert.match(app, /Juros <strong>[\s\S]{0,150}Multa <strong>/, "Cada mês deve exibir juros e multa separadamente");
 assert.match(index, /id="paymentAdjustNoInterest"/, "Baixa deve permitir dispensar juros");
