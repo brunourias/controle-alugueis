@@ -7953,6 +7953,33 @@ input[data-money="true"] {
     background: #eef8f6;
     color: var(--teal-dark);
 }
+.payment-interest-waiver {
+    grid-column: 1 / -1;
+    display: flex !important;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 10px;
+    border: 1px solid #d8e7e4;
+    border-radius: 9px;
+    background: #f8fcfb;
+    cursor: pointer;
+}
+.payment-interest-waiver input {
+    width: auto !important;
+    min-height: 18px;
+    margin-top: 1px;
+    accent-color: var(--teal);
+}
+.payment-interest-waiver span {
+    display: grid;
+    gap: 2px;
+}
+.payment-interest-waiver small {
+    color: var(--muted);
+    font-size: .7rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
 .payment-adjust-summary .is-balance-after {
     border-color: color-mix(in srgb, var(--teal) 42%, var(--line));
     background: color-mix(in srgb, var(--teal) 8%, white);

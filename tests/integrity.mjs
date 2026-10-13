@@ -209,6 +209,10 @@ assert.match(app, /function historicalInterestAmount[\s\S]{0,500}return recorded
 assert.match(app, /Juros e multa recebidos/, "Rodapé financeiro deve identificar juros e multa recebidos");
 assert.match(app, /function historicalFineAmount[\s\S]{0,180}return recordedFineAmount\(payment\);/, "Total de multa deve usar somente o valor efetivamente recebido");
 assert.match(app, /Juros <strong>[\s\S]{0,150}Multa <strong>/, "Cada mês deve exibir juros e multa separadamente");
+assert.match(index, /id="paymentAdjustNoInterest"/, "Baixa deve permitir dispensar juros");
+assert.match(app, /interestWaived: interestWaived/, "Dispensa de juros deve ser persistida no pagamento");
+assert.match(app, /entry\.interestWaived === true/, "Dispensa de juros deve reiniciar a contagem para o saldo remanescente");
+assert.match(app, /data-installment-adjust/, "Pagamento histórico deve poder ser ajustado");
 assert.match(app, /var historicReceivedCounted = false;/, "Total recebido deve impedir duplicidade histórica");
 assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento histórico deve ser somado somente uma vez por competência");
 assert.match(app, /Contratos distintos podem gerar duas parcelas legítimas/, "Contratos distintos da mesma competência devem preservar seus recebimentos");

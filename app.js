@@ -3816,7 +3816,11 @@ var historyRent = document.getElementById("historyRent");
             return Number(entry && entry.fineAmount) > 0;
         });
         var latestInterestSettlementDate = entries.reduce(function (value, entry) {
-            if (Number(entry && entry.interestAmount) <= 0) return value;
+            // Uma dispensa explícita encerra a cobrança de juros até aquela
+            // baixa. A partir dela, juros futuros incidem somente sobre o
+            // saldo remanescente e não cobram novamente o período dispensado.
+            if (Number(entry && entry.interestAmount) <= 0 &&
+                !(entry && entry.interestWaived === true)) return value;
             var candidate = entry && entry.paidAt ? new Date(entry.paidAt) : null;
             if (!candidate || isNaN(candidate.getTime())) return value;
             candidate.setHours(0, 0, 0, 0);
@@ -6018,6 +6022,7 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
             interestAmount: interest,
             chargesAmount: fine + interest,
             totalAmount: total,
+            interestWaived: entries.some(function (item) { return item && item.interestWaived === true; }),
             paidAt: latest.paidAt,
             notes: String(latest.notes || ""),
             partialPayments: entries,
@@ -6120,6 +6125,14 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
         setMoneyInput(document.getElementById("paymentAdjustInterest"), registerPayment
             ? Number(suggestedCharges && suggestedCharges.interestAmount) || 0
             : Number(payment.interestAmount) || 0);
+        var noInterestInput = document.getElementById("paymentAdjustNoInterest");
+        var interestWaived = editingEntry
+            ? editedEntry.interestWaived === true
+            : (!registerPayment && payment.interestWaived === true);
+        noInterestInput.checked = interestWaived;
+        noInterestInput.disabled = false;
+        document.getElementById("paymentAdjustInterest").disabled = interestWaived;
+        if (interestWaived) setMoneyInput(document.getElementById("paymentAdjustInterest"), 0);
         document.getElementById("paymentAdjustNotes").value = editingEntry
             ? String(editedEntry.notes || "") : (registerPayment ? "" : String(payment.notes || ""));
 
@@ -6144,7 +6157,7 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
               money(Math.max(0, due - (editingEntry ? receivedOther : received) -
                   (moneyInputValue(document.getElementById("paymentAdjustRent")) || 0))) +
               "</strong></span>" : "";
-        renderPaymentChargeCalculation(suggestedCharges);
+        renderPaymentChargeCalculation(suggestedCharges, interestWaived);
 
         var history = document.getElementById("paymentAdjustHistory");
         history.hidden = !entries.length;
@@ -6201,6 +6214,41 @@ document
 document
     .getElementById("paymentAdjustInterest")
     .addEventListener("input", updatePaymentAdjustTotal);
+
+document
+    .getElementById("paymentAdjustNoInterest")
+    .addEventListener("change", function (event) {
+        var interestInput = document.getElementById("paymentAdjustInterest");
+        var interestWaived = event.currentTarget.checked;
+        var priorInterest = moneyInputValue(interestInput) || 0;
+        var totalInput = document.getElementById("paymentAdjustRent");
+        var receivedValue = moneyInputValue(totalInput) || 0;
+        if (interestWaived) {
+            /*
+             * Ao abrir uma baixa, o valor sugerido já inclui juros. Se o
+             * operador ainda não o alterou, retiramos esse componente para
+             * que o total sugerido passe a ser principal + multa. Um valor
+             * digitado manualmente nunca é modificado.
+             */
+            var expectedWithInterest = paymentAdjustContext &&
+                (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")
+                ? Math.max(0, Number(paymentAdjustContext.dueAmount) - Number(paymentAdjustContext.receivedOther)) +
+                  (moneyInputValue(document.getElementById("paymentAdjustFine")) || 0) + priorInterest
+                : null;
+            if (expectedWithInterest !== null && Math.abs(receivedValue - expectedWithInterest) < 0.01) {
+                setMoneyInput(totalInput, Math.max(0, receivedValue - priorInterest));
+            }
+            setMoneyInput(interestInput, 0);
+        }
+        interestInput.disabled = interestWaived;
+        if (paymentAdjustContext &&
+            (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")) {
+            recalculatePaymentCharges();
+        } else {
+            renderPaymentChargeCalculation(null, interestWaived);
+            updatePaymentAdjustTotal();
+        }
+    });
 
 document
     .getElementById("savePaymentAdjust")
@@ -9716,7 +9764,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var klass = stateName === "atrasado" ? " is-late" : (stateName.indexOf("pago") === 0 ? " is-paid" : "");
             var action = stateName === "atrasado"
                 ? '<button class="btn btn-primary" type="button" data-installment-settle="' + key + '">Dar baixa</button>'
-                : (stateName.indexOf("pago") === 0 ? '<button class="btn btn-ghost" type="button" data-installment-receipt="' + key + '">Recibo</button>' : "");
+                : (stateName.indexOf("pago") === 0
+                    ? '<button class="btn btn-ghost" type="button" data-installment-receipt="' + key + '">Recibo</button><button class="btn btn-ghost" type="button" data-installment-adjust="' + key + '">Ajustar</button>'
+                    : "");
             return '<div class="contract-installment-row' + klass + '"><div><strong>' + escapeHtml(ymLabel(key)) +
                 '</strong><span>Vencimento: ' + String(contract.dueDay || "—") + ' · ' +
                 escapeHtml(label) + ' · ' + money(Number(contract.rent) || 0) +
@@ -9728,27 +9778,36 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         contractInstallmentsList.querySelectorAll("[data-installment-receipt]").forEach(function (button) {
             button.addEventListener("click", function () { openHistoricInstallmentReceipt(index, button.dataset.installmentReceipt); });
         });
+        contractInstallmentsList.querySelectorAll("[data-installment-adjust]").forEach(function (button) {
+            button.addEventListener("click", function () { openHistoricPaymentAdjust(index, button.dataset.installmentAdjust, true); });
+        });
         ModalManager.open(contractInstallmentsModal);
     }
 
-    function openHistoricPaymentAdjust(index, key) {
+    function openHistoricPaymentAdjust(index, key, editExisting) {
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         var contract = pendingContractHistory[index];
         if (!unit || !contract) return;
-        historicPaymentAdjustContext = { unitId: unit.id, contractIndex: index, contractId: contract.id, key: key };
+        var existingPayment = editExisting ? getPaymentRecord(unit, Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1) : null;
+        historicPaymentAdjustContext = { unitId: unit.id, contractIndex: index, contractId: contract.id, key: key, editExisting: !!existingPayment };
         paymentAdjustContext = null;
-        document.getElementById("paymentAdjustTitle").textContent = "Dar baixa em parcela";
+        document.getElementById("paymentAdjustTitle").textContent = existingPayment ? "Ajustar pagamento" : "Dar baixa em parcela";
         document.getElementById("paymentAdjustInfo").textContent = unit.name + " · " +
             (contract.tenantName || "Contrato encerrado") + " · " + ymLabel(key);
-        document.getElementById("paymentAdjustDate").value = localDateValue(new Date());
-        setMoneyInput(document.getElementById("paymentAdjustRent"), Number(contract.rent) || 0);
-        setMoneyInput(document.getElementById("paymentAdjustFine"), 0);
-        setMoneyInput(document.getElementById("paymentAdjustInterest"), 0);
-        document.getElementById("paymentAdjustNotes").value = "";
+        var historicPaidDate = existingPayment && existingPayment.paidAt ? new Date(existingPayment.paidAt) : new Date();
+        document.getElementById("paymentAdjustDate").value = !isNaN(historicPaidDate.getTime()) ? localDateValue(historicPaidDate) : localDateValue(new Date());
+        setMoneyInput(document.getElementById("paymentAdjustRent"), Number(existingPayment && existingPayment.rentAmount) || Number(contract.rent) || 0);
+        setMoneyInput(document.getElementById("paymentAdjustFine"), Number(existingPayment && existingPayment.fineAmount) || 0);
+        setMoneyInput(document.getElementById("paymentAdjustInterest"), Number(existingPayment && existingPayment.interestAmount) || 0);
+        document.getElementById("paymentAdjustNoInterest").checked = !!(existingPayment && existingPayment.interestWaived === true);
+        document.getElementById("paymentAdjustInterest").disabled = !!(existingPayment && existingPayment.interestWaived === true);
+        document.getElementById("paymentAdjustNotes").value = String(existingPayment && existingPayment.notes || "");
         document.getElementById("paymentAgreementFields").hidden = true;
         document.getElementById("paymentAdjustAgreement").checked = false;
         document.getElementById("paymentAdjustAgreementDueLabel").hidden = true;
         document.getElementById("paymentAdjustAgreementDueDate").value = "";
+        renderPaymentChargeCalculation(null, !!(existingPayment && existingPayment.interestWaived === true));
+        document.getElementById("savePaymentAdjust").textContent = existingPayment ? "Salvar ajuste" : "Registrar pagamento";
         updatePaymentAdjustTotal();
         ModalManager.open(document.getElementById("paymentAdjustModal"));
     }
@@ -9760,9 +9819,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return new Date(parts[0], parts[1] - 1, parts[2], 12);
     }
 
-    function renderPaymentChargeCalculation(breakdown) {
+    function renderPaymentChargeCalculation(breakdown, interestWaived) {
         var detail = document.getElementById("paymentAdjustChargeCalculation");
         if (!detail) return;
+        if (interestWaived) {
+            detail.textContent = "Juros dispensados nesta baixa. A multa, se aplicável, continua sendo cobrada separadamente.";
+            detail.classList.add("is-zero");
+            return;
+        }
         if (!breakdown || !breakdown.overdue) {
             detail.textContent = "Sem juros: a data informada não ultrapassa o vencimento.";
             detail.classList.add("is-zero");
@@ -9804,9 +9868,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!unit || !date) return;
         var breakdown = lateChargeBreakdown(unit, paymentAdjustContext.month, date,
             paymentAdjustContext.mode === "edit-partial" ? Number(paymentAdjustContext.entryIndex) : undefined);
+        var noInterest = document.getElementById("paymentAdjustNoInterest");
+        var interestWaived = !!(noInterest && noInterest.checked);
         setMoneyInput(document.getElementById("paymentAdjustFine"), Number(breakdown && breakdown.fineAmount) || 0);
-        setMoneyInput(document.getElementById("paymentAdjustInterest"), Number(breakdown && breakdown.interestAmount) || 0);
-        renderPaymentChargeCalculation(breakdown);
+        setMoneyInput(document.getElementById("paymentAdjustInterest"), interestWaived ? 0 : Number(breakdown && breakdown.interestAmount) || 0);
+        document.getElementById("paymentAdjustInterest").disabled = interestWaived;
+        renderPaymentChargeCalculation(breakdown, interestWaived);
         updatePaymentAdjustTotal();
     }
 
@@ -9814,6 +9881,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var rent = moneyInputValue(document.getElementById("paymentAdjustRent")) || 0;
         var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
         var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
+        var interestWaived = !!document.getElementById("paymentAdjustNoInterest").checked;
         setMoneyInput(document.getElementById("paymentAdjustTotal"),
             paymentAdjustContext && (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial")
                 ? rent : rent + fine + interest);
@@ -9826,6 +9894,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var rent = moneyInputValue(document.getElementById("paymentAdjustRent"));
         var fine = moneyInputValue(document.getElementById("paymentAdjustFine")) || 0;
         var interest = moneyInputValue(document.getElementById("paymentAdjustInterest")) || 0;
+        var interestWaived = !!document.getElementById("paymentAdjustNoInterest").checked;
         var notes = document.getElementById("paymentAdjustNotes").value.trim();
         var agreementToggle = document.getElementById("paymentAdjustAgreement");
         var agreementDueInput = document.getElementById("paymentAdjustAgreementDueDate");
@@ -9855,7 +9924,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             historicUnit.paymentHistory[historicPaymentAdjustContext.key] = {
                 rentAmount: rent, fineAmount: fine, interestAmount: interest,
                 chargesAmount: fine + interest, totalAmount: rent + fine + interest,
-                paidAt: paidAt, notes: notes, historicContractId: historicPaymentAdjustContext.contractId
+                paidAt: paidAt, notes: notes, interestWaived: interestWaived,
+                historicContractId: historicPaymentAdjustContext.contractId
             };
             historicPaymentAdjustContext = null;
             saveState();
@@ -9903,6 +9973,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 rentAmount: (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial") ? principal : rent,
                 fineAmount: fine,
                 interestAmount: interest,
+                interestWaived: interestWaived,
                 totalAmount: (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial") ? rent : rent + fine + interest,
                 notes: notes
             };
@@ -9945,7 +10016,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         activeUnit.paymentHistory[paymentAdjustContext.key] = {
             rentAmount: rent, fineAmount: fine, interestAmount: interest,
             chargesAmount: fine + interest, totalAmount: rent + fine + interest,
-            paidAt: paidAt, notes: notes
+            paidAt: paidAt, notes: notes, interestWaived: interestWaived
         };
         paymentAdjustContext = null;
         saveState();
