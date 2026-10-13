@@ -8635,5 +8635,13 @@ input[data-money="true"] {
         order: -1;
         grid-column: 1 / -1;
         min-height: 54px;
+        grid-template-columns: auto auto;
+        justify-content: center;
+        justify-items: center;
+        column-gap: 8px;
+    }
+
+    .app-navigation.is-launcher #actionAlertNav .action-alert-nav-label {
+        text-align: center;
     }
 }
