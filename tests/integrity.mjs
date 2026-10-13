@@ -99,7 +99,7 @@ assert.match(styles, /\.status-btn\.is-partial/, "A grade deve diferenciar visua
 assert.match(app, /function openPartialPaymentReceipt\(/, "Cada baixa parcial deve gerar seu próprio comprovante");
 assert.match(app, /Saldo principal restante:/, "O comprovante parcial deve informar o saldo após a baixa");
 assert.match(app, /var balance = Math\.max\(0, originalRent - receivedPrincipal\)/, "Encargos devem usar o saldo principal, não o aluguel original");
-assert.match(app, /var hasFinePayment = entries\.some/, "A multa não deve ser sugerida novamente após já ter sido recebida");
+assert.match(app, /var hasFineSettlement = entries\.some/, "A multa não deve ser sugerida novamente após recebimento ou dispensa");
 assert.match(index, /id="paymentAdjustPolicy"/, "A política de encargos após baixa parcial deve estar explícita");
 
 assert.match(app, /function editPartialPayment\(/, "Baixas parciais devem permitir correção");
@@ -212,6 +212,9 @@ assert.match(app, /Juros <strong>[\s\S]{0,150}Multa <strong>/, "Cada mês deve e
 assert.match(index, /id="paymentAdjustNoInterest"/, "Baixa deve permitir dispensar juros");
 assert.match(app, /interestWaived: interestWaived/, "Dispensa de juros deve ser persistida no pagamento");
 assert.match(app, /entry\.interestWaived === true/, "Dispensa de juros deve reiniciar a contagem para o saldo remanescente");
+assert.match(index, /id="paymentAdjustNoFine"/, "Baixa deve permitir dispensar multa");
+assert.match(app, /fineWaived: fineWaived/, "Dispensa de multa deve ser persistida no pagamento");
+assert.match(app, /entry\.fineWaived === true/, "Dispensa de multa não deve ser cobrada novamente no saldo remanescente");
 assert.match(app, /data-installment-adjust/, "Pagamento histórico deve poder ser ajustado");
 assert.match(app, /var historicReceivedCounted = false;/, "Total recebido deve impedir duplicidade histórica");
 assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento histórico deve ser somado somente uma vez por competência");
