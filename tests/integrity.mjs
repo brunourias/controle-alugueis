@@ -97,6 +97,9 @@ assert.match(index, /id="paymentAdjustSummary"/, "O modal deve exibir valor da p
 assert.match(index, /class="payment-core-fields"[\s\S]{0,900}id="paymentAdjustInterest"/, "A baixa deve manter data, valor, multa e juros visíveis no fluxo principal");
 assert.match(index, /id="paymentAdjustAdvanced"[\s\S]{0,1800}paymentAdjustNotes/, "Acordo, dispensas, memória e observação devem ficar em opções avançadas");
 assert.match(app, /advancedPanel\.open = !!\(/, "Opções avançadas devem abrir automaticamente apenas ao corrigir uma exceção existente");
+assert.match(app, /<h2>Hoje<\/h2>/, "O Início deve priorizar uma agenda operacional de hoje");
+assert.match(app, /data-expand-action-center/, "Pendências históricas devem ficar disponíveis sob abertura explícita");
+assert.match(app, /homeSnapshot\.hidden = true/, "O Início não deve repetir indicadores já exibidos no cabeçalho");
 assert.match(index, /id="mobileChargesNav"[^>]*hidden/, "Cobranças deve permanecer integrada ao Início e às unidades");
 assert.match(index, /id="mobileExpensesNav"[^>]*data-app-nav-key="expenses"(?![^>]*hidden)/, "Gastos deve permanecer disponível diretamente na tela inicial");
 assert.match(index, /id="mobileTaxNav"[^>]*hidden/, "Imposto de Renda deve permanecer na central de relatórios");

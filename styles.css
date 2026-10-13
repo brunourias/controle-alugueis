@@ -4060,6 +4060,57 @@ textarea:focus-visible {
     padding-top: 12px;
 }
 
+.today-heading .action-title > p {
+    margin: 0 0 3px;
+    color: var(--teal);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.today-heading .action-title > span {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: .78rem;
+}
+
+.today-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.today-action-section {
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fbfdfd;
+}
+
+.today-action-section.is-urgent {
+    border-color: #f0c9cf;
+    background: #fffafb;
+}
+
+.today-action-section h3 {
+    margin: 0 0 7px;
+    color: var(--teal-dark);
+    font-size: .78rem;
+}
+
+.today-all-actions {
+    display: block;
+    width: fit-content;
+    margin: 10px 0 0 auto;
+    font-size: .72rem;
+}
+
+@media (max-width: 650px) {
+    .today-action-grid { grid-template-columns: 1fr; }
+    .today-all-actions { width: 100%; }
+}
+
 .action-overdue-card {
     display: grid;
     align-content: start;
