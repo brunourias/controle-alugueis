@@ -100,7 +100,7 @@ assert.match(app, /advancedPanel\.open = !!\(/, "Opções avançadas devem abrir
 assert.match(app, /<h2>Hoje<\/h2>/, "O Início deve priorizar uma agenda operacional de hoje");
 assert.match(app, /data-expand-action-center/, "Pendências históricas devem ficar disponíveis sob abertura explícita");
 assert.match(app, /homeSnapshot\.hidden = true/, "O Início não deve repetir indicadores já exibidos no cabeçalho");
-assert.match(app, /querySelectorAll\("\[data-open-tax-dashboard\]"\)[\s\S]{0,360}showAppView\("tax"\)/, "Revisar a classificação fiscal deve abrir a tela de Imposto de Renda");
+assert.match(app, /data-open-tax-dashboard\]\)\.forEach[\s\S]{0,300}showAppView\("tax"\)/, "Revisar a classificação fiscal deve abrir a tela de Imposto de Renda");
 assert.doesNotMatch(app, /\(activeAppView === "units" \|\| activeAppView === "tax"\)/, "A tela fiscal deve poder abrir no desktop");
 assert.match(index, /id="mobileChargesNav"[^>]*hidden/, "Cobranças deve permanecer integrada ao Início e às unidades");
 assert.match(index, /id="mobileExpensesNav"[^>]*data-app-nav-key="expenses"(?![^>]*hidden)/, "Gastos deve permanecer disponível diretamente na tela inicial");
