@@ -237,6 +237,10 @@ assert.match(app, /if \(rent <= 0 \|\| rent - maximumTotal > 0\.009\)/, "Baixas 
 assert.doesNotMatch(app, /rent <= 0 \|\| \(paymentAdjustContext\.mode[\s\S]{0,180}\? rent - maximumTotal/, "Validação da baixa não pode misturar OR e ternário sem agrupamento");
 assert.doesNotMatch(app, /console\.error\("Firebase:/, "Erros tratados da nuvem não devem poluir o console de produção");
 assert.match(app, /function activateLocalStateForUser\(/, "O cache local deve ser isolado ao trocar de conta");
+assert.match(app, /function renewalAlert\(endDays\)/, "Contratos próximos do fim devem seguir marcos de renovação");
+assert.match(app, /Marco de 60 dias: pergunte sobre o interesse na renovação/, "O alerta de 60 dias deve iniciar a conversa de renovação");
+assert.match(app, /Marco de 45 dias: apresente as condições de renovação e eventual reajuste/, "O alerta de 45 dias deve orientar a apresentação das condições");
+assert.match(app, /Marco de 30 dias: formalize a renovação ou alinhe a desocupação/, "O alerta de 30 dias deve orientar a definição final");
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
 assert.match(app, /function safeExternalUrl\(/, "Links importados de anexos devem validar o protocolo antes da renderização");
 assert.match(app, /safeExternalUrl\(file\.url\)/, "A lista de anexos deve usar somente URLs externas validadas");

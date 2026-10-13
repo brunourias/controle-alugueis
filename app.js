@@ -4647,6 +4647,29 @@ var historyRent = document.getElementById("historyRent");
             });
         }
 
+        function renewalAlert(endDays) {
+            if (endDays < 0 || endDays > 60) return null;
+            if (endDays <= 30) {
+                return {
+                    list: urgent,
+                    title: "Renovação · formalizar ou alinhar desocupação",
+                    detail: "Marco de 30 dias: formalize a renovação ou alinhe a desocupação conforme o contrato."
+                };
+            }
+            if (endDays <= 45) {
+                return {
+                    list: week,
+                    title: "Renovação · apresentar condições",
+                    detail: "Marco de 45 dias: apresente as condições de renovação e eventual reajuste."
+                };
+            }
+            return {
+                list: decisions,
+                title: "Renovação · iniciar conversa",
+                detail: "Marco de 60 dias: pergunte sobre o interesse na renovação."
+            };
+        }
+
         scopedUnits().forEach(function (unit) {
             months.forEach(function (_, month) {
                 var key = monthKey(month);
@@ -4692,9 +4715,12 @@ var historyRent = document.getElementById("historyRent");
             } else if (isValidDateValue(unit.endDate)) {
                 var endDate = chargeLogDate(unit.endDate);
                 var endDays = Math.ceil((endDate - today) / 86400000);
-                if (endDays >= 0 && endDays <= 60) {
+                var alert = renewalAlert(endDays);
+                if (alert) {
                     var decision = state.renewalDecisions[unit.id] || "A decidir";
-                    add(decisions, unit.name + " · contrato termina em " + endDays + " dia(s)", unit.tenantName + " · " + decision, unit.id, "decision");
+                    add(alert.list, unit.name + " · " + alert.title + " em " + endDays + " dia(s)",
+                        unit.tenantName + " · " + alert.detail + " Situação: " + decision + ".",
+                        unit.id, "decision");
                 }
             }
         });
