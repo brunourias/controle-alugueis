@@ -8628,3 +8628,12 @@ input[data-money="true"] {
 .status-btn.is-partial.chip-pendente .status-days {
     color: #76601f;
 }
+
+/* O posicionamento final precisa ficar após as regras históricas da grade. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher #actionAlertNav {
+        order: -1;
+        grid-column: 1 / -1;
+        min-height: 54px;
+    }
+}
