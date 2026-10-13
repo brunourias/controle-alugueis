@@ -97,7 +97,9 @@ assert.match(index, /id="paymentAdjustSummary"/, "O modal deve exibir valor da p
 assert.match(index, /class="payment-core-fields"[\s\S]{0,900}id="paymentAdjustInterest"/, "A baixa deve manter data, valor, multa e juros visíveis no fluxo principal");
 assert.match(index, /id="paymentAdjustAdvanced"[\s\S]{0,1800}paymentAdjustNotes/, "Acordo, dispensas, memória e observação devem ficar em opções avançadas");
 assert.match(app, /advancedPanel\.open = !!\(/, "Opções avançadas devem abrir automaticamente apenas ao corrigir uma exceção existente");
-assert.match(index, /id="mobileChargesNav"[^>]*hidden[\s\S]{0,1000}id="mobileExpensesNav"[^>]*hidden[\s\S]{0,1000}id="mobileTaxNav"[^>]*hidden/, "Atalhos financeiros redundantes não devem ocupar o menu móvel");
+assert.match(index, /id="mobileChargesNav"[^>]*hidden/, "Cobranças deve permanecer integrada ao Início e às unidades");
+assert.match(index, /id="mobileExpensesNav"[^>]*data-app-nav-key="expenses"(?![^>]*hidden)/, "Gastos deve permanecer disponível diretamente na tela inicial");
+assert.match(index, /id="mobileTaxNav"[^>]*hidden/, "Imposto de Renda deve permanecer na central de relatórios");
 assert.match(styles, /\.status-btn\.is-partial/, "A grade deve diferenciar visualmente pagamento parcial");
 
 assert.match(app, /function openPartialPaymentReceipt\(/, "Cada baixa parcial deve gerar seu próprio comprovante");
