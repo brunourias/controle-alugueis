@@ -243,6 +243,7 @@ assert.match(app, /Marco de 45 dias: apresente as condições de renovação e e
 assert.match(app, /Marco de 30 dias: formalize a renovação ou alinhe a desocupação/, "O alerta de 30 dias deve orientar a definição final");
 assert.match(styles, /\.desktop-action-alert\s*\{\s*display: grid !important;/, "O atalho Ações deve permanecer acessível no celular");
 assert.match(index, /action-alert-nav-label">Ações</, "O atalho móvel deve ter um rótulo claro para as pendências");
+assert.match(styles, /\.app-navigation\.is-launcher #actionAlertNav\s*\{[\s\S]{0,160}order: 0;[\s\S]{0,160}grid-column: 1 \/ -1;/, "Ações deve ocupar a primeira faixa completa no celular");
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
 assert.match(app, /function safeExternalUrl\(/, "Links importados de anexos devem validar o protocolo antes da renderização");
 assert.match(app, /safeExternalUrl\(file\.url\)/, "A lista de anexos deve usar somente URLs externas validadas");
