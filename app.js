@@ -4756,14 +4756,6 @@ var historyRent = document.getElementById("historyRent");
             '<section class="action-priority-section"><h3>Esta semana</h3>' + rows(week, "Nenhuma ação prevista para os próximos 7 dias.", "is-week") + completedMarkup + '</section>' +
             '<section class="action-priority-section"><h3>Decisões de contrato</h3>' + rows(decisions, "Nenhuma decisão de contrato pendente.", "is-decision") + '</section>' +
             '</div><section class="action-tasks-panel"><h3>Tarefas manuais</h3>' + taskForm + '</section>';
-        var todayDetail = '<div class="today-action-grid">' +
-            '<section class="today-action-section is-urgent"><h3>Cobrar ou resolver hoje</h3>' +
-            rows(urgent.slice(0, 3), "Nenhuma cobrança ou pendência urgente.", "is-urgent") + '</section>' +
-            '<section class="today-action-section"><h3>Vence nesta semana</h3>' +
-            rows(week.slice(0, 3), "Nenhum vencimento ou retorno nos próximos 7 dias.", "is-week") + '</section>' +
-            '</div>' +
-            '<button class="btn btn-ghost today-all-actions" type="button" data-expand-action-center>Ver todas as pendências' +
-            (attentionCount ? ' (' + attentionCount + ')' : '') + '</button>';
 
         var compactSummary = attentionCount
             ? attentionCount + " " + (attentionCount === 1 ? "ação pendente" : "ações pendentes")
@@ -4784,10 +4776,10 @@ var historyRent = document.getElementById("historyRent");
         }
 
         container.classList.remove("is-compact");
-        container.hidden = false;
+        container.hidden = !actionCenterExpanded;
         container.innerHTML = actionCenterExpanded
-            ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '<button id="toggleActionCenter" class="btn btn-ghost" type="button">Voltar ao Hoje</button></div></div><div class="action-center-detail">' + detail + '</div>'
-            : '<div class="action-center-heading today-heading"><div class="action-title"><p>PAINEL OPERACIONAL</p><h2>Hoje</h2><span>O que merece sua atenção agora.</span></div><div class="action-heading-controls">' + badge + '</div></div><div class="action-center-detail">' + todayDetail + '</div>';
+            ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '</div></div><div class="action-center-detail">' + detail + '</div>'
+            : "";
 
         var toggleActionCenter = document.getElementById("toggleActionCenter");
         if (toggleActionCenter) toggleActionCenter.addEventListener("click", function () {
@@ -4799,12 +4791,6 @@ var historyRent = document.getElementById("historyRent");
                 return;
             }
             renderActionCenter();
-        });
-        container.querySelectorAll("[data-expand-action-center]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                actionCenterExpanded = true;
-                renderActionCenter();
-            });
         });
         var taskFormElement = document.getElementById("operationalTaskForm");
         if (taskFormElement) taskFormElement.addEventListener("submit", function (event) {
@@ -5610,10 +5596,16 @@ function renderSummary() {
 
     var homeSnapshot = document.getElementById("homeSnapshot");
     if (homeSnapshot) {
-        // O cabeçalho já exibe os indicadores mensais. No Início, deixamos
-        // espaço para a agenda operacional em vez de repetir os mesmos números.
-        homeSnapshot.hidden = true;
-        homeSnapshot.innerHTML = "";
+        homeSnapshot.innerHTML =
+            '<div class="home-snapshot-heading"><strong>Este mês</strong><span>' + escapeHtml(monthLabel) + '</span></div>' +
+            '<div class="home-snapshot-grid">' +
+                '<article class="home-snapshot-card"><span>Recebido</span><strong>' + money(received) + '</strong><small>Pagamentos baixados</small></article>' +
+                '<article class="home-snapshot-card"><span>A receber</span><strong>' + money(pending) + '</strong><small>Parcelas ainda no prazo</small></article>' +
+                '<article class="home-snapshot-card ' + (openLateSnapshot.count ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + money(openLateSnapshot.total) + '</strong><small>' + openLateSnapshot.count + ' parcela' + (openLateSnapshot.count === 1 ? '' : 's') + ' em aberto</small></article>' +
+                '<article class="home-snapshot-card"><span>Valores gastos</span><strong>' + money(currentExpenses) + '</strong><small>Despesas deste mês</small></article>' +
+                '<article class="home-snapshot-card ' + (currentNet < 0 ? 'is-negative' : '') + '"><span>Lucro líquido</span><strong>' + money(currentNet) + '</strong><small>Recebido menos gastos</small></article>' +
+                '<article class="home-snapshot-card home-snapshot-card-occupancy"><span>Ocupação</span><strong>' + occupancyRate + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades ocupadas</small></article>' +
+            '</div>';
     }
 
     var mobileMonthSummary = document.getElementById("mobileMonthSummary");
