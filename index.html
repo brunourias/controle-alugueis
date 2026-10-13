@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=267" />
+        <link rel="stylesheet" href="styles.css?v=268" />
     
 <style>
     /* Histórico de contratos */
@@ -192,10 +192,10 @@
 
                 <button class="app-nav-button mobile-only-nav mobile-overview-nav" type="button" data-app-view="overview" data-app-nav-key="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4zM7.5 9h4M7.5 13h8M7.5 16h5"></path></svg><span>Visão geral</span></button>
                 <button class="app-nav-button mobile-only-nav" type="button" data-app-view="units" data-app-nav-key="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8 8h3M8 12h3M8 16h3M14 8h2M14 12h2M14 16h2"></path></svg><span>Unidades</span></button>
-                <button id="mobileChargesNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="charges"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5V6.5M5 8.5h12M9 4.5v4M17 4.5v4M8 13h7M8 16h4"></path></svg><span>Cobranças</span></button>
+                <button id="mobileChargesNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="charges" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5V6.5M5 8.5h12M9 4.5v4M17 4.5v4M8 13h7M8 16h4"></path></svg><span>Cobranças</span></button>
                 <button class="app-nav-button" type="button" data-app-view="financial" data-app-nav-key="financial"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.2v9.6M14.7 9.3c-.5-.6-1.3-.9-2.4-.9-1.5 0-2.5.7-2.5 1.8 0 2.8 5 1.4 5 4 0 1.1-1 1.9-2.6 1.9-1.1 0-2.1-.4-2.7-1"></path></svg><span>Financeiro</span></button>
-                <button id="mobileExpensesNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="expenses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8 8h8M8 12h5M8 16h6"></path></svg><span>Gastos</span></button>
-                <button id="mobileTaxNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="tax"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3v14H6zM15 3.5v3h3M9 11h6M9 15h6M9 19h4"></path></svg><span>Imposto de Renda</span></button>
+                <button id="mobileExpensesNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="expenses" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8 8h8M8 12h5M8 16h6"></path></svg><span>Gastos</span></button>
+                <button id="mobileTaxNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="tax" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3v14H6zM15 3.5v3h3M9 11h6M9 15h6M9 19h4"></path></svg><span>Imposto de Renda</span></button>
                 <button class="app-nav-button" type="button" data-app-view="reports" data-app-nav-key="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5V13M12 19.5V8M19 19.5V4.5"></path></svg><span>Relatórios</span></button>
                 <button id="mobileSettingsNav" class="app-nav-button mobile-settings-nav" type="button" data-app-nav-key="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.12 15a1.65 1.65 0 0 0-1.51-1H5.5v-3h.11a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.85 6l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V4.8h3v.08a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33L17.62 6l2.12 2.12-.06.06A1.65 1.65 0 0 0 19.35 10v.01a1.65 1.65 0 0 0 1.51 1h.09v3h-.09a1.65 1.65 0 0 0-1.46 1Z"></path></svg><span>Configurações</span></button>
                 <button id="mobileEnergyRateNav" class="app-nav-button mobile-shortcut-nav mobile-energy-rate-nav" type="button">
@@ -853,11 +853,9 @@
 					</div>
 				</div>
 
-				<details class="settings-panel">
-					<summary>
-						<span>Pagamento</span>
-					</summary>
-					<div class="settings-panel-body">
+				<section class="payment-core-fields" aria-label="Dados do pagamento">
+					<div class="payment-core-fields-heading">Pagamento</div>
+					<div class="payment-core-fields-grid">
 						<label>
 							Data real do pagamento
 							<input type="date" id="paymentAdjustDate" />
@@ -866,9 +864,20 @@
 							<span id="paymentAdjustRentLabel">Valor principal recebido</span>
 							<input type="text" id="paymentAdjustRent" inputmode="decimal" data-money="true">
 						</label>
+						<label>
+							Multa
+							<input type="text" id="paymentAdjustFine" inputmode="decimal" data-money="true">
+						</label>
+						<label>
+							Juros
+							<input type="text" id="paymentAdjustInterest" inputmode="decimal" data-money="true">
+						</label>
 					</div>
-				</details>
+				</section>
 
+				<details id="paymentAdjustAdvanced" class="settings-panel payment-adjust-advanced">
+					<summary><span>Opções avançadas</span></summary>
+					<div class="settings-panel-body">
                 <div id="paymentAgreementFields" class="payment-agreement-fields">
                     <label class="payment-agreement-toggle">
                         <input type="checkbox" id="paymentAdjustAgreement" />
@@ -880,37 +889,15 @@
                     </label>
                     <small>Esta data vale somente para o saldo desta parcela e não altera os próximos aluguéis.</small>
                 </div>
-
-				<details class="settings-panel">
-					<summary>
-						<span>Multas e encargos</span>
-					</summary>
-					<div class="settings-panel-body">
-						<label>
-							Multa
-							<input type="text" id="paymentAdjustFine" inputmode="decimal" data-money="true">
-						</label>
                         <label class="payment-interest-waiver">
                             <input type="checkbox" id="paymentAdjustNoFine" />
                             <span><strong>Não cobrar multa nesta baixa</strong><small>A multa deste período será dispensada; os juros permanecem separados.</small></span>
                         </label>
-						<label>
-							Juros de mora
-							<input type="text" id="paymentAdjustInterest" inputmode="decimal" data-money="true">
-						</label>
                         <label class="payment-interest-waiver">
                             <input type="checkbox" id="paymentAdjustNoInterest" />
                             <span><strong>Não cobrar juros nesta baixa</strong><small>Os juros deste período serão dispensados; a multa permanece separada.</small></span>
                         </label>
                         <p id="paymentAdjustChargeCalculation" class="payment-charge-calculation"></p>
-					</div>
-				</details>
-
-				<details class="settings-panel">
-					<summary>
-						<span>Observação</span>
-					</summary>
-					<div class="settings-panel-body">
 						<label>
 							Registro interno
 							<textarea id="paymentAdjustNotes" rows="2" placeholder="Opcional"></textarea>
@@ -1062,7 +1049,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=267"></script>
-    <script src="app.js?v=267"></script>
+    <script src="energy-calculations.js?v=268"></script>
+    <script src="app.js?v=268"></script>
     </body>
 </html>

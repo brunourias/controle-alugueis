@@ -94,6 +94,10 @@ assert.match(app, /partialPayments:\s*entries/, "Cada baixa parcial deve preserv
 assert.match(app, /unit\.status\[key\]\s*=\s*settled\s*\?\s*"pago"\s*:\s*"pendente"/, "A parcela só pode ser quitada quando o saldo chegar a zero");
 assert.match(app, /metrics\.received \+= partialOpen\.received/, "O painel deve contabilizar o valor já recebido parcialmente");
 assert.match(index, /id="paymentAdjustSummary"/, "O modal deve exibir valor da parcela, recebido e saldo");
+assert.match(index, /class="payment-core-fields"[\s\S]{0,900}id="paymentAdjustInterest"/, "A baixa deve manter data, valor, multa e juros visíveis no fluxo principal");
+assert.match(index, /id="paymentAdjustAdvanced"[\s\S]{0,1800}paymentAdjustNotes/, "Acordo, dispensas, memória e observação devem ficar em opções avançadas");
+assert.match(app, /advancedPanel\.open = !!\(/, "Opções avançadas devem abrir automaticamente apenas ao corrigir uma exceção existente");
+assert.match(index, /id="mobileChargesNav"[^>]*hidden[\s\S]{0,1000}id="mobileExpensesNav"[^>]*hidden[\s\S]{0,1000}id="mobileTaxNav"[^>]*hidden/, "Atalhos financeiros redundantes não devem ocupar o menu móvel");
 assert.match(styles, /\.status-btn\.is-partial/, "A grade deve diferenciar visualmente pagamento parcial");
 
 assert.match(app, /function openPartialPaymentReceipt\(/, "Cada baixa parcial deve gerar seu próprio comprovante");
@@ -126,7 +130,7 @@ assert.match(app, /minimumFractionDigits:\s*2,[\s\S]{0,80}maximumFractionDigits:
 assert.match(app, /moneyInputValue\(expenseAmount\)/, "Gastos formatados devem ser convertidos antes de salvar");
 assert.match(app, /moneyInputValue\(el\.invoice\)/, "A fatura de energia formatada deve ser convertida antes do rateio");
 
-assert.match(index, /Juros de mora[\s\S]{0,160}id="paymentAdjustInterest"/, "O campo deve identificar claramente os juros de mora");
+assert.match(index, /Juros[\s\S]{0,160}id="paymentAdjustInterest"/, "O campo deve identificar claramente os juros");
 assert.match(index, /id="paymentAdjustChargeCalculation"/, "O modal deve reservar espaço para a memória de cálculo");
 assert.match(app, /function recalculatePaymentCharges\(/, "Alterar a data deve recalcular os encargos");
 assert.match(app, /paymentAdjustDate"[\s\S]{0,100}addEventListener\("change", recalculatePaymentCharges\)/, "A data real deve acionar o recálculo");

@@ -5043,7 +5043,7 @@ var historyRent = document.getElementById("historyRent");
                         partial
                             ? (hasBalanceAgreement ? "Acordo" : "Parcial")
                             : status === "pago-atrasado"
-                            ? "Pago (atraso)"
+                            ? "Pago com atraso"
                             : status === "pago"
                             ? "Pago"
                             : status === "atrasado"
@@ -6154,6 +6154,13 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
         agreementToggle.checked = registerPayment && isValidDateValue(savedPayment && savedPayment.balanceDueDate);
         agreementDueInput.value = agreementToggle.checked ? savedPayment.balanceDueDate : "";
         agreementDueLabel.hidden = !agreementToggle.checked;
+        var advancedPanel = document.getElementById("paymentAdjustAdvanced");
+        if (advancedPanel) {
+            // Mantém o registro simples para novas baixas e evidencia qualquer
+            // exceção já aplicada ao corrigir um lançamento.
+            advancedPanel.open = !!(agreementToggle.checked || fineWaived || interestWaived ||
+                document.getElementById("paymentAdjustNotes").value.trim());
+        }
 
         var summary = document.getElementById("paymentAdjustSummary");
         summary.hidden = !registerPayment;
@@ -9801,7 +9808,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             " · " + money(Number(contract.rent) || 0) + " por parcela";
         contractInstallmentsList.innerHTML = keys.length ? keys.map(function (key) {
             var stateName = historicalInstallmentState(unit, key);
-            var label = stateName === "atrasado" ? "Em atraso" : stateName === "pago-atrasado" ? "Pago (atraso)" : stateName === "pago" ? "Pago" : "Pendente";
+            var label = stateName === "atrasado" ? "Em atraso" : stateName === "pago-atrasado" ? "Pago com atraso" : stateName === "pago" ? "Pago" : "Pendente";
             var klass = stateName === "atrasado" ? " is-late" : (stateName.indexOf("pago") === 0 ? " is-paid" : "");
             var action = stateName === "atrasado"
                 ? '<button class="btn btn-primary" type="button" data-installment-settle="' + key + '">Dar baixa</button>'
@@ -9849,6 +9856,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         document.getElementById("paymentAdjustAgreement").checked = false;
         document.getElementById("paymentAdjustAgreementDueLabel").hidden = true;
         document.getElementById("paymentAdjustAgreementDueDate").value = "";
+        var historicAdvancedPanel = document.getElementById("paymentAdjustAdvanced");
+        if (historicAdvancedPanel) {
+            historicAdvancedPanel.open = !!(existingPayment &&
+                (existingPayment.fineWaived === true || existingPayment.interestWaived === true ||
+                String(existingPayment.notes || "").trim()));
+        }
         renderPaymentChargeCalculation(null,
             !!(existingPayment && existingPayment.interestWaived === true),
             !!(existingPayment && existingPayment.fineWaived === true));
