@@ -4253,7 +4253,7 @@ var historyRent = document.getElementById("historyRent");
         if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
         var mobileNavigation = isMobileNavigation();
         var launcherOnly = mobileNavigation && mobileLauncherActive;
-        if (!mobileNavigation && activeAppView === "units") {
+        if (!mobileNavigation && (activeAppView === "units" || activeAppView === "tax")) {
             activeAppView = "home";
         }
         var navigation = document.getElementById("appNavigation");
@@ -4298,10 +4298,8 @@ var historyRent = document.getElementById("historyRent");
 
         document.querySelectorAll("[data-app-view]").forEach(function (button) {
             var selected = mobileNavigation
-                ? !launcherOnly && (button.dataset.appNavKey === activeMobileShortcut ||
-                    (button.dataset.appNavKey === "reports" && activeMobileShortcut === "tax"))
-                : !launcherOnly && (button.dataset.appView === activeAppView ||
-                    (button.dataset.appView === "reports" && activeAppView === "tax"));
+                ? !launcherOnly && button.dataset.appNavKey === activeMobileShortcut
+                : !launcherOnly && button.dataset.appView === activeAppView;
             button.classList.toggle("is-active", selected);
             button.setAttribute("aria-current", selected ? "page" : "false");
         });
@@ -4853,12 +4851,7 @@ var historyRent = document.getElementById("historyRent");
             saveState();
             render();
         }); });
-        container.querySelectorAll("[data-open-tax-dashboard]").forEach(function (button) { button.addEventListener("click", function () {
-            taxDashboardExpanded = true;
-            activeMobileShortcut = "tax";
-            showAppView("tax");
-            render();
-        }); });
+        container.querySelectorAll("[data-open-tax-dashboard]").forEach(function (button) { button.addEventListener("click", function () { taxDashboardExpanded = true; renderTaxDashboard(); var dashboard = document.getElementById("taxDashboard"); if (dashboard) dashboard.scrollIntoView({ behavior: "smooth", block: "start" }); }); });
     }
 
     function exportOperationalCsv() {
