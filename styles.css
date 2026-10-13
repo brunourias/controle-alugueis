@@ -3713,6 +3713,24 @@ textarea:focus-visible {
     color: var(--teal-dark);
 }
 
+.table-wrap .received-charges-total {
+    display: grid;
+    gap: 2px;
+    white-space: nowrap;
+}
+
+.table-wrap .received-charges-total span {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.table-wrap .received-charges-total strong {
+    color: inherit;
+    font-weight: 800;
+}
+
 
 /* Cabeçalho principal modernizado */
 .app-header {

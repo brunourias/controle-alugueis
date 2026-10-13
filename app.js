@@ -5276,24 +5276,22 @@ var historyRent = document.getElementById("historyRent");
             .join("") +
         "</tr>" +
 
-        '<tr><th scope="row">Total juros</th>' +
+        '<tr><th scope="row">Juros e multa recebidos</th>' +
         renderedMonthIndexes
             .map(function (i) {
-                var totalJuros = scopedUnits().reduce(
+                var totals = scopedUnits().reduce(
                     function (sum, unit) {
-                        return (
-                            sum +
-                            historicalInterestAmount(
-                                unit,
-                                selectedYear,
-                                i
-                            )
-                        );
+                        sum.interest += historicalInterestAmount(unit, selectedYear, i);
+                        sum.fine += historicalFineAmount(unit, selectedYear, i);
+                        return sum;
                     },
-                    0
+                    { interest: 0, fine: 0 }
                 );
 
-                return "<td>" + money(totalJuros) + "</td>";
+                return '<td><span class="received-charges-total">' +
+                    '<span>Juros <strong>' + money(totals.interest) + '</strong></span>' +
+                    '<span>Multa <strong>' + money(totals.fine) + '</strong></span>' +
+                    '</span></td>';
             })
             .join("") +
         "</tr>";
@@ -9542,6 +9540,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         // Por isso entram no total imediatamente, inclusive enquanto ainda resta
         // saldo principal em um pagamento parcial.
         return recordedInterestAmount(payment);
+    }
+
+    function recordedFineAmount(payment) {
+        if (!payment || typeof payment !== "object") return 0;
+
+        // A multa registrada na baixa é o valor efetivamente recebido. Não
+        // inferimos multa a partir do saldo para não exibir uma cobrança que
+        // ainda não foi paga.
+        return Math.max(0, Number(payment.fineAmount) || 0);
+    }
+
+    function historicalFineAmount(unit, year, month) {
+        var payment = getPaymentRecord(unit, year, month);
+        return recordedFineAmount(payment);
     }
 
     function ensureFinancialHistory(unit) {
