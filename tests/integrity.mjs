@@ -241,6 +241,8 @@ assert.match(app, /function renewalAlert\(endDays\)/, "Contratos próximos do fi
 assert.match(app, /Marco de 60 dias: pergunte sobre o interesse na renovação/, "O alerta de 60 dias deve iniciar a conversa de renovação");
 assert.match(app, /Marco de 45 dias: apresente as condições de renovação e eventual reajuste/, "O alerta de 45 dias deve orientar a apresentação das condições");
 assert.match(app, /Marco de 30 dias: formalize a renovação ou alinhe a desocupação/, "O alerta de 30 dias deve orientar a definição final");
+assert.match(styles, /\.desktop-action-alert\s*\{\s*display: grid !important;/, "O atalho Ações deve permanecer acessível no celular");
+assert.match(index, /action-alert-nav-label">Ações</, "O atalho móvel deve ter um rótulo claro para as pendências");
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
 assert.match(app, /function safeExternalUrl\(/, "Links importados de anexos devem validar o protocolo antes da renderização");
 assert.match(app, /safeExternalUrl\(file\.url\)/, "A lista de anexos deve usar somente URLs externas validadas");

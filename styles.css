@@ -6250,11 +6250,11 @@ textarea:focus-visible {
 }
 
 
-/* A entrada mobile tem oito áreas exclusivas; alertas e resumo anual foram
-   incorporados, respectivamente, em Cobranças e Relatórios. */
+/* O atalho Ações fica disponível também no celular: é a entrada para
+   cobranças, contratos a vencer e pendências de renovação. */
 @media (max-width: 680px) {
     .desktop-action-alert {
-        display: none !important;
+        display: grid !important;
     }
 }
 
