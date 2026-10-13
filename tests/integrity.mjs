@@ -244,6 +244,8 @@ assert.match(app, /Marco de 30 dias: formalize a renovação ou alinhe a desocup
 assert.match(styles, /\.desktop-action-alert\s*\{\s*display: grid !important;/, "O atalho Ações deve permanecer acessível no celular");
 assert.match(index, /action-alert-nav-label">Ações</, "O atalho móvel deve ter um rótulo claro para as pendências");
 assert.match(styles, /\.app-navigation\.is-launcher #actionAlertNav\s*\{[\s\S]{0,160}order: 0;[\s\S]{0,160}grid-column: 1 \/ -1;/, "Ações deve ocupar a primeira faixa completa no celular");
+assert.match(app, /querySelectorAll\("\[data-open-tax-dashboard\]"\)[\s\S]{0,360}showAppView\("tax"\)/, "Revisar a classificação fiscal deve abrir a tela de Imposto de Renda");
+assert.doesNotMatch(app, /\(activeAppView === "units" \|\| activeAppView === "tax"\)/, "A tela fiscal deve poder abrir no desktop");
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
 assert.match(app, /function safeExternalUrl\(/, "Links importados de anexos devem validar o protocolo antes da renderização");
 assert.match(app, /safeExternalUrl\(file\.url\)/, "A lista de anexos deve usar somente URLs externas validadas");
