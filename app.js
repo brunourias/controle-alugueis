@@ -9508,11 +9508,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             months.forEach(function (_, month) {
                 var key = monthKey(month);
                 var recordedLate = ledger[key];
+                var partial = partialPaymentInfo(unit, month);
+                // Uma baixa parcial continua aberta até quitar o saldo. Mesmo
+                // com o status legado ainda "pendente", ela deve entrar no
+                // cartão assim que o vencimento (original ou acordado) passar.
+                var partialIsLate = !!partial && daysOverdue(unit, month) !== null;
                 if (
                     effectiveStatus(unit, month) === "atrasado" ||
                     statusFor(unit, month) === "atrasado" ||
                     recordedLate === true ||
-                    recordedLate === "open"
+                    recordedLate === "open" ||
+                    partialIsLate
                 ) {
                     add(unit, key, selectedYear, month);
                 }
