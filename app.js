@@ -9389,7 +9389,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function lateRentForRecord(unit, year, month) {
         var key = String(year) + "-" + String(month + 1).padStart(2, "0");
         var payment = getPaymentRecord(unit, year, month);
-        if (payment && Number.isFinite(Number(payment.rentAmount)) && Number(payment.rentAmount) > 0) {
+        // Em uma baixa parcial antiga, rentAmount pode ser justamente o valor
+        // pago (e não o aluguel contratado). Nessa situação, usá-lo como
+        // principal faria o saldo aberto virar zero no resumo de atrasos.
+        var hasPartialPayments = payment && Array.isArray(payment.partialPayments) && payment.partialPayments.length;
+        if (!hasPartialPayments && payment && Number.isFinite(Number(payment.rentAmount)) && Number(payment.rentAmount) > 0) {
             return Number(payment.rentAmount);
         }
 
@@ -9412,6 +9416,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function lateUpdatedTotalForRecord(unit, key, year, month) {
+        // Para o ano que está aberto na grade, a parcela parcial deve ter
+        // exatamente o mesmo valor mostrado em "Falta". Isso inclui o saldo
+        // principal e os encargos incidentes somente sobre esse saldo.
+        var visiblePartial = year === selectedYear ? partialPaymentInfo(unit, month) : null;
+        if (visiblePartial) return Math.max(0, Number(visiblePartial.balanceWithCharges) || 0);
+
         var rent = lateRentForRecord(unit, year, month);
         var payment = getPaymentRecord(unit, year, month);
         var entries = payment && Array.isArray(payment.partialPayments)
