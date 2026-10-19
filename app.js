@@ -9413,6 +9413,15 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function lateUpdatedTotalForRecord(unit, key, year, month) {
         var rent = lateRentForRecord(unit, year, month);
+        var payment = getPaymentRecord(unit, year, month);
+        var entries = payment && Array.isArray(payment.partialPayments)
+            ? payment.partialPayments : [];
+        // A foto de inadimplência precisa usar o mesmo saldo principal que a
+        // parcela parcial exibe na grade. Antes, ela voltava ao aluguel cheio
+        // e fazia o cartão divergir do valor "Falta".
+        var receivedPrincipal = paymentPrincipalReceived({ partialPayments: entries });
+        var balance = Math.max(0, rent - receivedPrincipal);
+        if (balance <= 0.009) return 0;
         var history = Array.isArray(unit && unit.contractHistory) ? unit.contractHistory : [];
         var contract = history.slice().reverse().find(function (item) {
             if (!item) return false;
@@ -9433,16 +9442,34 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         } else if (Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31) {
             dueDate = new Date(year, month, Math.min(dueDay, new Date(year, month + 1, 0).getDate()));
         }
-        if (!dueDate || isNaN(dueDate.getTime())) return rent;
+        if (payment && isValidDateValue(payment.balanceDueDate)) {
+            dueDate = new Date(payment.balanceDueDate + "T00:00:00");
+        }
+        if (!dueDate || isNaN(dueDate.getTime())) return balance;
 
         var today = new Date();
         today.setHours(0, 0, 0, 0);
         var days = Math.floor((today - dueDate) / 86400000);
-        if (days <= 0) return rent;
+        if (days <= 0) return balance;
 
         var fineRate = Math.max(0, Number(state.settings.finePercent) || 0) / 100;
         var dailyInterestRate = Math.max(0, Number(state.settings.dailyInterestPercent) || 0) / 100 / 30;
-        return rent + (rent * fineRate) + (rent * dailyInterestRate * days);
+        var hasFineSettlement = entries.some(function (entry) {
+            return Number(entry && entry.fineAmount) > 0 || !!(entry && entry.fineWaived === true);
+        });
+        var latestInterestSettlementDate = entries.reduce(function (latest, entry) {
+            if (Number(entry && entry.interestAmount) <= 0 && !(entry && entry.interestWaived === true)) return latest;
+            var paidAt = entry && entry.paidAt ? new Date(entry.paidAt) : null;
+            if (!paidAt || isNaN(paidAt.getTime())) return latest;
+            paidAt.setHours(0, 0, 0, 0);
+            return !latest || paidAt > latest ? paidAt : latest;
+        }, null);
+        var interestStart = latestInterestSettlementDate && latestInterestSettlementDate > dueDate
+            ? latestInterestSettlementDate : dueDate;
+        var interestDays = Math.max(0, Math.floor((today - interestStart) / 86400000));
+        var fine = hasFineSettlement ? 0 : balance * fineRate;
+        var interest = balance * dailyInterestRate * interestDays;
+        return balance + fine + interest;
     }
 
     // Foto atual: todas as parcelas que continuam marcadas como Atrasado,

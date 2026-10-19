@@ -221,6 +221,8 @@ assert.match(app, /entry\.interestWaived === true/, "Dispensa de juros deve rein
 assert.match(index, /id="paymentAdjustNoFine"/, "Baixa deve permitir dispensar multa");
 assert.match(app, /fineWaived: fineWaived/, "Dispensa de multa deve ser persistida no pagamento");
 assert.match(app, /entry\.fineWaived === true/, "Dispensa de multa não deve ser cobrada novamente no saldo remanescente");
+assert.match(app, /var receivedPrincipal = paymentPrincipalReceived\(\{ partialPayments: entries \}\)/, "O total em atraso deve descontar baixas parciais do principal");
+assert.match(app, /if \(payment && isValidDateValue\(payment\.balanceDueDate\)\)/, "O total em atraso deve respeitar o vencimento acordado para o saldo");
 assert.match(app, /data-installment-adjust/, "Pagamento histórico deve poder ser ajustado");
 assert.match(app, /var historicReceivedCounted = false;/, "Total recebido deve impedir duplicidade histórica");
 assert.match(app, /historicPaid && !historicReceivedCounted/, "Um pagamento histórico deve ser somado somente uma vez por competência");
