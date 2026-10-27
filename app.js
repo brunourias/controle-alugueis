@@ -325,6 +325,7 @@ document.addEventListener("click", function (event) {
     var authBiometric = document.getElementById("authBiometric");
     var unitName = document.getElementById("unitName");
     var unitRent = document.getElementById("unitRent");
+    var unitDeposit = document.getElementById("unitDeposit");
     var unitDueDay = document.getElementById("unitDueDay");
     var unitStartYm = document.getElementById("unitStartYm");
     var unitEndYm = document.getElementById("unitEndYm");
@@ -351,6 +352,12 @@ var archiveContract = document.getElementById("archiveContract");
     var rescissionExitDate = document.getElementById("rescissionExitDate");
     var rescissionFineMonths = document.getElementById("rescissionFineMonths");
     var rescissionAdditionalRent = document.getElementById("rescissionAdditionalRent");
+    var rescissionStatus = document.getElementById("rescissionStatus");
+    var rescissionDepositApplied = document.getElementById("rescissionDepositApplied");
+    var rescissionEntryAmount = document.getElementById("rescissionEntryAmount");
+    var rescissionInstallmentCount = document.getElementById("rescissionInstallmentCount");
+    var rescissionInstallmentFirstDue = document.getElementById("rescissionInstallmentFirstDue");
+    var rescissionAgreementPreview = document.getElementById("rescissionAgreementPreview");
     var rescissionCalculation = document.getElementById("rescissionCalculation");
     var rescissionExtras = document.getElementById("rescissionExtras");
     var addRescissionExtra = document.getElementById("addRescissionExtra");
@@ -360,6 +367,7 @@ var archiveContract = document.getElementById("archiveContract");
     var rescissionStatementModal = document.getElementById("rescissionStatementModal");
     var rescissionStatementContent = document.getElementById("rescissionStatementContent");
     var activeRescissionStatement = null;
+    var keyHandoverModal = document.getElementById("keyHandoverModal");
 var historyTenant = document.getElementById("historyTenant");
 var historyStart = document.getElementById("historyStart");
 var historyEnd = document.getElementById("historyEnd");
@@ -960,6 +968,7 @@ var historyRent = document.getElementById("historyRent");
             Number.isFinite(Number(unit.rent)) && Number(unit.rent) >= 0
                 ? Number(unit.rent)
                 : 0;
+        unit.depositAmount = Math.max(0, Number(unit.depositAmount) || 0);
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
         unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations)
@@ -978,6 +987,14 @@ var historyRent = document.getElementById("historyRent");
                     fineMonths: Math.max(0, Number(entry.fineMonths) || 0),
                     proportionalFine: Math.max(0, Number(entry.proportionalFine) || 0),
                     additionalRent: Math.max(0, Number(entry.additionalRent) || 0),
+                    depositApplied: Math.max(0, Number(entry.depositApplied) || 0),
+                    status: ["rascunho", "enviado", "negociando", "acordado", "quitado", "encerrado"].indexOf(entry.status) >= 0 ? entry.status : "rascunho",
+                    sentAt: typeof entry.sentAt === "string" ? entry.sentAt : "",
+                    entryAmount: Math.max(0, Number(entry.entryAmount) || 0),
+                    installments: Array.isArray(entry.installments) ? entry.installments.slice(0, 48).map(function (installment, position) {
+                        return { number: Number(installment.number) || position + 1, dueDate: isValidDateValue(installment.dueDate) ? installment.dueDate : "", amount: Math.max(0, Number(installment.amount) || 0), paidAt: typeof installment.paidAt === "string" ? installment.paidAt : "" };
+                    }) : [],
+                    keyHandover: entry.keyHandover && typeof entry.keyHandover === "object" ? entry.keyHandover : null,
                     extras: Array.isArray(entry.extras) ? entry.extras.map(function (extra) {
                         return { description: typeof extra.description === "string" ? extra.description.slice(0, 80) : "", amount: Math.max(0, Number(extra.amount) || 0) };
                     }).filter(function (extra) { return extra.description || extra.amount; }).slice(0, 12) : [],
@@ -6432,6 +6449,7 @@ document
 		// Se a unidade não possui contrato atual, não reutiliza dados
 		// antigos que possam ter ficado gravados após o arquivamento.
 		setMoneyInput(unitRent, hasCurrentContract ? unit.rent : "");
+		setMoneyInput(unitDeposit, hasCurrentContract ? unit.depositAmount : "");
 
 		pendingRentChanges = hasCurrentContract
 			? (unit.rentChanges || []).map(function (change) {
@@ -7407,6 +7425,7 @@ function saveExpense() {
         if (!requireWorkspacePermission("manageContracts")) return;
         var name = unitName.value.trim();
         var rent = moneyInputValue(unitRent);
+        var depositAmount = Math.max(0, moneyInputValue(unitDeposit) || 0);
         var dueDayValue = unitDueDay.value.trim();
         var dueDay = dueDayValue === "" ? null : Number(dueDayValue);
         var startDate = unitStartYm.value || null;
@@ -7526,6 +7545,7 @@ function saveExpense() {
                 existing.name = name;
                 existing.empreendimentoId = unitEmpreendimento.value;
                 existing.rent = rent;
+                existing.depositAmount = depositAmount;
                 existing.rentChanges = normalizeRentChanges(pendingRentChanges);
 				existing.contractHistory = normalizeContractHistory(pendingContractHistory); 
                 existing.dueDay = dueDay;
@@ -7549,6 +7569,7 @@ function saveExpense() {
                 empreendimentoId: unitEmpreendimento.value,
                 name: name,
                 rent: rent,
+                depositAmount: depositAmount,
                 rentChanges: normalizeRentChanges(pendingRentChanges),
 				contractHistory: normalizeContractHistory(pendingContractHistory),
                 dueDay: dueDay,
@@ -10428,7 +10449,26 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var additionalRent = Math.max(0, moneyInputValue(rescissionAdditionalRent) || 0);
         var extras = rescissionExtraRows();
         var extrasTotal = extras.reduce(function (sum, extra) { return sum + extra.amount; }, 0);
-        return { rent: rent, totalDays: totalDays, remainingDays: remainingDays, fineMonths: fineMonths, contractualFine: contractualFine, proportionalFine: proportionalFine, additionalRent: additionalRent, extras: extras, extrasTotal: extrasTotal, total: proportionalFine + additionalRent + extrasTotal };
+        var total = proportionalFine + additionalRent + extrasTotal;
+        var depositAvailable = Math.max(0, Number(unit && unit.depositAmount) || 0);
+        var depositApplied = Math.min(total, depositAvailable, Math.max(0, moneyInputValue(rescissionDepositApplied) || 0));
+        var balance = Math.max(0, total - depositApplied);
+        var entryAmount = Math.min(balance, Math.max(0, moneyInputValue(rescissionEntryAmount) || 0));
+        var installmentCount = Math.max(0, Math.min(48, Math.floor(Number(rescissionInstallmentCount.value) || 0)));
+        var installmentBalance = Math.max(0, balance - entryAmount);
+        return { rent: rent, totalDays: totalDays, remainingDays: remainingDays, fineMonths: fineMonths, contractualFine: contractualFine, proportionalFine: proportionalFine, additionalRent: additionalRent, extras: extras, extrasTotal: extrasTotal, total: total, depositAvailable: depositAvailable, depositApplied: depositApplied, balance: balance, entryAmount: entryAmount, installmentCount: installmentCount, installmentBalance: installmentBalance };
+    }
+
+    function rescissionInstallmentSchedule(values) {
+        if (!values.installmentCount || !isValidDateValue(rescissionInstallmentFirstDue.value)) return [];
+        var cents = Math.round(values.installmentBalance * 100);
+        var base = Math.floor(cents / values.installmentCount);
+        var remainder = cents - base * values.installmentCount;
+        var first = new Date(rescissionInstallmentFirstDue.value + "T12:00:00");
+        return Array.from({ length: values.installmentCount }, function (_, index) {
+            var due = new Date(first.getFullYear(), first.getMonth() + index, first.getDate());
+            return { number: index + 1, dueDate: localDateValue(due), amount: (base + (index < remainder ? 1 : 0)) / 100, paidAt: "" };
+        });
     }
 
     function renderRescissionCalculation() {
@@ -10438,6 +10478,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             ? '<strong>Multa proporcional: ' + money(values.proportionalFine) + '</strong><br>Multa cheia: ' + money(values.contractualFine) + ' (' + values.fineMonths + ' ' + (values.fineMonths === 1 ? 'aluguel' : 'aluguéis') + ') · Restam ' + values.remainingDays + ' de ' + values.totalDays + ' dias do contrato.'
             : 'Informe início, fim previsto e uma saída anterior ao fim do contrato para calcular a multa proporcional.';
         rescissionTotal.textContent = money(values.total);
+        var schedule = rescissionInstallmentSchedule(values);
+        rescissionAgreementPreview.innerHTML = values.depositAvailable
+            ? 'Caução disponível: <strong>' + money(values.depositAvailable) + '</strong> · abatimento: <strong>' + money(values.depositApplied) + '</strong> · saldo: <strong>' + money(values.balance) + '</strong>' +
+                (schedule.length ? '<br>Acordo: entrada de ' + money(values.entryAmount) + ' + ' + schedule.length + ' parcela(s) de ' + money(schedule[0].amount) + '.' : '')
+            : (schedule.length ? 'Acordo: entrada de ' + money(values.entryAmount) + ' + ' + schedule.length + ' parcela(s) de ' + money(schedule[0].amount) + '.' : 'Sem caução informada para este contrato.');
         return values;
     }
 
@@ -10460,6 +10505,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         rescissionExitDate.value = last ? last.exitDate : defaultRescissionExitDate();
         rescissionFineMonths.value = last ? String(last.fineMonths) : "3";
         setMoneyInput(rescissionAdditionalRent, last ? last.additionalRent : "");
+        rescissionStatus.value = last ? last.status : "rascunho";
+        setMoneyInput(rescissionDepositApplied, last ? last.depositApplied : (unit.depositAmount || ""));
+        setMoneyInput(rescissionEntryAmount, last ? last.entryAmount : "");
+        rescissionInstallmentCount.value = last && last.installments ? last.installments.length : "0";
+        rescissionInstallmentFirstDue.value = last && last.installments && last.installments[0] ? last.installments[0].dueDate : "";
         rescissionExtras.innerHTML = "";
         rescissionSaved.textContent = "";
         if (last) {
@@ -10479,6 +10529,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
         createVersionedBackup("Cálculo de multa rescisória", unit.name);
         unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations) ? unit.rescissionCalculations : [];
+        var installments = rescissionInstallmentSchedule(values);
         var record = {
             id: "rescission-" + Date.now().toString(36), createdAt: new Date().toISOString(),
             unitName: unit.name, tenantName: unit.tenantName,
@@ -10486,7 +10537,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             rent: Math.round(values.rent * 100) / 100,
             fineMonths: values.fineMonths, proportionalFine: Math.round(values.proportionalFine * 100) / 100,
             additionalRent: Math.round(values.additionalRent * 100) / 100,
-            extras: values.extras, total: Math.round(values.total * 100) / 100
+            depositApplied: Math.round(values.depositApplied * 100) / 100,
+            status: rescissionStatus.value, entryAmount: Math.round(values.entryAmount * 100) / 100,
+            installments: installments, extras: values.extras, total: Math.round(values.total * 100) / 100,
+            balanceDue: Math.round(values.balance * 100) / 100
         };
         unit.rescissionCalculations.unshift(record);
         unit.rescissionCalculations = unit.rescissionCalculations.slice(0, 20);
@@ -10512,7 +10566,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             '<div class="rescission-statement-row"><span>Multa contratual</span><span>' + record.fineMonths + ' ' + (record.fineMonths === 1 ? 'aluguel' : 'aluguéis') + '</span></div>' +
             '<div class="rescission-statement-row is-emphasis"><span>Multa rescisória proporcional</span><span>' + money(record.proportionalFine) + '</span></div>' +
             '<div class="rescission-statement-row"><span>Aluguel adicional</span><span>' + money(record.additionalRent) + '</span></div>' + extras +
-            '<div class="rescission-statement-row is-total"><span>Total a cobrar</span><span>' + money(record.total) + '</span></div></div>' +
+            '<div class="rescission-statement-row"><span>Caução abatida</span><span>− ' + money(record.depositApplied) + '</span></div>' +
+            '<div class="rescission-statement-row is-total"><span>Saldo a pagar</span><span>' + money(record.balanceDue === undefined ? Math.max(0, record.total - (record.depositApplied || 0)) : record.balanceDue) + '</span></div>' +
+            ((record.installments || []).length ? '<div class="rescission-statement-row"><span>Acordo de pagamento</span><span>' + (record.installments || []).length + ' parcela(s)' + (record.entryAmount ? ' + entrada ' + money(record.entryAmount) : '') + '</span></div>' + (record.installments || []).map(function (item) { return '<div class="rescission-statement-row"><span>Parcela ' + item.number + ' · vence ' + escapeHtml(formatTimelineDate(item.dueDate)) + '</span><span>' + money(item.amount) + (item.paidAt ? ' · paga' : '') + '</span></div>'; }).join("") : '') +
+            '</div><p class="rescission-statement-note">Situação: <strong>' + escapeHtml({ rascunho: 'Rascunho', enviado: 'Enviado ao inquilino', negociando: 'Em negociação', acordado: 'Acordado', quitado: 'Quitado', encerrado: 'Contrato encerrado' }[record.status] || 'Rascunho') + '</strong>. Valores sujeitos à conferência da vistoria final, dos encargos em aberto e da entrega efetiva das chaves.</p>';
             '<p class="rescission-statement-note">Valores sujeitos à conferência da vistoria final, dos encargos em aberto e da entrega efetiva das chaves.</p>';
     }
 
@@ -10630,7 +10687,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             if (!blob) { notifyUser("Não foi possível gerar a imagem do demonstrativo.", "error"); return; }
             var file = new File([blob], "rescisao-" + slugify(record.unitName || "unidade") + "-" + record.exitDate + ".png", { type: "image/png" });
             if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-                navigator.share({ title: "Valor da rescisão", text: "Segue o demonstrativo completo da rescisão.", files: [file] }).catch(function () {});
+                navigator.share({ title: "Valor da rescisão", text: "Segue o demonstrativo completo da rescisão.", files: [file] }).then(function () { updateRescissionStatus("enviado"); }).catch(function () {});
                 return;
             }
             downloadRescissionStatement(record, canvas);
@@ -10641,9 +10698,57 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }, "image/png");
     }
 
+    function updateRescissionStatus(status) {
+        if (!activeRescissionStatement || !editingId) return;
+        var unit = state.units.find(function (item) { return item.id === editingId; });
+        var record = unit && (unit.rescissionCalculations || []).find(function (item) { return item.id === activeRescissionStatement.id; });
+        if (!record) return;
+        record.status = status;
+        if (status === "enviado") record.sentAt = new Date().toISOString();
+        activeRescissionStatement = record;
+        saveState();
+        rescissionStatementContent.innerHTML = rescissionStatementMarkup(record);
+    }
+
     function printRescissionStatement() {
         if (!activeRescissionStatement) return;
         window.print();
+    }
+
+    function openKeyHandoverTerm() {
+        if (!activeRescissionStatement) return;
+        var handover = activeRescissionStatement.keyHandover || {};
+        document.getElementById("keyHandoverLabel").textContent = (activeRescissionStatement.unitName || "Unidade") + " · entrega prevista em " + formatTimelineDate(activeRescissionStatement.exitDate);
+        document.getElementById("keyHandoverDate").value = handover.date || activeRescissionStatement.exitDate;
+        document.getElementById("keyHandoverKeys").value = handover.keys === undefined ? 1 : handover.keys;
+        document.getElementById("keyHandoverWater").value = handover.water || "";
+        document.getElementById("keyHandoverEnergy").value = handover.energy || "";
+        document.getElementById("keyHandoverInspection").value = handover.inspection || "pendente";
+        document.getElementById("keyHandoverNotes").value = handover.notes || "";
+        ModalManager.open(keyHandoverModal);
+    }
+
+    function printKeyHandoverTerm() {
+        if (!activeRescissionStatement) return;
+        var date = document.getElementById("keyHandoverDate").value;
+        if (!isValidDateValue(date)) { notifyUser("Informe a data de entrega das chaves.", "error"); return; }
+        var handover = {
+            date: date, keys: Math.max(0, Number(document.getElementById("keyHandoverKeys").value) || 0),
+            water: document.getElementById("keyHandoverWater").value.trim(), energy: document.getElementById("keyHandoverEnergy").value.trim(),
+            inspection: document.getElementById("keyHandoverInspection").value, notes: document.getElementById("keyHandoverNotes").value.trim()
+        };
+        activeRescissionStatement.keyHandover = handover;
+        if (editingId) {
+            var unit = state.units.find(function (item) { return item.id === editingId; });
+            var record = unit && (unit.rescissionCalculations || []).find(function (item) { return item.id === activeRescissionStatement.id; });
+            if (record) record.keyHandover = handover;
+            saveState();
+        }
+        var inspection = handover.inspection === "concluida" ? "concluída" : "pendente";
+        var term = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Termo de entrega de chaves</title><style>body{font:16px Arial;color:#223331;max-width:760px;margin:48px auto;line-height:1.55}h1{color:#0f766e}.row{border-bottom:1px solid #d7e8e5;padding:10px 0;display:flex;justify-content:space-between}.sign{margin-top:90px;display:flex;justify-content:space-between;gap:60px}.sign div{border-top:1px solid #567;padding-top:8px;text-align:center;flex:1}</style></head><body><h1>Termo de entrega de chaves</h1><p>Unidade: <strong>' + escapeHtml(activeRescissionStatement.unitName || "") + '</strong><br>Locatário(a): <strong>' + escapeHtml(activeRescissionStatement.tenantName || "") + '</strong></p><p>Na data de <strong>' + escapeHtml(formatTimelineDate(handover.date)) + '</strong>, o(a) locatário(a) declara entregar a posse do imóvel e as chaves abaixo descritas, ficando a vistoria final registrada como ' + inspection + '.</p><div class="row"><span>Quantidade de chaves</span><strong>' + handover.keys + '</strong></div><div class="row"><span>Leitura de água</span><strong>' + escapeHtml(handover.water || "Não informada") + '</strong></div><div class="row"><span>Leitura de energia</span><strong>' + escapeHtml(handover.energy || "Não informada") + '</strong></div><div class="row"><span>Observações</span><strong>' + escapeHtml(handover.notes || "Nenhuma") + '</strong></div><p>Este termo não substitui a vistoria final nem afasta responsabilidades apuradas conforme o contrato e a legislação aplicável.</p><div class="sign"><div>LOCADOR(A)</div><div>LOCATÁRIO(A)</div></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}</script></body></html>';
+        var popup = window.open("", "_blank");
+        if (!popup) { notifyUser("Permita pop-ups para gerar o termo em PDF.", "error"); return; }
+        popup.document.write(term); popup.document.close();
     }
 
     function endContractWithRescissionNow() {
@@ -10654,6 +10759,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         createVersionedBackup("Encerramento com multa rescisória", unit.name);
         recordOperation("Contrato encerrado com multa rescisória", unit.name + " · " + money(activeRescissionStatement.total));
         if (!archiveCurrentContract(activeRescissionStatement)) return;
+        activeRescissionStatement.status = "encerrado";
+        saveState();
         ModalManager.close(rescissionStatementModal);
         ModalManager.close(rescissionModal);
         notifyUser("Contrato encerrado e demonstrativo de rescisão preservado.", "success");
@@ -10663,7 +10770,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     archiveContract.removeEventListener("click", endCurrentContractOnly);
     archiveContract.addEventListener("click", endCurrentContractOnly);
     openRescissionCalculator.addEventListener("click", openRescissionCalculatorNow);
-    [rescissionStartDate, rescissionEndDate, rescissionExitDate, rescissionFineMonths, rescissionAdditionalRent].forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
+    [rescissionStartDate, rescissionEndDate, rescissionExitDate, rescissionFineMonths, rescissionAdditionalRent, rescissionDepositApplied, rescissionEntryAmount, rescissionInstallmentCount, rescissionInstallmentFirstDue].forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
     addRescissionExtra.addEventListener("click", function () { addRescissionExtraRow(); renderRescissionCalculation(); });
     document.getElementById("closeRescission").addEventListener("click", function () { ModalManager.close(rescissionModal); });
     document.getElementById("saveRescission").addEventListener("click", saveRescissionCalculation);
@@ -10671,6 +10778,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("closeRescissionStatement").addEventListener("click", function () { ModalManager.close(rescissionStatementModal); });
     document.getElementById("shareRescissionStatement").addEventListener("click", shareRescissionStatement);
     document.getElementById("printRescissionStatement").addEventListener("click", printRescissionStatement);
+    document.getElementById("openKeyHandoverTerm").addEventListener("click", openKeyHandoverTerm);
+    document.getElementById("closeKeyHandover").addEventListener("click", function () { ModalManager.close(keyHandoverModal); });
+    document.getElementById("printKeyHandover").addEventListener("click", printKeyHandoverTerm);
     document.getElementById("endContractWithRescission").addEventListener("click", function () { requireSensitiveAccess("encerrar contrato com rescisão", endContractWithRescissionNow); });
     document.getElementById("startNewContract").addEventListener("click", prepareNewContractForm);
     document.getElementById("closeContractInstallments").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });

@@ -181,6 +181,10 @@ assert.match(app, /function drawRescissionStatementCanvas\(/, "O demonstrativo d
 assert.match(app, /files: \[file\]/, "O compartilhamento deve anexar a imagem gerada");
 assert.match(app, /function recoverLatestRescission\(/, "A última simulação deve poder ser recuperada");
 assert.match(app, /archiveCurrentContract\(activeRescissionStatement\)/, "O demonstrativo deve permitir encerrar o contrato com a rescisão registrada");
+assert.match(index, /id="unitDeposit"/, "O contrato deve permitir registrar caução opcional");
+assert.match(app, /depositApplied: Math\.round\(values\.depositApplied/, "A simulação deve registrar o abatimento da caução");
+assert.match(app, /function rescissionInstallmentSchedule\(/, "A rescisão deve poder gerar acordo parcelado");
+assert.match(index, /id="keyHandoverModal"/, "A rescisão deve gerar termo de entrega de chaves");
 
 console.log("Verificações de integridade concluídas.");
 

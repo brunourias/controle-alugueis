@@ -3004,6 +3004,11 @@ textarea:focus-visible {
 .rescission-total { margin-top: 16px; }
 .rescission-total strong { font-size: 1.08rem; color: var(--teal-dark); }
 .rescission-saved { margin-top: 12px; }
+.rescission-options { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.rescission-options summary { cursor: pointer; color: var(--teal-dark); font-weight: 750; }
+.rescission-options .rescission-form-grid { margin-bottom: 8px; }
+.rescission-agreement-preview { font-size: .8rem; line-height: 1.45; color: var(--muted); }
+.key-handover-modal { width: min(620px, calc(100vw - 28px)); }
 .rescission-statement-modal { width: min(680px, calc(100vw - 28px)); }
 .rescission-statement { background: #fff; color: #1f2f2d; }
 .rescission-statement h2 { margin: 0 0 4px; font-size: 1.2rem; color: var(--teal-dark); }
