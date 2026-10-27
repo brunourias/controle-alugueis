@@ -185,6 +185,8 @@ assert.match(index, /id="unitDeposit"/, "O contrato deve permitir registrar cau�
 assert.match(app, /depositApplied: Math\.round\(values\.depositApplied/, "A simulação deve registrar o abatimento da caução");
 assert.match(app, /function rescissionInstallmentSchedule\(/, "A rescisão deve poder gerar acordo parcelado");
 assert.match(index, /id="keyHandoverModal"/, "A rescisão deve gerar termo de entrega de chaves");
+assert.match(index, /id="openStandaloneKeyHandover"/, "A unidade deve gerar termo de chaves sem rescisão");
+assert.match(app, /function openStandaloneKeyHandover\(/, "O termo independente deve ter fluxo próprio");
 
 console.log("Verificações de integridade concluídas.");
 

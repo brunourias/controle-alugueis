@@ -368,6 +368,7 @@ var archiveContract = document.getElementById("archiveContract");
     var rescissionStatementContent = document.getElementById("rescissionStatementContent");
     var activeRescissionStatement = null;
     var keyHandoverModal = document.getElementById("keyHandoverModal");
+    var keyHandoverContext = null;
 var historyTenant = document.getElementById("historyTenant");
 var historyStart = document.getElementById("historyStart");
 var historyEnd = document.getElementById("historyEnd");
@@ -969,6 +970,9 @@ var historyRent = document.getElementById("historyRent");
                 ? Number(unit.rent)
                 : 0;
         unit.depositAmount = Math.max(0, Number(unit.depositAmount) || 0);
+        unit.keyHandovers = Array.isArray(unit.keyHandovers) ? unit.keyHandovers.filter(function (entry) {
+            return entry && typeof entry === "object" && isValidDateValue(entry.date);
+        }).slice(0, 20) : [];
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
         unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations)
@@ -10717,9 +10721,21 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function openKeyHandoverTerm() {
         if (!activeRescissionStatement) return;
-        var handover = activeRescissionStatement.keyHandover || {};
-        document.getElementById("keyHandoverLabel").textContent = (activeRescissionStatement.unitName || "Unidade") + " · entrega prevista em " + formatTimelineDate(activeRescissionStatement.exitDate);
-        document.getElementById("keyHandoverDate").value = handover.date || activeRescissionStatement.exitDate;
+        openKeyHandoverTermFor({ unitId: editingId, unitName: activeRescissionStatement.unitName, tenantName: activeRescissionStatement.tenantName, defaultDate: activeRescissionStatement.exitDate, record: activeRescissionStatement });
+    }
+
+    function openStandaloneKeyHandover() {
+        if (!requireWorkspacePermission("manageContracts")) return;
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        if (!unit) return;
+        openKeyHandoverTermFor({ unitId: unit.id, unitName: unit.name, tenantName: unit.tenantName || "", defaultDate: localDateValue(new Date()), record: null });
+    }
+
+    function openKeyHandoverTermFor(context) {
+        keyHandoverContext = context;
+        var handover = context.record && context.record.keyHandover ? context.record.keyHandover : {};
+        document.getElementById("keyHandoverLabel").textContent = (context.unitName || "Unidade") + (context.tenantName ? " · " + context.tenantName : "") + " · termo independente de rescisão";
+        document.getElementById("keyHandoverDate").value = handover.date || context.defaultDate || localDateValue(new Date());
         document.getElementById("keyHandoverKeys").value = handover.keys === undefined ? 1 : handover.keys;
         document.getElementById("keyHandoverWater").value = handover.water || "";
         document.getElementById("keyHandoverEnergy").value = handover.energy || "";
@@ -10729,7 +10745,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function printKeyHandoverTerm() {
-        if (!activeRescissionStatement) return;
+        if (!keyHandoverContext) return;
         var date = document.getElementById("keyHandoverDate").value;
         if (!isValidDateValue(date)) { notifyUser("Informe a data de entrega das chaves.", "error"); return; }
         var handover = {
@@ -10737,15 +10753,21 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             water: document.getElementById("keyHandoverWater").value.trim(), energy: document.getElementById("keyHandoverEnergy").value.trim(),
             inspection: document.getElementById("keyHandoverInspection").value, notes: document.getElementById("keyHandoverNotes").value.trim()
         };
-        activeRescissionStatement.keyHandover = handover;
-        if (editingId) {
-            var unit = state.units.find(function (item) { return item.id === editingId; });
-            var record = unit && (unit.rescissionCalculations || []).find(function (item) { return item.id === activeRescissionStatement.id; });
+        if (keyHandoverContext.record) keyHandoverContext.record.keyHandover = handover;
+        if (keyHandoverContext.unitId) {
+            var unit = state.units.find(function (item) { return item.id === keyHandoverContext.unitId; });
+            var record = unit && keyHandoverContext.record && (unit.rescissionCalculations || []).find(function (item) { return item.id === keyHandoverContext.record.id; });
             if (record) record.keyHandover = handover;
+            if (unit && !keyHandoverContext.record && !keyHandoverContext.saved) {
+                unit.keyHandovers = Array.isArray(unit.keyHandovers) ? unit.keyHandovers : [];
+                unit.keyHandovers.unshift({ id: "handover-" + Date.now().toString(36), createdAt: new Date().toISOString(), tenantName: keyHandoverContext.tenantName || "", date: handover.date, keys: handover.keys, water: handover.water, energy: handover.energy, inspection: handover.inspection, notes: handover.notes });
+                unit.keyHandovers = unit.keyHandovers.slice(0, 20);
+                keyHandoverContext.saved = true;
+            }
             saveState();
         }
         var inspection = handover.inspection === "concluida" ? "concluída" : "pendente";
-        var term = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Termo de entrega de chaves</title><style>body{font:16px Arial;color:#223331;max-width:760px;margin:48px auto;line-height:1.55}h1{color:#0f766e}.row{border-bottom:1px solid #d7e8e5;padding:10px 0;display:flex;justify-content:space-between}.sign{margin-top:90px;display:flex;justify-content:space-between;gap:60px}.sign div{border-top:1px solid #567;padding-top:8px;text-align:center;flex:1}</style></head><body><h1>Termo de entrega de chaves</h1><p>Unidade: <strong>' + escapeHtml(activeRescissionStatement.unitName || "") + '</strong><br>Locatário(a): <strong>' + escapeHtml(activeRescissionStatement.tenantName || "") + '</strong></p><p>Na data de <strong>' + escapeHtml(formatTimelineDate(handover.date)) + '</strong>, o(a) locatário(a) declara entregar a posse do imóvel e as chaves abaixo descritas, ficando a vistoria final registrada como ' + inspection + '.</p><div class="row"><span>Quantidade de chaves</span><strong>' + handover.keys + '</strong></div><div class="row"><span>Leitura de água</span><strong>' + escapeHtml(handover.water || "Não informada") + '</strong></div><div class="row"><span>Leitura de energia</span><strong>' + escapeHtml(handover.energy || "Não informada") + '</strong></div><div class="row"><span>Observações</span><strong>' + escapeHtml(handover.notes || "Nenhuma") + '</strong></div><p>Este termo não substitui a vistoria final nem afasta responsabilidades apuradas conforme o contrato e a legislação aplicável.</p><div class="sign"><div>LOCADOR(A)</div><div>LOCATÁRIO(A)</div></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}</script></body></html>';
+        var term = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Termo de entrega de chaves</title><style>body{font:16px Arial;color:#223331;max-width:760px;margin:48px auto;line-height:1.55}h1{color:#0f766e}.row{border-bottom:1px solid #d7e8e5;padding:10px 0;display:flex;justify-content:space-between}.sign{margin-top:90px;display:flex;justify-content:space-between;gap:60px}.sign div{border-top:1px solid #567;padding-top:8px;text-align:center;flex:1}</style></head><body><h1>Termo de entrega de chaves</h1><p>Unidade: <strong>' + escapeHtml(keyHandoverContext.unitName || "") + '</strong><br>Locatário(a): <strong>' + escapeHtml(keyHandoverContext.tenantName || "") + '</strong></p><p>Na data de <strong>' + escapeHtml(formatTimelineDate(handover.date)) + '</strong>, o(a) locatário(a) declara entregar a posse do imóvel e as chaves abaixo descritas, ficando a vistoria final registrada como ' + inspection + '.</p><div class="row"><span>Quantidade de chaves</span><strong>' + handover.keys + '</strong></div><div class="row"><span>Leitura de água</span><strong>' + escapeHtml(handover.water || "Não informada") + '</strong></div><div class="row"><span>Leitura de energia</span><strong>' + escapeHtml(handover.energy || "Não informada") + '</strong></div><div class="row"><span>Observações</span><strong>' + escapeHtml(handover.notes || "Nenhuma") + '</strong></div><p>Este termo não substitui a vistoria final nem afasta responsabilidades apuradas conforme o contrato e a legislação aplicável.</p><div class="sign"><div>LOCADOR(A)</div><div>LOCATÁRIO(A)</div></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}</script></body></html>';
         var popup = window.open("", "_blank");
         if (!popup) { notifyUser("Permita pop-ups para gerar o termo em PDF.", "error"); return; }
         popup.document.write(term); popup.document.close();
@@ -10770,6 +10792,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     archiveContract.removeEventListener("click", endCurrentContractOnly);
     archiveContract.addEventListener("click", endCurrentContractOnly);
     openRescissionCalculator.addEventListener("click", openRescissionCalculatorNow);
+    document.getElementById("openStandaloneKeyHandover").addEventListener("click", openStandaloneKeyHandover);
     [rescissionStartDate, rescissionEndDate, rescissionExitDate, rescissionFineMonths, rescissionAdditionalRent, rescissionDepositApplied, rescissionEntryAmount, rescissionInstallmentCount, rescissionInstallmentFirstDue].forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
     addRescissionExtra.addEventListener("click", function () { addRescissionExtraRow(); renderRescissionCalculation(); });
     document.getElementById("closeRescission").addEventListener("click", function () { ModalManager.close(rescissionModal); });
