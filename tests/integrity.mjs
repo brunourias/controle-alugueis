@@ -187,6 +187,10 @@ assert.match(app, /function rescissionInstallmentSchedule\(/, "A rescisão deve 
 assert.match(index, /id="keyHandoverModal"/, "A rescisão deve gerar termo de entrega de chaves");
 assert.match(index, /id="openStandaloneKeyHandover"/, "A unidade deve gerar termo de chaves sem rescisão");
 assert.match(app, /function openStandaloneKeyHandover\(/, "O termo independente deve ter fluxo próprio");
+assert.match(app, /parcela do acordo/, "Parcelas de acordo devem gerar lembretes operacionais");
+assert.match(app, /data-rescission-installment/, "O lembrete deve permitir dar baixa na parcela do acordo");
+assert.match(app, /function printDepositReturnReceipt\(/, "O saldo de caução deve gerar comprovante de devolução");
+assert.match(index, /data-report-destination="closures"/, "Relatórios devem incluir encerramentos");
 
 console.log("Verificações de integridade concluídas.");
 

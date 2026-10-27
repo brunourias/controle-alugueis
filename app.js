@@ -991,7 +991,10 @@ var historyRent = document.getElementById("historyRent");
                     fineMonths: Math.max(0, Number(entry.fineMonths) || 0),
                     proportionalFine: Math.max(0, Number(entry.proportionalFine) || 0),
                     additionalRent: Math.max(0, Number(entry.additionalRent) || 0),
+                    depositAvailable: Math.max(0, Number(entry.depositAvailable) || 0),
                     depositApplied: Math.max(0, Number(entry.depositApplied) || 0),
+                    balanceDue: Math.max(0, Number(entry.balanceDue) || 0),
+                    depositReturnedAt: typeof entry.depositReturnedAt === "string" ? entry.depositReturnedAt : "",
                     status: ["rascunho", "enviado", "negociando", "acordado", "quitado", "encerrado"].indexOf(entry.status) >= 0 ? entry.status : "rascunho",
                     sentAt: typeof entry.sentAt === "string" ? entry.sentAt : "",
                     entryAmount: Math.max(0, Number(entry.entryAmount) || 0),
@@ -4773,6 +4776,18 @@ var historyRent = document.getElementById("historyRent");
                     add(week, unit.name + " · vencimento próximo", (unit.tenantName || "Inquilino") + " · vence em " + reminder + " dia(s)", unit.id, "open");
                 }
             }
+            (unit.rescissionCalculations || []).forEach(function (rescission) {
+                if (!rescission || rescission.status === "quitado" || rescission.status === "encerrado") return;
+                (rescission.installments || []).forEach(function (installment, installmentIndex) {
+                    if (!installment || installment.paidAt || !isValidDateValue(installment.dueDate)) return;
+                    var dueDate = new Date(installment.dueDate + "T12:00:00");
+                    var target = dueDate <= today ? urgent : dueDate <= weekEnd ? week : null;
+                    if (!target) return;
+                    add(target, unit.name + " · parcela do acordo" + (dueDate < today ? " em atraso" : " próxima"),
+                        "Rescisão · " + money(installment.amount) + " · vence " + formatTimelineDate(installment.dueDate),
+                        unit.id, "rescission:" + rescission.id + ":" + installmentIndex, rescission.id, "rescission-installment");
+                });
+            });
             if (!String(unit.tenantName || "").trim()) {
                 add(decisions, unit.name + " · unidade vaga", "Defina se deseja iniciar uma nova locação.", unit.id, "open");
             } else if (isValidDateValue(unit.endDate)) {
@@ -4810,6 +4825,7 @@ var historyRent = document.getElementById("historyRent");
                     item.action === "decision" ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Decidir</button>' :
                     item.action === "tax" ? '<button class="btn btn-ghost" type="button" data-open-tax-dashboard>Revisar</button>' :
                     item.action && item.action.indexOf("task:") === 0 ? '<button class="btn btn-ghost" type="button" data-task-done="' + escapeHtml(item.action.slice(5)) + '">Concluir</button>' :
+                    item.action && item.action.indexOf("rescission:") === 0 ? '<button class="btn btn-ghost" type="button" data-rescission-installment="' + escapeHtml(item.action.slice(11)) + '" data-rescission-unit="' + escapeHtml(item.unitId) + '">Dar baixa</button>' :
                     item.unitId ? '<button class="btn btn-ghost" type="button" data-open-unit="' + escapeHtml(item.unitId) + '">Ver</button>' : "";
                 var removeButton = item.recordType === "charge"
                     ? '<button class="btn btn-danger" type="button" data-delete-charge-record="' + escapeHtml(item.unitId) + '" data-charge-record-id="' + escapeHtml(item.recordId) + '">Excluir</button>'
@@ -4905,6 +4921,18 @@ var historyRent = document.getElementById("historyRent");
         container.querySelectorAll("[data-task-done]").forEach(function (button) { button.addEventListener("click", function () {
             var task = state.tasks.find(function (item) { return item.id === button.dataset.taskDone; });
             if (task) { task.done = true; saveState(); render(); }
+        }); });
+        container.querySelectorAll("[data-rescission-installment]").forEach(function (button) { button.addEventListener("click", function () {
+            var parts = String(button.dataset.rescissionInstallment || "").split(":");
+            var unit = state.units.find(function (item) { return item.id === button.dataset.rescissionUnit; });
+            var record = unit && (unit.rescissionCalculations || []).find(function (item) { return item.id === parts[0]; });
+            var installment = record && record.installments && record.installments[Number(parts[1])];
+            if (!installment || !window.confirm("Confirmar recebimento de " + money(installment.amount) + "?")) return;
+            installment.paidAt = new Date().toISOString();
+            if (record.installments.every(function (item) { return !!item.paidAt; })) record.status = "quitado";
+            createVersionedBackup("Parcela de rescisão recebida", unit.name);
+            recordOperation("Parcela de rescisão recebida", unit.name + " · " + money(installment.amount));
+            saveState(); render();
         }); });
         container.querySelectorAll("[data-delete-charge-record]").forEach(function (button) { button.addEventListener("click", function () {
             var unit = state.units.find(function (item) { return item.id === button.dataset.deleteChargeRecord; });
@@ -10541,6 +10569,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             rent: Math.round(values.rent * 100) / 100,
             fineMonths: values.fineMonths, proportionalFine: Math.round(values.proportionalFine * 100) / 100,
             additionalRent: Math.round(values.additionalRent * 100) / 100,
+            depositAvailable: Math.round(values.depositAvailable * 100) / 100,
             depositApplied: Math.round(values.depositApplied * 100) / 100,
             status: rescissionStatus.value, entryAmount: Math.round(values.entryAmount * 100) / 100,
             installments: installments, extras: values.extras, total: Math.round(values.total * 100) / 100,
@@ -10582,6 +10611,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         activeRescissionStatement = record;
         rescissionStatementContent.innerHTML = rescissionStatementMarkup(record);
         document.getElementById("endContractWithRescission").hidden = !(editingId && state.units.some(function (unit) { return unit.id === editingId && unit.tenantName; }));
+        document.getElementById("printDepositReturn").hidden = Math.max(0, Number(record.depositAvailable) - Number(record.depositApplied)) <= 0.009 || !!record.depositReturnedAt;
         ModalManager.open(rescissionStatementModal);
     }
 
@@ -10719,6 +10749,26 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         window.print();
     }
 
+    function printDepositReturnReceipt() {
+        if (!activeRescissionStatement) return;
+        var record = activeRescissionStatement;
+        var amount = Math.max(0, Number(record.depositAvailable) - Number(record.depositApplied));
+        if (amount <= 0.009) { notifyUser("Não há saldo de caução para devolver.", "error"); return; }
+        var today = localDateValue(new Date());
+        record.depositReturnedAt = today;
+        if (editingId) {
+            var unit = state.units.find(function (item) { return item.id === editingId; });
+            var saved = unit && (unit.rescissionCalculations || []).find(function (item) { return item.id === record.id; });
+            if (saved) saved.depositReturnedAt = today;
+            saveState();
+        }
+        var receipt = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Comprovante de devolução de caução</title><style>body{font:16px Arial;color:#223331;max-width:700px;margin:48px auto;line-height:1.6}h1{color:#0f766e}.box{border:1px solid #cfe4e1;border-radius:12px;padding:24px}.row{display:flex;justify-content:space-between;border-bottom:1px solid #e2efed;padding:10px 0}.total{font-size:20px;font-weight:700;color:#075f5b}</style></head><body><div class="box"><h1>Comprovante de devolução de caução</h1><p>Declaro a devolução da caução referente à unidade <strong>' + escapeHtml(record.unitName || "") + '</strong>, ao(à) inquilino(a) <strong>' + escapeHtml(record.tenantName || "") + '</strong>.</p><div class="row"><span>Caução recebida</span><strong>' + money(record.depositAvailable) + '</strong></div><div class="row"><span>Valor utilizado na rescisão</span><strong>− ' + money(record.depositApplied) + '</strong></div><div class="row total"><span>Valor devolvido</span><strong>' + money(amount) + '</strong></div><p>Data da devolução: <strong>' + escapeHtml(formatTimelineDate(today)) + '</strong>.</p><p>Este comprovante registra exclusivamente a devolução do saldo de caução após a conferência da rescisão.</p><br><br><p>__________________________________<br>LOCADOR(A)</p><p>__________________________________<br>LOCATÁRIO(A)</p></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}</script></body></html>';
+        var popup = window.open("", "_blank");
+        if (!popup) { notifyUser("Permita pop-ups para gerar o comprovante em PDF.", "error"); return; }
+        popup.document.write(receipt); popup.document.close();
+        document.getElementById("printDepositReturn").hidden = true;
+    }
+
     function openKeyHandoverTerm() {
         if (!activeRescissionStatement) return;
         openKeyHandoverTermFor({ unitId: editingId, unitName: activeRescissionStatement.unitName, tenantName: activeRescissionStatement.tenantName, defaultDate: activeRescissionStatement.exitDate, record: activeRescissionStatement });
@@ -10801,6 +10851,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("closeRescissionStatement").addEventListener("click", function () { ModalManager.close(rescissionStatementModal); });
     document.getElementById("shareRescissionStatement").addEventListener("click", shareRescissionStatement);
     document.getElementById("printRescissionStatement").addEventListener("click", printRescissionStatement);
+    document.getElementById("printDepositReturn").addEventListener("click", printDepositReturnReceipt);
     document.getElementById("openKeyHandoverTerm").addEventListener("click", openKeyHandoverTerm);
     document.getElementById("closeKeyHandover").addEventListener("click", function () { ModalManager.close(keyHandoverModal); });
     document.getElementById("printKeyHandover").addEventListener("click", printKeyHandoverTerm);
@@ -11735,12 +11786,18 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             existing.querySelector("[data-close-report]").addEventListener("click", function () { ModalManager.close(existing); });
             existing.addEventListener("click", function (event) { if (event.target === existing) ModalManager.close(existing); });
         }
-        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : "Comparativo entre empreendimentos";
+        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : "Comparativo entre empreendimentos";
         var rows = [];
         if (kind === "tenant") {
             scopedUnits().forEach(function (unit) { rows.push([unit.name, String(unit.tenantName || "").trim() || "Sem inquilino", money(rentForMonth(unit, selectedYear, mobileMonthIndex)), displayStatus(unit, mobileMonthIndex)]); });
         } else if (kind === "partial") {
             scopedUnits().forEach(function (unit) { months.forEach(function (_, month) { var info = partialPaymentInfo(unit, month); if (info) rows.push([unit.name, months[month], money(info.received), money(info.balance)]); }); });
+        } else if (kind === "closures") {
+            state.units.forEach(function (unit) {
+                (unit.rescissionCalculations || []).forEach(function (record) {
+                    rows.push([unit.name, record.tenantName || "—", record.exitDate ? formatTimelineDate(record.exitDate) : "—", money(record.total), money(record.balanceDue === undefined ? Math.max(0, record.total - (record.depositApplied || 0)) : record.balanceDue), { rascunho: "Rascunho", enviado: "Enviado", negociando: "Negociando", acordado: "Acordado", quitado: "Quitado", encerrado: "Encerrado" }[record.status] || "Rascunho"]);
+                });
+            });
         } else {
             state.empreendimentos.forEach(function (enterprise) {
                 var units = state.units.filter(function (unit) { return unit.empreendimentoId === enterprise.id; });
@@ -11748,9 +11805,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 rows.push([enterprise.name, String(units.length), money(metrics.received), money(metrics.pending)]);
             });
         }
-        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
+        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : kind === "closures" ? ["Unidade","Inquilino","Saída","Total","Saldo","Situação"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
         existing.querySelector("#reportDetailTitle").textContent = title;
-        existing.querySelector("#reportDetailContent").innerHTML = rows.length ? '<div class="report-table-wrap"><table><thead><tr>' + headings.map(function (item) { return "<th>" + escapeHtml(item) + "</th>"; }).join("") + '</tr></thead><tbody>' + rows.map(function (row) { return "<tr>" + row.map(function (cell) { return "<td>" + escapeHtml(String(cell)) + "</td>"; }).join("") + "</tr>"; }).join("") + '</tbody></table></div>' : '<div class="empty empty-inline"><p>Nenhum dado disponível para este relatório em ' + selectedYear + '.</p><button class="btn btn-primary" type="button" data-report-empty-action>Ir para unidades</button></div>';
+        existing.querySelector("#reportDetailContent").innerHTML = rows.length ? '<div class="report-table-wrap"><table><thead><tr>' + headings.map(function (item) { return "<th>" + escapeHtml(item) + "</th>"; }).join("") + '</tr></thead><tbody>' + rows.map(function (row) { return "<tr>" + row.map(function (cell) { return "<td>" + escapeHtml(String(cell)) + "</td>"; }).join("") + "</tr>"; }).join("") + '</tbody></table></div>' : '<div class="empty empty-inline"><p>Nenhum encerramento registrado.</p><button class="btn btn-primary" type="button" data-report-empty-action>Ir para unidades</button></div>';
         var emptyAction = existing.querySelector("[data-report-empty-action]");
         if (emptyAction) emptyAction.addEventListener("click", function () { ModalManager.close(existing); activeMobileShortcut = "units"; showAppView("units"); });
         ModalManager.open(existing);
@@ -11782,7 +11839,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         button.addEventListener("click", function () {
             var destination = button.dataset.reportDestination;
             if (destination === "energy") { openEnergyRate(); return; }
-            if (destination === "tenant" || destination === "partial" || destination === "enterprises") { openReportDetail(destination); return; }
+            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures") { openReportDetail(destination); return; }
             if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
             if (destination === "late") { financialReportExpanded = true; activeMobileShortcut = "overview"; showAppView("overview"); render(); return; }
             activeMobileShortcut = "expenses"; showAppView("financial"); expensesExpanded = true; render();

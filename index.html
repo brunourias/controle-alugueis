@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=284" />
+        <link rel="stylesheet" href="styles.css?v=285" />
     
 <style>
     /* Histórico de contratos */
@@ -359,6 +359,7 @@
                     <button class="report-card" type="button" data-report-destination="expenses"><span class="report-card-icon">🧾</span><strong>Gastos por categoria</strong><small>Despesas agrupadas por período e finalidade.</small></button>
                     <button class="report-card" type="button" data-report-destination="enterprises"><span class="report-card-icon">🏢</span><strong>Comparativo entre empreendimentos</strong><small>Receitas, gastos, ocupação e inadimplência.</small></button>
                     <button class="report-card" type="button" data-report-destination="tax"><span class="report-card-icon">📄</span><strong>Imposto de Renda</strong><small>Conferência fiscal e valores do Carnê-Leão.</small></button>
+                    <button class="report-card" type="button" data-report-destination="closures"><span class="report-card-icon">🔑</span><strong>Encerramentos</strong><small>Rescisões, acordos, cauções e pendências.</small></button>
                 </div>
             </section>
 
@@ -983,6 +984,7 @@
                     <button id="shareRescissionStatement" class="btn btn-ghost" type="button">Compartilhar imagem</button>
                     <button id="printRescissionStatement" class="btn btn-ghost" type="button">Imprimir / PDF</button><span class="spacer"></span>
                     <button id="openKeyHandoverTerm" class="btn btn-ghost" type="button">Termo de chaves</button>
+                    <button id="printDepositReturn" class="btn btn-ghost" type="button" hidden>Devolver caução</button>
                     <button id="endContractWithRescission" class="btn btn-primary" type="button">Encerrar contrato</button>
                 </div>
             </div>
@@ -1116,7 +1118,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=284"></script>
-    <script src="app.js?v=284"></script>
+    <script src="energy-calculations.js?v=285"></script>
+    <script src="app.js?v=285"></script>
     </body>
 </html>
