@@ -175,6 +175,10 @@ assert.match(index, /id="rescissionExtras"/, "O cálculo rescisório deve permit
 assert.match(app, /function rescissionValues\(/, "A multa rescisória deve calcular seus valores de forma centralizada");
 assert.match(app, /contractualFine \* remainingDays \/ totalDays/, "A multa deve ser proporcional ao prazo restante do contrato");
 assert.match(app, /unit\.rescissionCalculations\.unshift/, "O cálculo rescisório deve ser salvo no histórico da unidade");
+assert.match(index, /id="rescissionStatementModal"/, "A simulação deve ter demonstrativo próprio para o inquilino");
+assert.match(app, /function shareRescissionStatement\(/, "O demonstrativo deve poder ser compartilhado");
+assert.match(app, /function recoverLatestRescission\(/, "A última simulação deve poder ser recuperada");
+assert.match(app, /archiveCurrentContract\(activeRescissionStatement\)/, "O demonstrativo deve permitir encerrar o contrato com a rescisão registrada");
 
 console.log("Verificações de integridade concluídas.");
 

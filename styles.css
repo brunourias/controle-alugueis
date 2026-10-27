@@ -3004,6 +3004,17 @@ textarea:focus-visible {
 .rescission-total { margin-top: 16px; }
 .rescission-total strong { font-size: 1.08rem; color: var(--teal-dark); }
 .rescission-saved { margin-top: 12px; }
+.rescission-statement-modal { width: min(680px, calc(100vw - 28px)); }
+.rescission-statement { background: #fff; color: #1f2f2d; }
+.rescission-statement h2 { margin: 0 0 4px; font-size: 1.2rem; color: var(--teal-dark); }
+.rescission-statement .statement-subtitle { margin: 0 0 18px; color: var(--muted); font-size: .84rem; }
+.rescission-statement-table { border-top: 1px solid var(--line); }
+.rescission-statement-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.rescission-statement-row span:last-child { text-align: right; white-space: nowrap; }
+.rescission-statement-row.is-emphasis { font-weight: 750; color: var(--teal-dark); }
+.rescission-statement-row.is-total { font-weight: 800; font-size: 1rem; border-bottom: 0; padding-top: 16px; }
+.rescission-statement-note { margin: 16px 0 0; padding: 10px 12px; border-radius: 9px; background: var(--surface-soft, #f5fbfa); color: var(--muted); font-size: .76rem; line-height: 1.45; }
+@media print { body:has(.rescission-statement-modal:not([hidden])) > :not(#rescissionStatementModal) { display: none !important; } .rescission-statement-modal { position: static !important; display: block !important; background: #fff !important; padding: 0 !important; } .rescission-statement-modal .modal { box-shadow: none !important; max-width: none !important; } .rescission-statement-modal .modal-actions { display: none !important; } }
 @media (max-width: 520px) {
     .rescission-form-grid { grid-template-columns: 1fr; gap: 8px; }
     .rescission-extra { grid-template-columns: minmax(0, 1fr) 110px auto; }

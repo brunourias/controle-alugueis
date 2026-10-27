@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=279" />
+        <link rel="stylesheet" href="styles.css?v=280" />
     
 <style>
     /* Histórico de contratos */
@@ -949,6 +949,7 @@
                     <label>Fim previsto<input id="rescissionEndDate" type="date" /></label>
                     <label>Data de saída<input id="rescissionExitDate" type="date" /></label>
                     <label>Multa contratual (aluguéis)<input id="rescissionFineMonths" type="number" min="0" step="0.01" value="3" inputmode="decimal" /></label>
+                    <label>Aluguel adicional (R$)<input id="rescissionAdditionalRent" type="text" inputmode="decimal" placeholder="0,00" data-money="true" /></label>
                 </div>
                 <div id="rescissionCalculation" class="rescission-calculation" aria-live="polite"></div>
                 <div class="rescission-extras-heading"><strong>Itens adicionais</strong><small>Ex.: pintura, manutenção ou limpeza.</small></div>
@@ -957,8 +958,22 @@
                 <div class="payment-adjust-total rescission-total"><span>Total a cobrar</span><strong id="rescissionTotal">R$ 0,00</strong></div>
                 <div id="rescissionSaved" class="rescission-saved" aria-live="polite"></div>
                 <div class="modal-actions settings-footer">
-                    <button id="closeRescission" class="btn btn-ghost" type="button">Cancelar</button><span class="spacer"></span>
+                    <button id="closeRescission" class="btn btn-ghost" type="button">Cancelar</button>
+                    <button id="viewSavedRescission" class="btn btn-ghost" type="button">Ver simulação</button><span class="spacer"></span>
                     <button id="saveRescission" class="btn btn-primary" type="button">Salvar cálculo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demonstrativo compartilhável da rescisão -->
+        <div class="modal-backdrop" id="rescissionStatementModal" hidden>
+            <div class="modal rescission-statement-modal">
+                <div id="rescissionStatementContent" class="rescission-statement" aria-live="polite"></div>
+                <div class="modal-actions settings-footer">
+                    <button id="closeRescissionStatement" class="btn btn-ghost" type="button">Voltar</button>
+                    <button id="shareRescissionStatement" class="btn btn-ghost" type="button">Compartilhar</button>
+                    <button id="printRescissionStatement" class="btn btn-ghost" type="button">Imprimir / PDF</button><span class="spacer"></span>
+                    <button id="endContractWithRescission" class="btn btn-primary" type="button">Encerrar contrato</button>
                 </div>
             </div>
         </div>
@@ -1076,7 +1091,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=279"></script>
-    <script src="app.js?v=279"></script>
+    <script src="energy-calculations.js?v=280"></script>
+    <script src="app.js?v=280"></script>
     </body>
 </html>

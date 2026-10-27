@@ -350,11 +350,16 @@ var archiveContract = document.getElementById("archiveContract");
     var rescissionEndDate = document.getElementById("rescissionEndDate");
     var rescissionExitDate = document.getElementById("rescissionExitDate");
     var rescissionFineMonths = document.getElementById("rescissionFineMonths");
+    var rescissionAdditionalRent = document.getElementById("rescissionAdditionalRent");
     var rescissionCalculation = document.getElementById("rescissionCalculation");
     var rescissionExtras = document.getElementById("rescissionExtras");
     var addRescissionExtra = document.getElementById("addRescissionExtra");
     var rescissionTotal = document.getElementById("rescissionTotal");
     var rescissionSaved = document.getElementById("rescissionSaved");
+    var viewSavedRescission = document.getElementById("viewSavedRescission");
+    var rescissionStatementModal = document.getElementById("rescissionStatementModal");
+    var rescissionStatementContent = document.getElementById("rescissionStatementContent");
+    var activeRescissionStatement = null;
 var historyTenant = document.getElementById("historyTenant");
 var historyStart = document.getElementById("historyStart");
 var historyEnd = document.getElementById("historyEnd");
@@ -964,11 +969,15 @@ var historyRent = document.getElementById("historyRent");
                 return {
                     id: typeof entry.id === "string" ? entry.id : "rescission-" + Date.now().toString(36),
                     createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+                    unitName: typeof entry.unitName === "string" ? entry.unitName.slice(0, 80) : unit.name || "",
+                    tenantName: typeof entry.tenantName === "string" ? entry.tenantName.slice(0, 120) : "",
                     startDate: isValidDateValue(entry.startDate) ? entry.startDate : "",
                     endDate: isValidDateValue(entry.endDate) ? entry.endDate : "",
                     exitDate: entry.exitDate,
+                    rent: Math.max(0, Number(entry.rent) || 0),
                     fineMonths: Math.max(0, Number(entry.fineMonths) || 0),
                     proportionalFine: Math.max(0, Number(entry.proportionalFine) || 0),
+                    additionalRent: Math.max(0, Number(entry.additionalRent) || 0),
                     extras: Array.isArray(entry.extras) ? entry.extras.map(function (extra) {
                         return { description: typeof extra.description === "string" ? extra.description.slice(0, 80) : "", amount: Math.max(0, Number(extra.amount) || 0) };
                     }).filter(function (extra) { return extra.description || extra.amount; }).slice(0, 12) : [],
@@ -9766,13 +9775,15 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object" ? unit.paymentHistory : {};
     }
 
-    function archiveCurrentContract() {
+    function archiveCurrentContract(rescission) {
         if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         if (!unit || !tenantName.value.trim()) { tenantName.focus(); return false; }
         ensureFinancialHistory(unit);
         var startDate = unitStartYm.value || unit.startDate || null;
-        var endDate = unitEndYm.value || localDateValue(new Date());
+        var endDate = rescission && isValidDateValue(rescission.exitDate)
+            ? rescission.exitDate
+            : unitEndYm.value || localDateValue(new Date());
 
         months.forEach(function (_, month) {
             var key = monthKey(month);
@@ -9802,8 +9813,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             endYm: contractMonthValue(endDate),
             rent: Number.isFinite(moneyInputValue(unitRent)) ? moneyInputValue(unitRent) : null,
             dueDay: unitDueDay.value === "" ? null : Number(unitDueDay.value),
-            status: "encerrado",
-            reason: ""
+            status: rescission ? "rescisao" : "encerrado",
+            reason: rescission ? "Rescisão antecipada · demonstrativo " + money(rescission.total) : ""
         });
         unit.contractHistory = serializeContractHistory(pendingContractHistory);
         unit.tenantName = "";
@@ -10414,9 +10425,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var contractualFine = rent * fineMonths;
         var proportionalFine = totalDays > 0 && rescissionExitDate.value && rescissionExitDate.value < rescissionEndDate.value
             ? contractualFine * remainingDays / totalDays : 0;
+        var additionalRent = Math.max(0, moneyInputValue(rescissionAdditionalRent) || 0);
         var extras = rescissionExtraRows();
         var extrasTotal = extras.reduce(function (sum, extra) { return sum + extra.amount; }, 0);
-        return { rent: rent, totalDays: totalDays, remainingDays: remainingDays, fineMonths: fineMonths, contractualFine: contractualFine, proportionalFine: proportionalFine, extras: extras, extrasTotal: extrasTotal, total: proportionalFine + extrasTotal };
+        return { rent: rent, totalDays: totalDays, remainingDays: remainingDays, fineMonths: fineMonths, contractualFine: contractualFine, proportionalFine: proportionalFine, additionalRent: additionalRent, extras: extras, extrasTotal: extrasTotal, total: proportionalFine + additionalRent + extrasTotal };
     }
 
     function renderRescissionCalculation() {
@@ -10440,16 +10452,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function openRescissionCalculatorNow() {
         if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
-        if (!unit || !unit.tenantName) { notifyUser("Cadastre um contrato ativo antes de calcular a rescisão.", "error"); return; }
-        rescissionUnitLabel.textContent = unit.name + " · " + unit.tenantName;
-        rescissionStartDate.value = isValidDateValue(unit.startDate) ? unit.startDate : "";
-        rescissionEndDate.value = isValidDateValue(unit.endDate) ? unit.endDate : "";
-        rescissionExitDate.value = defaultRescissionExitDate();
-        rescissionFineMonths.value = "3";
+        var last = unit && Array.isArray(unit.rescissionCalculations) && unit.rescissionCalculations[0];
+        if (!unit || (!unit.tenantName && !last)) { notifyUser("Cadastre um contrato ativo ou recupere uma simulação já salva.", "error"); return; }
+        rescissionUnitLabel.textContent = unit.name + " · " + (unit.tenantName || last.tenantName || "Contrato encerrado");
+        rescissionStartDate.value = last ? last.startDate : (isValidDateValue(unit.startDate) ? unit.startDate : "");
+        rescissionEndDate.value = last ? last.endDate : (isValidDateValue(unit.endDate) ? unit.endDate : "");
+        rescissionExitDate.value = last ? last.exitDate : defaultRescissionExitDate();
+        rescissionFineMonths.value = last ? String(last.fineMonths) : "3";
+        setMoneyInput(rescissionAdditionalRent, last ? last.additionalRent : "");
         rescissionExtras.innerHTML = "";
         rescissionSaved.textContent = "";
-        var last = Array.isArray(unit.rescissionCalculations) && unit.rescissionCalculations[0];
-        if (last) rescissionSaved.textContent = "Último cálculo salvo: " + money(last.total) + " · saída em " + formatTimelineDate(last.exitDate) + ".";
+        if (last) {
+            last.extras.forEach(addRescissionExtraRow);
+            rescissionSaved.textContent = "Simulação recuperada: " + money(last.total) + " · saída em " + formatTimelineDate(last.exitDate) + ".";
+        }
         renderRescissionCalculation();
         ModalManager.open(rescissionModal);
     }
@@ -10463,27 +10479,111 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         }
         createVersionedBackup("Cálculo de multa rescisória", unit.name);
         unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations) ? unit.rescissionCalculations : [];
-        unit.rescissionCalculations.unshift({
+        var record = {
             id: "rescission-" + Date.now().toString(36), createdAt: new Date().toISOString(),
+            unitName: unit.name, tenantName: unit.tenantName,
             startDate: rescissionStartDate.value, endDate: rescissionEndDate.value, exitDate: rescissionExitDate.value,
+            rent: Math.round(values.rent * 100) / 100,
             fineMonths: values.fineMonths, proportionalFine: Math.round(values.proportionalFine * 100) / 100,
+            additionalRent: Math.round(values.additionalRent * 100) / 100,
             extras: values.extras, total: Math.round(values.total * 100) / 100
-        });
+        };
+        unit.rescissionCalculations.unshift(record);
         unit.rescissionCalculations = unit.rescissionCalculations.slice(0, 20);
         recordOperation("Cálculo de multa rescisória salvo", unit.name + " · " + money(values.total));
         saveState();
         rescissionSaved.textContent = "Cálculo salvo: " + money(values.total) + ".";
         notifyUser("Cálculo de rescisão salvo.", "success");
+        openRescissionStatement(record);
+    }
+
+    function rescissionStatementMarkup(record) {
+        var extras = (record.extras || []).map(function (extra) {
+            return '<div class="rescission-statement-row"><span>' + escapeHtml(extra.description || "Item adicional") + '</span><span>' + money(extra.amount) + '</span></div>';
+        }).join("");
+        return '<h2>💰 Valor da rescisão — ' + escapeHtml(record.unitName || "Unidade") + '</h2>' +
+            '<p class="statement-subtitle">Demonstrativo para ' + escapeHtml(record.tenantName || "inquilino") + '</p>' +
+            '<div class="rescission-statement-table">' +
+            '<div class="rescission-statement-row"><span>Aluguel mensal</span><span>' + money(record.rent || rescissionValues().rent) + '</span></div>' +
+            '<div class="rescission-statement-row"><span>Início do contrato</span><span>' + escapeHtml(formatTimelineDate(record.startDate)) + '</span></div>' +
+            '<div class="rescission-statement-row"><span>Término previsto</span><span>' + escapeHtml(formatTimelineDate(record.endDate)) + '</span></div>' +
+            '<div class="rescission-statement-row"><span>Entrega das chaves</span><span>' + escapeHtml(formatTimelineDate(record.exitDate)) + '</span></div>' +
+            '<div class="rescission-statement-row"><span>Dias restantes do contrato</span><span>' + rescissionDateDifference(record.exitDate, record.endDate) + ' dias</span></div>' +
+            '<div class="rescission-statement-row"><span>Multa contratual</span><span>' + record.fineMonths + ' aluguel' + (record.fineMonths === 1 ? '' : 'es') + '</span></div>' +
+            '<div class="rescission-statement-row is-emphasis"><span>Multa rescisória proporcional</span><span>' + money(record.proportionalFine) + '</span></div>' +
+            '<div class="rescission-statement-row"><span>Aluguel adicional</span><span>' + money(record.additionalRent) + '</span></div>' + extras +
+            '<div class="rescission-statement-row is-total"><span>Total a cobrar</span><span>' + money(record.total) + '</span></div></div>' +
+            '<p class="rescission-statement-note">Valores sujeitos à conferência da vistoria final, dos encargos em aberto e da entrega efetiva das chaves.</p>';
+    }
+
+    function openRescissionStatement(record) {
+        if (!record) return;
+        activeRescissionStatement = record;
+        rescissionStatementContent.innerHTML = rescissionStatementMarkup(record);
+        document.getElementById("endContractWithRescission").hidden = !(editingId && state.units.some(function (unit) { return unit.id === editingId && unit.tenantName; }));
+        ModalManager.open(rescissionStatementModal);
+    }
+
+    function recoverLatestRescission() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var record = unit && Array.isArray(unit.rescissionCalculations) ? unit.rescissionCalculations[0] : null;
+        if (!record) { notifyUser("Ainda não há uma simulação salva para esta unidade.", "error"); return; }
+        openRescissionStatement(record);
+    }
+
+    function rescissionShareText(record) {
+        return "Valor da rescisão — " + (record.unitName || "Unidade") + "\n" +
+            "Entrega das chaves: " + formatTimelineDate(record.exitDate) + "\n" +
+            "Multa rescisória: " + money(record.proportionalFine) + "\n" +
+            "Total a cobrar: " + money(record.total) + "\n\n" +
+            "Valores sujeitos à vistoria final e à conferência dos encargos em aberto.";
+    }
+
+    function shareRescissionStatement() {
+        if (!activeRescissionStatement) return;
+        var text = rescissionShareText(activeRescissionStatement);
+        if (navigator.share) {
+            navigator.share({ title: "Valor da rescisão", text: text }).catch(function () {});
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { notifyUser("Demonstrativo copiado para enviar ao inquilino.", "success"); });
+            return;
+        }
+        notifyUser("Use Imprimir / PDF para compartilhar o demonstrativo.");
+    }
+
+    function printRescissionStatement() {
+        if (!activeRescissionStatement) return;
+        window.print();
+    }
+
+    function endContractWithRescissionNow() {
+        if (!activeRescissionStatement) return;
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        if (!unit || !unit.tenantName) return;
+        if (!window.confirm("Encerrar o contrato e registrar esta rescisão com saída em " + formatTimelineDate(activeRescissionStatement.exitDate) + "?")) return;
+        createVersionedBackup("Encerramento com multa rescisória", unit.name);
+        recordOperation("Contrato encerrado com multa rescisória", unit.name + " · " + money(activeRescissionStatement.total));
+        if (!archiveCurrentContract(activeRescissionStatement)) return;
+        ModalManager.close(rescissionStatementModal);
+        ModalManager.close(rescissionModal);
+        notifyUser("Contrato encerrado e demonstrativo de rescisão preservado.", "success");
     }
 
     archiveContract.removeEventListener("click", archiveCurrentContract);
     archiveContract.removeEventListener("click", endCurrentContractOnly);
     archiveContract.addEventListener("click", endCurrentContractOnly);
     openRescissionCalculator.addEventListener("click", openRescissionCalculatorNow);
-    [rescissionStartDate, rescissionEndDate, rescissionExitDate, rescissionFineMonths].forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
+    [rescissionStartDate, rescissionEndDate, rescissionExitDate, rescissionFineMonths, rescissionAdditionalRent].forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
     addRescissionExtra.addEventListener("click", function () { addRescissionExtraRow(); renderRescissionCalculation(); });
     document.getElementById("closeRescission").addEventListener("click", function () { ModalManager.close(rescissionModal); });
     document.getElementById("saveRescission").addEventListener("click", saveRescissionCalculation);
+    viewSavedRescission.addEventListener("click", recoverLatestRescission);
+    document.getElementById("closeRescissionStatement").addEventListener("click", function () { ModalManager.close(rescissionStatementModal); });
+    document.getElementById("shareRescissionStatement").addEventListener("click", shareRescissionStatement);
+    document.getElementById("printRescissionStatement").addEventListener("click", printRescissionStatement);
+    document.getElementById("endContractWithRescission").addEventListener("click", function () { requireSensitiveAccess("encerrar contrato com rescisão", endContractWithRescissionNow); });
     document.getElementById("startNewContract").addEventListener("click", prepareNewContractForm);
     document.getElementById("closeContractInstallments").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });
     document.getElementById("paymentAdjustFine").addEventListener("input", updatePaymentAdjustTotal);
