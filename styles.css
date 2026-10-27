@@ -3019,6 +3019,7 @@ textarea:focus-visible {
 .rescission-statement-row.is-emphasis { font-weight: 750; color: var(--teal-dark); }
 .rescission-statement-row.is-total { font-weight: 800; font-size: 1rem; border-bottom: 0; padding-top: 16px; }
 .rescission-statement-note { margin: 16px 0 0; padding: 10px 12px; border-radius: 9px; background: var(--surface-soft, #f5fbfa); color: var(--muted); font-size: .76rem; line-height: 1.45; }
+.rescission-utilities-alert { display: grid; gap: 5px; margin-top: 16px; padding: 12px; border: 1px solid #f1c8c8; border-radius: 10px; background: #fff7f7; color: #8c2f3b; font-size: .8rem; line-height: 1.4; }
 @media print { body:has(.rescission-statement-modal:not([hidden])) > :not(#rescissionStatementModal) { display: none !important; } .rescission-statement-modal { position: static !important; display: block !important; background: #fff !important; padding: 0 !important; } .rescission-statement-modal .modal { box-shadow: none !important; max-width: none !important; } .rescission-statement-modal .modal-actions { display: none !important; } }
 @media (max-width: 520px) {
     .rescission-form-grid { grid-template-columns: 1fr; gap: 8px; }

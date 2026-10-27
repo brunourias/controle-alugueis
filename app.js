@@ -10584,7 +10584,27 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         openRescissionStatement(record);
     }
 
+    function exitUtilitiesPending(unit, record) {
+        var warnings = [];
+        var exitYm = record && isValidDateValue(record.exitDate) ? record.exitDate.slice(0, 7) : "";
+        if (!unit || !exitYm) return warnings;
+        var allocations = (state.energyAllocations || []).filter(function (allocation) {
+            return String(allocation.reference || "") <= exitYm && (allocation.readings || []).some(function (reading) { return reading.unitId === unit.id; });
+        });
+        allocations.forEach(function (allocation) {
+            var reading = (allocation.readings || []).find(function (item) { return item.unitId === unit.id; });
+            if (reading && !reading.paid) warnings.push("Energia de " + energyReferenceLabel(allocation.reference) + " pendente: " + money(reading.amount) + ".");
+        });
+        if (!allocations.some(function (allocation) { return allocation.reference === exitYm; })) warnings.push("Rateio ou leitura de energia da competência da saída ainda não informado.");
+        var handover = record.keyHandover || {};
+        if (!handover.water) warnings.push("Leitura final de água ainda não registrada no termo de chaves.");
+        if (!handover.energy) warnings.push("Leitura final de energia ainda não registrada no termo de chaves.");
+        return warnings;
+    }
+
     function rescissionStatementMarkup(record) {
+        var linkedUnit = editingId ? state.units.find(function (unit) { return unit.id === editingId; }) : null;
+        var utilityWarnings = exitUtilitiesPending(linkedUnit, record);
         var extras = (record.extras || []).map(function (extra) {
             return '<div class="rescission-statement-row"><span>' + escapeHtml(extra.description || "Item adicional") + '</span><span>' + money(extra.amount) + '</span></div>';
         }).join("");
@@ -10602,8 +10622,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             '<div class="rescission-statement-row"><span>Caução abatida</span><span>− ' + money(record.depositApplied) + '</span></div>' +
             '<div class="rescission-statement-row is-total"><span>Saldo a pagar</span><span>' + money(record.balanceDue === undefined ? Math.max(0, record.total - (record.depositApplied || 0)) : record.balanceDue) + '</span></div>' +
             ((record.installments || []).length ? '<div class="rescission-statement-row"><span>Acordo de pagamento</span><span>' + (record.installments || []).length + ' parcela(s)' + (record.entryAmount ? ' + entrada ' + money(record.entryAmount) : '') + '</span></div>' + (record.installments || []).map(function (item) { return '<div class="rescission-statement-row"><span>Parcela ' + item.number + ' · vence ' + escapeHtml(formatTimelineDate(item.dueDate)) + '</span><span>' + money(item.amount) + (item.paidAt ? ' · paga' : '') + '</span></div>'; }).join("") : '') +
-            '</div><p class="rescission-statement-note">Situação: <strong>' + escapeHtml({ rascunho: 'Rascunho', enviado: 'Enviado ao inquilino', negociando: 'Em negociação', acordado: 'Acordado', quitado: 'Quitado', encerrado: 'Contrato encerrado' }[record.status] || 'Rascunho') + '</strong>. Valores sujeitos à conferência da vistoria final, dos encargos em aberto e da entrega efetiva das chaves.</p>';
-            '<p class="rescission-statement-note">Valores sujeitos à conferência da vistoria final, dos encargos em aberto e da entrega efetiva das chaves.</p>';
+            '</div>' + (utilityWarnings.length ? '<div class="rescission-utilities-alert"><strong>Conferir antes de encerrar</strong>' + utilityWarnings.map(function (warning) { return '<span>• ' + escapeHtml(warning) + '</span>'; }).join("") + '</div>' : '') + '<p class="rescission-statement-note">Situação: <strong>' + escapeHtml({ rascunho: 'Rascunho', enviado: 'Enviado ao inquilino', negociando: 'Em negociação', acordado: 'Acordado', quitado: 'Quitado', encerrado: 'Contrato encerrado' }[record.status] || 'Rascunho') + '</strong>. Valores sujeitos à conferência da vistoria final, dos encargos em aberto e da entrega efetiva das chaves.</p>';
     }
 
     function openRescissionStatement(record) {
@@ -10827,7 +10846,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!activeRescissionStatement) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         if (!unit || !unit.tenantName) return;
-        if (!window.confirm("Encerrar o contrato e registrar esta rescisão com saída em " + formatTimelineDate(activeRescissionStatement.exitDate) + "?")) return;
+        var utilityWarnings = exitUtilitiesPending(unit, activeRescissionStatement);
+        var confirmation = "Encerrar o contrato e registrar esta rescisão com saída em " + formatTimelineDate(activeRescissionStatement.exitDate) + "?";
+        if (utilityWarnings.length) confirmation += "\n\nAinda há pendências para conferência:\n- " + utilityWarnings.join("\n- ") + "\n\nDeseja encerrar mesmo assim?";
+        if (!window.confirm(confirmation)) return;
         createVersionedBackup("Encerramento com multa rescisória", unit.name);
         recordOperation("Contrato encerrado com multa rescisória", unit.name + " · " + money(activeRescissionStatement.total));
         if (!archiveCurrentContract(activeRescissionStatement)) return;

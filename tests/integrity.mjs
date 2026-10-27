@@ -191,6 +191,9 @@ assert.match(app, /parcela do acordo/, "Parcelas de acordo devem gerar lembretes
 assert.match(app, /data-rescission-installment/, "O lembrete deve permitir dar baixa na parcela do acordo");
 assert.match(app, /function printDepositReturnReceipt\(/, "O saldo de caução deve gerar comprovante de devolução");
 assert.match(index, /data-report-destination="closures"/, "Relatórios devem incluir encerramentos");
+assert.match(app, /function exitUtilitiesPending\(/, "A rescisão deve conferir pendências de utilidades");
+assert.match(app, /Rateio ou leitura de energia da competência da saída/, "A saída deve alertar sobre leitura de energia ausente");
+assert.match(app, /Leitura final de água ainda não registrada/, "A saída deve alertar sobre leitura final de água");
 
 console.log("Verificações de integridade concluídas.");
 
