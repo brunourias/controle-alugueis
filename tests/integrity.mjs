@@ -173,6 +173,8 @@ assert.doesNotMatch(app, /date > due/, "A classificação não deve comparar o h
 assert.match(index, /id="openRescissionCalculator"/, "Ações do contrato devem abrir o cálculo de multa rescisória");
 assert.match(index, /id="rescissionExtras"/, "O cálculo rescisório deve permitir itens adicionais");
 assert.match(app, /function rescissionValues\(/, "A multa rescisória deve calcular seus valores de forma centralizada");
+assert.match(app, /A leitura remota pode omitir campos opcionais antigos/, "A sincronização deve normalizar unidades antes de verificar conflitos");
+assert.match(app, /"order" faz parte do documento gravado/, "A ordem do contrato deve participar da comparação de sincronização");
 assert.match(app, /contractualFine \* remainingDays \/ totalDays/, "A multa deve ser proporcional ao prazo restante do contrato");
 assert.match(app, /unit\.rescissionCalculations\.unshift/, "O cálculo rescisório deve ser salvo no histórico da unidade");
 assert.match(index, /id="rescissionStatementModal"/, "A simulação deve ter demonstrativo próprio para o inquilino");

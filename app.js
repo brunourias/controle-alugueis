@@ -11080,6 +11080,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 var before = (baseline[kind] || {})[id] || null;
                 if (!granularEqual(now, before)) {
                     check(roots[kind]().doc(id), before, function (data) {
+                        if (kind === "units") {
+                            // A leitura remota pode omitir campos opcionais antigos.
+                            // Compare a mesma representação normalizada usada na base,
+                            // para que uma simples edição de contrato não vire conflito.
+                            var normalizedUnit = normalizeState({
+                                empreendimentos: granularClone(state.empreendimentos),
+                                units: [Object.assign({}, granularClone(data), { id: id })]
+                            });
+                            return normalizedUnit.units[0] || null;
+                        }
                         if (kind !== "energyAllocations") return data;
                         // Rateios de versões anteriores não possuem os campos de baixa.
                         // Normalize o documento remoto antes de validar a concorrência.
@@ -11101,9 +11111,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             if (!granularEqual(now, before)) {
                 var source = current.contracts[key] || baseline.contracts[key];
                 check(granularUnitsRef().doc(source.unitId).collection("contracts").doc(source.id), before, function (data) {
-                    var copy = granularClone(data);
-                    delete copy.order;
-                    return copy;
+                    // "order" faz parte do documento gravado e da base local.
+                    // Removê-lo somente do remoto fazia toda alteração de contrato
+                    // parecer concorrente, mesmo sem outra edição.
+                    return granularClone(data);
                 });
             }
         });
