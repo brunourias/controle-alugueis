@@ -343,6 +343,18 @@ document.addEventListener("click", function (event) {
     var addRentChangeButton = document.getElementById("addRentChange");
 	var contractHistoryList = document.getElementById("contractHistoryList");
 var archiveContract = document.getElementById("archiveContract");
+    var openRescissionCalculator = document.getElementById("openRescissionCalculator");
+    var rescissionModal = document.getElementById("rescissionModal");
+    var rescissionUnitLabel = document.getElementById("rescissionUnitLabel");
+    var rescissionStartDate = document.getElementById("rescissionStartDate");
+    var rescissionEndDate = document.getElementById("rescissionEndDate");
+    var rescissionExitDate = document.getElementById("rescissionExitDate");
+    var rescissionFineMonths = document.getElementById("rescissionFineMonths");
+    var rescissionCalculation = document.getElementById("rescissionCalculation");
+    var rescissionExtras = document.getElementById("rescissionExtras");
+    var addRescissionExtra = document.getElementById("addRescissionExtra");
+    var rescissionTotal = document.getElementById("rescissionTotal");
+    var rescissionSaved = document.getElementById("rescissionSaved");
 var historyTenant = document.getElementById("historyTenant");
 var historyStart = document.getElementById("historyStart");
 var historyEnd = document.getElementById("historyEnd");
@@ -945,6 +957,25 @@ var historyRent = document.getElementById("historyRent");
                 : 0;
         unit.rentChanges = normalizeRentChanges(unit.rentChanges);
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
+        unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations)
+            ? unit.rescissionCalculations.filter(function (entry) {
+                return entry && typeof entry === "object" && isValidDateValue(entry.exitDate);
+            }).map(function (entry) {
+                return {
+                    id: typeof entry.id === "string" ? entry.id : "rescission-" + Date.now().toString(36),
+                    createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+                    startDate: isValidDateValue(entry.startDate) ? entry.startDate : "",
+                    endDate: isValidDateValue(entry.endDate) ? entry.endDate : "",
+                    exitDate: entry.exitDate,
+                    fineMonths: Math.max(0, Number(entry.fineMonths) || 0),
+                    proportionalFine: Math.max(0, Number(entry.proportionalFine) || 0),
+                    extras: Array.isArray(entry.extras) ? entry.extras.map(function (extra) {
+                        return { description: typeof extra.description === "string" ? extra.description.slice(0, 80) : "", amount: Math.max(0, Number(extra.amount) || 0) };
+                    }).filter(function (extra) { return extra.description || extra.amount; }).slice(0, 12) : [],
+                    total: Math.max(0, Number(entry.total) || 0)
+                };
+            }).slice(0, 20)
+            : [];
         unit.attachments = Array.isArray(unit.attachments) ? unit.attachments.filter(function (item) {
             return item && typeof item === "object" && typeof item.name === "string" && typeof item.url === "string";
         }).slice(0, 30) : [];
@@ -10344,9 +10375,115 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         saveState(); closeModal(); render();
     }
 
+    function rescissionDateDifference(startValue, endValue) {
+        if (!isValidDateValue(startValue) || !isValidDateValue(endValue)) return 0;
+        var start = new Date(startValue + "T12:00:00");
+        var end = new Date(endValue + "T12:00:00");
+        return Math.floor((end - start) / 86400000);
+    }
+
+    function rescissionExtraRows() {
+        return Array.prototype.slice.call(rescissionExtras.querySelectorAll(".rescission-extra")).map(function (row) {
+            return {
+                description: row.querySelector("[data-rescission-extra-description]").value.trim(),
+                amount: Math.max(0, moneyInputValue(row.querySelector("[data-rescission-extra-amount]")) || 0)
+            };
+        }).filter(function (extra) { return extra.description || extra.amount; });
+    }
+
+    function addRescissionExtraRow(extra) {
+        var row = document.createElement("div");
+        row.className = "rescission-extra";
+        row.innerHTML = '<label>Descrição<input type="text" maxlength="80" placeholder="Ex.: Pintura" data-rescission-extra-description></label>' +
+            '<label>Valor (R$)<input type="text" inputmode="decimal" placeholder="0,00" data-money="true" data-rescission-extra-amount></label>' +
+            '<button type="button" class="btn btn-danger" aria-label="Remover item">×</button>';
+        row.querySelector("[data-rescission-extra-description]").value = extra && extra.description ? extra.description : "";
+        if (extra && Number(extra.amount) > 0) setMoneyInput(row.querySelector("[data-rescission-extra-amount]"), extra.amount);
+        row.querySelectorAll("input").forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
+        row.querySelector("button").addEventListener("click", function () { row.remove(); renderRescissionCalculation(); });
+        rescissionExtras.appendChild(row);
+        initializeMoneyInputs();
+    }
+
+    function rescissionValues() {
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var rent = unit ? Math.max(0, Number(unit.rent) || 0) : 0;
+        var totalDays = rescissionDateDifference(rescissionStartDate.value, rescissionEndDate.value);
+        var remainingDays = Math.max(0, rescissionDateDifference(rescissionExitDate.value, rescissionEndDate.value));
+        var fineMonths = Math.max(0, Number(rescissionFineMonths.value) || 0);
+        var contractualFine = rent * fineMonths;
+        var proportionalFine = totalDays > 0 && rescissionExitDate.value && rescissionExitDate.value < rescissionEndDate.value
+            ? contractualFine * remainingDays / totalDays : 0;
+        var extras = rescissionExtraRows();
+        var extrasTotal = extras.reduce(function (sum, extra) { return sum + extra.amount; }, 0);
+        return { rent: rent, totalDays: totalDays, remainingDays: remainingDays, fineMonths: fineMonths, contractualFine: contractualFine, proportionalFine: proportionalFine, extras: extras, extrasTotal: extrasTotal, total: proportionalFine + extrasTotal };
+    }
+
+    function renderRescissionCalculation() {
+        var values = rescissionValues();
+        var datesReady = values.totalDays > 0 && rescissionExitDate.value && rescissionExitDate.value < rescissionEndDate.value;
+        rescissionCalculation.innerHTML = datesReady
+            ? '<strong>Multa proporcional: ' + money(values.proportionalFine) + '</strong><br>Multa cheia: ' + money(values.contractualFine) + ' (' + values.fineMonths + ' aluguel' + (values.fineMonths === 1 ? '' : 'es') + ') · Restam ' + values.remainingDays + ' de ' + values.totalDays + ' dias do contrato.'
+            : 'Informe início, fim previsto e uma saída anterior ao fim do contrato para calcular a multa proporcional.';
+        rescissionTotal.textContent = money(values.total);
+        return values;
+    }
+
+    function defaultRescissionExitDate() {
+        var today = new Date();
+        var year = today.getFullYear();
+        var month = today.getMonth();
+        if (today.getDate() > 10) month += 1;
+        return localDateValue(new Date(year, month, 10));
+    }
+
+    function openRescissionCalculatorNow() {
+        if (!requireWorkspacePermission("manageContracts")) return;
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        if (!unit || !unit.tenantName) { notifyUser("Cadastre um contrato ativo antes de calcular a rescisão.", "error"); return; }
+        rescissionUnitLabel.textContent = unit.name + " · " + unit.tenantName;
+        rescissionStartDate.value = isValidDateValue(unit.startDate) ? unit.startDate : "";
+        rescissionEndDate.value = isValidDateValue(unit.endDate) ? unit.endDate : "";
+        rescissionExitDate.value = defaultRescissionExitDate();
+        rescissionFineMonths.value = "3";
+        rescissionExtras.innerHTML = "";
+        rescissionSaved.textContent = "";
+        var last = Array.isArray(unit.rescissionCalculations) && unit.rescissionCalculations[0];
+        if (last) rescissionSaved.textContent = "Último cálculo salvo: " + money(last.total) + " · saída em " + formatTimelineDate(last.exitDate) + ".";
+        renderRescissionCalculation();
+        ModalManager.open(rescissionModal);
+    }
+
+    function saveRescissionCalculation() {
+        if (!requireWorkspacePermission("manageContracts")) return;
+        var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
+        var values = renderRescissionCalculation();
+        if (!unit || values.totalDays <= 0 || !isValidDateValue(rescissionExitDate.value) || rescissionExitDate.value >= rescissionEndDate.value) {
+            notifyUser("Informe as datas do contrato e uma saída anterior ao fim previsto.", "error"); return;
+        }
+        createVersionedBackup("Cálculo de multa rescisória", unit.name);
+        unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations) ? unit.rescissionCalculations : [];
+        unit.rescissionCalculations.unshift({
+            id: "rescission-" + Date.now().toString(36), createdAt: new Date().toISOString(),
+            startDate: rescissionStartDate.value, endDate: rescissionEndDate.value, exitDate: rescissionExitDate.value,
+            fineMonths: values.fineMonths, proportionalFine: Math.round(values.proportionalFine * 100) / 100,
+            extras: values.extras, total: Math.round(values.total * 100) / 100
+        });
+        unit.rescissionCalculations = unit.rescissionCalculations.slice(0, 20);
+        recordOperation("Cálculo de multa rescisória salvo", unit.name + " · " + money(values.total));
+        saveState();
+        rescissionSaved.textContent = "Cálculo salvo: " + money(values.total) + ".";
+        notifyUser("Cálculo de rescisão salvo.", "success");
+    }
+
     archiveContract.removeEventListener("click", archiveCurrentContract);
     archiveContract.removeEventListener("click", endCurrentContractOnly);
     archiveContract.addEventListener("click", endCurrentContractOnly);
+    openRescissionCalculator.addEventListener("click", openRescissionCalculatorNow);
+    [rescissionStartDate, rescissionEndDate, rescissionExitDate, rescissionFineMonths].forEach(function (input) { input.addEventListener("input", renderRescissionCalculation); });
+    addRescissionExtra.addEventListener("click", function () { addRescissionExtraRow(); renderRescissionCalculation(); });
+    document.getElementById("closeRescission").addEventListener("click", function () { ModalManager.close(rescissionModal); });
+    document.getElementById("saveRescission").addEventListener("click", saveRescissionCalculation);
     document.getElementById("startNewContract").addEventListener("click", prepareNewContractForm);
     document.getElementById("closeContractInstallments").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });
     document.getElementById("paymentAdjustFine").addEventListener("input", updatePaymentAdjustTotal);

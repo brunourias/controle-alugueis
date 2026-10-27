@@ -170,6 +170,11 @@ assert.match(styles, /data-app-nav-key="charges"\][^{]*\{ order: 5;/, "Cobrança
 assert.match(app, /function paymentOccursAfterDueDay\(/, "Atraso deve comparar apenas o dia civil");
 assert.match(app, /return paidDay > dueDay;/, "Pagamento no próprio vencimento não pode ser marcado como atrasado");
 assert.doesNotMatch(app, /date > due/, "A classificação não deve comparar o horário do pagamento com o início do vencimento");
+assert.match(index, /id="openRescissionCalculator"/, "Ações do contrato devem abrir o cálculo de multa rescisória");
+assert.match(index, /id="rescissionExtras"/, "O cálculo rescisório deve permitir itens adicionais");
+assert.match(app, /function rescissionValues\(/, "A multa rescisória deve calcular seus valores de forma centralizada");
+assert.match(app, /contractualFine \* remainingDays \/ totalDays/, "A multa deve ser proporcional ao prazo restante do contrato");
+assert.match(app, /unit\.rescissionCalculations\.unshift/, "O cálculo rescisório deve ser salvo no histórico da unidade");
 
 console.log("Verificações de integridade concluídas.");
 

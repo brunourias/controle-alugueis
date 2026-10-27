@@ -2992,6 +2992,25 @@ textarea:focus-visible {
     flex: 1 1 180px;
 }
 
+.rescission-modal { width: min(620px, calc(100vw - 28px)); }
+.rescission-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.rescission-calculation { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft, #f5fbfa); color: var(--ink); font-size: .84rem; line-height: 1.45; }
+.rescission-calculation strong { color: var(--teal-dark); }
+.rescission-extras-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 18px 0 8px; }
+.rescission-extras-heading small, .rescission-saved { color: var(--muted); font-size: .76rem; }
+.rescission-extras { display: grid; gap: 8px; margin-bottom: 8px; }
+.rescission-extra { display: grid; grid-template-columns: minmax(0, 1fr) 130px auto; gap: 8px; align-items: end; }
+.rescission-extra .btn { min-width: auto; padding-inline: 10px; }
+.rescission-total { margin-top: 16px; }
+.rescission-total strong { font-size: 1.08rem; color: var(--teal-dark); }
+.rescission-saved { margin-top: 12px; }
+@media (max-width: 520px) {
+    .rescission-form-grid { grid-template-columns: 1fr; gap: 8px; }
+    .rescission-extra { grid-template-columns: minmax(0, 1fr) 110px auto; }
+    .rescission-extras-heading { display: block; }
+    .rescission-extras-heading small { display: block; margin-top: 3px; }
+}
+
 .unit-modal-footer {
     bottom: -18px;
 }
