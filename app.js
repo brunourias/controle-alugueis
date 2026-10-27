@@ -10435,7 +10435,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var values = rescissionValues();
         var datesReady = values.totalDays > 0 && rescissionExitDate.value && rescissionExitDate.value < rescissionEndDate.value;
         rescissionCalculation.innerHTML = datesReady
-            ? '<strong>Multa proporcional: ' + money(values.proportionalFine) + '</strong><br>Multa cheia: ' + money(values.contractualFine) + ' (' + values.fineMonths + ' aluguel' + (values.fineMonths === 1 ? '' : 'es') + ') · Restam ' + values.remainingDays + ' de ' + values.totalDays + ' dias do contrato.'
+            ? '<strong>Multa proporcional: ' + money(values.proportionalFine) + '</strong><br>Multa cheia: ' + money(values.contractualFine) + ' (' + values.fineMonths + ' ' + (values.fineMonths === 1 ? 'aluguel' : 'aluguéis') + ') · Restam ' + values.remainingDays + ' de ' + values.totalDays + ' dias do contrato.'
             : 'Informe início, fim previsto e uma saída anterior ao fim do contrato para calcular a multa proporcional.';
         rescissionTotal.textContent = money(values.total);
         return values;
@@ -10509,7 +10509,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             '<div class="rescission-statement-row"><span>Término previsto</span><span>' + escapeHtml(formatTimelineDate(record.endDate)) + '</span></div>' +
             '<div class="rescission-statement-row"><span>Entrega das chaves</span><span>' + escapeHtml(formatTimelineDate(record.exitDate)) + '</span></div>' +
             '<div class="rescission-statement-row"><span>Dias restantes do contrato</span><span>' + rescissionDateDifference(record.exitDate, record.endDate) + ' dias</span></div>' +
-            '<div class="rescission-statement-row"><span>Multa contratual</span><span>' + record.fineMonths + ' aluguel' + (record.fineMonths === 1 ? '' : 'es') + '</span></div>' +
+            '<div class="rescission-statement-row"><span>Multa contratual</span><span>' + record.fineMonths + ' ' + (record.fineMonths === 1 ? 'aluguel' : 'aluguéis') + '</span></div>' +
             '<div class="rescission-statement-row is-emphasis"><span>Multa rescisória proporcional</span><span>' + money(record.proportionalFine) + '</span></div>' +
             '<div class="rescission-statement-row"><span>Aluguel adicional</span><span>' + money(record.additionalRent) + '</span></div>' + extras +
             '<div class="rescission-statement-row is-total"><span>Total a cobrar</span><span>' + money(record.total) + '</span></div></div>' +
