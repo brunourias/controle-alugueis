@@ -10533,24 +10533,112 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function rescissionShareText(record) {
         return "Valor da rescisão — " + (record.unitName || "Unidade") + "\n" +
+            "Aluguel mensal: " + money(record.rent) + "\n" +
+            "Início do contrato: " + formatTimelineDate(record.startDate) + "\n" +
+            "Término previsto: " + formatTimelineDate(record.endDate) + "\n" +
             "Entrega das chaves: " + formatTimelineDate(record.exitDate) + "\n" +
+            "Dias restantes: " + rescissionDateDifference(record.exitDate, record.endDate) + "\n" +
+            "Multa contratual: " + record.fineMonths + " " + (record.fineMonths === 1 ? "aluguel" : "aluguéis") + "\n" +
             "Multa rescisória: " + money(record.proportionalFine) + "\n" +
+            "Aluguel adicional: " + money(record.additionalRent) + "\n" +
             "Total a cobrar: " + money(record.total) + "\n\n" +
             "Valores sujeitos à vistoria final e à conferência dos encargos em aberto.";
     }
 
+    function drawRescissionStatementCanvas(record) {
+        var extraRows = (record.extras || []).filter(function (extra) { return extra.description || Number(extra.amount); });
+        var canvas = document.createElement("canvas");
+        var width = 1080;
+        var height = 1210 + Math.max(0, extraRows.length - 1) * 82;
+        canvas.width = width;
+        canvas.height = height;
+        var ctx = canvas.getContext("2d");
+        var left = 60, right = width - 60, y = 0;
+        var remaining = rescissionDateDifference(record.exitDate, record.endDate);
+        var currentUnit = editingId ? state.units.find(function (unit) { return unit.id === editingId; }) : null;
+        var statementRent = Math.max(0, Number(record.rent) || Number(currentUnit && currentUnit.rent) || 0);
+        var fullFine = statementRent * Number(record.fineMonths || 0);
+
+        function line(label, value, emphasis) {
+            ctx.fillStyle = emphasis ? "#0b6e67" : "#315754";
+            ctx.font = emphasis ? "700 31px Arial" : "600 27px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(label, left, y);
+            ctx.textAlign = "right";
+            ctx.fillText(value, right, y);
+            ctx.textAlign = "left";
+            ctx.strokeStyle = "#d9e8e5";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(left, y + 24); ctx.lineTo(right, y + 24); ctx.stroke();
+            y += emphasis ? 78 : 70;
+        }
+
+        ctx.fillStyle = "#f4fbfa";
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = "#0f766e";
+        ctx.fillRect(0, 0, width, 190);
+        ctx.fillStyle = "#fff";
+        ctx.font = "700 44px Arial";
+        ctx.fillText("Valor da rescisão", left, 76);
+        ctx.font = "28px Arial";
+        ctx.fillText(record.unitName || "Unidade", left, 124);
+        ctx.font = "23px Arial";
+        ctx.fillText(record.tenantName ? "Demonstrativo para " + record.tenantName : "Demonstrativo de encerramento", left, 158);
+
+        y = 250;
+        line("Aluguel mensal", money(statementRent));
+        line("Início do contrato", formatTimelineDate(record.startDate));
+        line("Término previsto", formatTimelineDate(record.endDate));
+        line("Entrega das chaves", formatTimelineDate(record.exitDate));
+        line("Dias restantes do contrato", Math.max(0, remaining) + " dias");
+        line("Multa contratual", record.fineMonths + " " + (record.fineMonths === 1 ? "aluguel" : "aluguéis"));
+        line("Multa cheia", money(fullFine));
+        line("Multa rescisória proporcional", money(record.proportionalFine), true);
+        line("Aluguel adicional", money(record.additionalRent || 0));
+        extraRows.forEach(function (extra) { line(extra.description || "Item adicional", money(extra.amount || 0)); });
+        line("Total a cobrar", money(record.total), true);
+
+        var formulaY = y + 18;
+        ctx.fillStyle = "#e5f4f1";
+        ctx.fillRect(left, formulaY, right - left, 124);
+        ctx.fillStyle = "#285a56";
+        ctx.font = "700 23px Arial";
+        ctx.fillText("Como a multa foi calculada", left + 22, formulaY + 36);
+        ctx.font = "21px Arial";
+        ctx.fillText("Multa cheia × dias restantes ÷ total de dias do contrato", left + 22, formulaY + 70);
+        ctx.fillText(money(fullFine) + " × " + Math.max(0, remaining) + " ÷ " + Math.max(0, rescissionDateDifference(record.startDate, record.endDate)), left + 22, formulaY + 102);
+        ctx.fillStyle = "#5d7774";
+        ctx.font = "19px Arial";
+        ctx.fillText("Valores sujeitos à vistoria final, encargos em aberto e entrega efetiva das chaves.", left, height - 38);
+        return canvas;
+    }
+
+    function downloadRescissionStatement(record, canvas) {
+        var link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = "rescisao-" + slugify(record.unitName || "unidade") + "-" + record.exitDate + ".png";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
     function shareRescissionStatement() {
         if (!activeRescissionStatement) return;
-        var text = rescissionShareText(activeRescissionStatement);
-        if (navigator.share) {
-            navigator.share({ title: "Valor da rescisão", text: text }).catch(function () {});
-            return;
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function () { notifyUser("Demonstrativo copiado para enviar ao inquilino.", "success"); });
-            return;
-        }
-        notifyUser("Use Imprimir / PDF para compartilhar o demonstrativo.");
+        var record = activeRescissionStatement;
+        var canvas = drawRescissionStatementCanvas(record);
+        canvas.toBlob(function (blob) {
+            if (!blob) { notifyUser("Não foi possível gerar a imagem do demonstrativo.", "error"); return; }
+            var file = new File([blob], "rescisao-" + slugify(record.unitName || "unidade") + "-" + record.exitDate + ".png", { type: "image/png" });
+            if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+                navigator.share({ title: "Valor da rescisão", text: "Segue o demonstrativo completo da rescisão.", files: [file] }).catch(function () {});
+                return;
+            }
+            downloadRescissionStatement(record, canvas);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(rescissionShareText(record)).catch(function () {});
+            }
+            notifyUser("Imagem baixada. Anexe-a no WhatsApp; o resumo também foi copiado.");
+        }, "image/png");
     }
 
     function printRescissionStatement() {

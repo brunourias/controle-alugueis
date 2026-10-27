@@ -177,6 +177,8 @@ assert.match(app, /contractualFine \* remainingDays \/ totalDays/, "A multa deve
 assert.match(app, /unit\.rescissionCalculations\.unshift/, "O cálculo rescisório deve ser salvo no histórico da unidade");
 assert.match(index, /id="rescissionStatementModal"/, "A simulação deve ter demonstrativo próprio para o inquilino");
 assert.match(app, /function shareRescissionStatement\(/, "O demonstrativo deve poder ser compartilhado");
+assert.match(app, /function drawRescissionStatementCanvas\(/, "O demonstrativo deve gerar uma imagem compartilhável");
+assert.match(app, /files: \[file\]/, "O compartilhamento deve anexar a imagem gerada");
 assert.match(app, /function recoverLatestRescission\(/, "A última simulação deve poder ser recuperada");
 assert.match(app, /archiveCurrentContract\(activeRescissionStatement\)/, "O demonstrativo deve permitir encerrar o contrato com a rescisão registrada");
 
