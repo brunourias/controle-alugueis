@@ -977,7 +977,7 @@ var historyRent = document.getElementById("historyRent");
         unit.contractHistory = normalizeContractHistory(unit.contractHistory);
         unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations)
             ? unit.rescissionCalculations.filter(function (entry) {
-                return entry && typeof entry === "object" && isValidDateValue(entry.exitDate);
+                return entry && typeof entry === "object" && (isValidDateValue(entry.exitDate) || entry.isDraft === true);
             }).map(function (entry) {
                 return {
                     id: typeof entry.id === "string" ? entry.id : "rescission-" + Date.now().toString(36),
@@ -986,7 +986,7 @@ var historyRent = document.getElementById("historyRent");
                     tenantName: typeof entry.tenantName === "string" ? entry.tenantName.slice(0, 120) : "",
                     startDate: isValidDateValue(entry.startDate) ? entry.startDate : "",
                     endDate: isValidDateValue(entry.endDate) ? entry.endDate : "",
-                    exitDate: entry.exitDate,
+                    exitDate: isValidDateValue(entry.exitDate) ? entry.exitDate : "",
                     rent: Math.max(0, Number(entry.rent) || 0),
                     fineMonths: Math.max(0, Number(entry.fineMonths) || 0),
                     proportionalFine: Math.max(0, Number(entry.proportionalFine) || 0),
@@ -1005,7 +1005,8 @@ var historyRent = document.getElementById("historyRent");
                     extras: Array.isArray(entry.extras) ? entry.extras.map(function (extra) {
                         return { description: typeof extra.description === "string" ? extra.description.slice(0, 80) : "", amount: Math.max(0, Number(extra.amount) || 0) };
                     }).filter(function (extra) { return extra.description || extra.amount; }).slice(0, 12) : [],
-                    total: Math.max(0, Number(entry.total) || 0)
+                    total: Math.max(0, Number(entry.total) || 0),
+                    isDraft: entry.isDraft === true
                 };
             }).slice(0, 20)
             : [];
@@ -10544,9 +10545,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         rescissionInstallmentFirstDue.value = last && last.installments && last.installments[0] ? last.installments[0].dueDate : "";
         rescissionExtras.innerHTML = "";
         rescissionSaved.textContent = "";
+        rescissionSaved.dataset.tone = "";
         if (last) {
             last.extras.forEach(addRescissionExtraRow);
-            rescissionSaved.textContent = "Simulação recuperada: " + money(last.total) + " · saída em " + formatTimelineDate(last.exitDate) + ".";
+            rescissionSaved.textContent = last.isDraft
+                ? "Rascunho recuperado. Complete as datas do contrato para gerar o demonstrativo."
+                : "Simulação recuperada: " + money(last.total) + " · saída em " + formatTimelineDate(last.exitDate) + ".";
         }
         renderRescissionCalculation();
         ModalManager.open(rescissionModal);
@@ -10556,8 +10560,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         var values = renderRescissionCalculation();
-        if (!unit || values.totalDays <= 0 || !isValidDateValue(rescissionExitDate.value) || rescissionExitDate.value >= rescissionEndDate.value) {
-            notifyUser("Informe as datas do contrato e uma saída anterior ao fim previsto.", "error"); return;
+        if (!unit) return;
+        var incomplete = values.totalDays <= 0 || !isValidDateValue(rescissionExitDate.value) || rescissionExitDate.value >= rescissionEndDate.value;
+        if (incomplete && rescissionStatus.value !== "rascunho") {
+            rescissionSaved.textContent = "Para registrar uma negociação, informe início, fim previsto e uma saída anterior ao fim do contrato.";
+            rescissionSaved.dataset.tone = "error";
+            return;
         }
         createVersionedBackup("Cálculo de multa rescisória", unit.name);
         unit.rescissionCalculations = Array.isArray(unit.rescissionCalculations) ? unit.rescissionCalculations : [];
@@ -10573,15 +10581,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             depositApplied: Math.round(values.depositApplied * 100) / 100,
             status: rescissionStatus.value, entryAmount: Math.round(values.entryAmount * 100) / 100,
             installments: installments, extras: values.extras, total: Math.round(values.total * 100) / 100,
-            balanceDue: Math.round(values.balance * 100) / 100
+            balanceDue: Math.round(values.balance * 100) / 100, isDraft: incomplete
         };
         unit.rescissionCalculations.unshift(record);
         unit.rescissionCalculations = unit.rescissionCalculations.slice(0, 20);
         recordOperation("Cálculo de multa rescisória salvo", unit.name + " · " + money(values.total));
         saveState();
-        rescissionSaved.textContent = "Cálculo salvo: " + money(values.total) + ".";
-        notifyUser("Cálculo de rescisão salvo.", "success");
-        openRescissionStatement(record);
+        rescissionSaved.dataset.tone = "success";
+        rescissionSaved.textContent = incomplete
+            ? "Rascunho salvo. Informe as datas do contrato para gerar o demonstrativo."
+            : "Cálculo salvo: " + money(values.total) + ".";
+        if (!incomplete) openRescissionStatement(record);
     }
 
     function exitUtilitiesPending(unit, record) {
@@ -10637,7 +10647,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function recoverLatestRescission() {
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         var record = unit && Array.isArray(unit.rescissionCalculations) ? unit.rescissionCalculations[0] : null;
-        if (!record) { notifyUser("Ainda não há uma simulação salva para esta unidade.", "error"); return; }
+        if (!record) { rescissionSaved.textContent = "Ainda não há uma simulação salva para esta unidade."; rescissionSaved.dataset.tone = "error"; return; }
+        if (record.isDraft) { rescissionSaved.textContent = "Este rascunho ainda precisa das datas completas para gerar o demonstrativo."; rescissionSaved.dataset.tone = "error"; return; }
         openRescissionStatement(record);
     }
 
@@ -10810,13 +10821,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         document.getElementById("keyHandoverEnergy").value = handover.energy || "";
         document.getElementById("keyHandoverInspection").value = handover.inspection || "pendente";
         document.getElementById("keyHandoverNotes").value = handover.notes || "";
+        var handoverStatus = document.getElementById("keyHandoverStatus");
+        handoverStatus.textContent = "";
+        handoverStatus.dataset.tone = "";
         ModalManager.open(keyHandoverModal);
     }
 
     function printKeyHandoverTerm() {
         if (!keyHandoverContext) return;
+        var handoverStatus = document.getElementById("keyHandoverStatus");
         var date = document.getElementById("keyHandoverDate").value;
-        if (!isValidDateValue(date)) { notifyUser("Informe a data de entrega das chaves.", "error"); return; }
+        if (!isValidDateValue(date)) { handoverStatus.textContent = "Informe a data de entrega das chaves."; handoverStatus.dataset.tone = "error"; return; }
         var handover = {
             date: date, keys: Math.max(0, Number(document.getElementById("keyHandoverKeys").value) || 0),
             water: document.getElementById("keyHandoverWater").value.trim(), energy: document.getElementById("keyHandoverEnergy").value.trim(),
@@ -10838,8 +10853,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var inspection = handover.inspection === "concluida" ? "concluída" : "pendente";
         var term = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Termo de entrega de chaves</title><style>body{font:16px Arial;color:#223331;max-width:760px;margin:48px auto;line-height:1.55}h1{color:#0f766e}.row{border-bottom:1px solid #d7e8e5;padding:10px 0;display:flex;justify-content:space-between}.sign{margin-top:90px;display:flex;justify-content:space-between;gap:60px}.sign div{border-top:1px solid #567;padding-top:8px;text-align:center;flex:1}</style></head><body><h1>Termo de entrega de chaves</h1><p>Unidade: <strong>' + escapeHtml(keyHandoverContext.unitName || "") + '</strong><br>Locatário(a): <strong>' + escapeHtml(keyHandoverContext.tenantName || "") + '</strong></p><p>Na data de <strong>' + escapeHtml(formatTimelineDate(handover.date)) + '</strong>, o(a) locatário(a) declara entregar a posse do imóvel e as chaves abaixo descritas, ficando a vistoria final registrada como ' + inspection + '.</p><div class="row"><span>Quantidade de chaves</span><strong>' + handover.keys + '</strong></div><div class="row"><span>Leitura de água</span><strong>' + escapeHtml(handover.water || "Não informada") + '</strong></div><div class="row"><span>Leitura de energia</span><strong>' + escapeHtml(handover.energy || "Não informada") + '</strong></div><div class="row"><span>Observações</span><strong>' + escapeHtml(handover.notes || "Nenhuma") + '</strong></div><p>Este termo não substitui a vistoria final nem afasta responsabilidades apuradas conforme o contrato e a legislação aplicável.</p><div class="sign"><div>LOCADOR(A)</div><div>LOCATÁRIO(A)</div></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}</script></body></html>';
         var popup = window.open("", "_blank");
-        if (!popup) { notifyUser("Permita pop-ups para gerar o termo em PDF.", "error"); return; }
+        if (!popup) { handoverStatus.textContent = "Permita pop-ups para gerar o termo em PDF."; handoverStatus.dataset.tone = "error"; return; }
         popup.document.write(term); popup.document.close();
+        handoverStatus.textContent = "Termo salvo e aberto para impressão ou PDF.";
+        handoverStatus.dataset.tone = "success";
     }
 
     function endContractWithRescissionNow() {

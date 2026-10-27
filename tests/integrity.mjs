@@ -180,6 +180,9 @@ assert.match(app, /function shareRescissionStatement\(/, "O demonstrativo deve p
 assert.match(app, /function drawRescissionStatementCanvas\(/, "O demonstrativo deve gerar uma imagem compartilhável");
 assert.match(app, /files: \[file\]/, "O compartilhamento deve anexar a imagem gerada");
 assert.match(app, /function recoverLatestRescission\(/, "A última simulação deve poder ser recuperada");
+assert.match(app, /isDraft: incomplete/, "Uma rescisão incompleta deve poder ser salva como rascunho");
+assert.match(app, /entry\.isDraft === true/, "Rascunhos de rescisão não podem ser descartados ao salvar o estado");
+assert.match(index, /id="keyHandoverStatus"/, "O termo de chaves deve mostrar erros dentro do próprio modal");
 assert.match(app, /archiveCurrentContract\(activeRescissionStatement\)/, "O demonstrativo deve permitir encerrar o contrato com a rescisão registrada");
 assert.match(index, /id="unitDeposit"/, "O contrato deve permitir registrar caução opcional");
 assert.match(app, /depositApplied: Math\.round\(values\.depositApplied/, "A simulação deve registrar o abatimento da caução");

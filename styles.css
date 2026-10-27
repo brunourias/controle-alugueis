@@ -2997,13 +2997,15 @@ textarea:focus-visible {
 .rescission-calculation { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft, #f5fbfa); color: var(--ink); font-size: .84rem; line-height: 1.45; }
 .rescission-calculation strong { color: var(--teal-dark); }
 .rescission-extras-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 18px 0 8px; }
-.rescission-extras-heading small, .rescission-saved { color: var(--muted); font-size: .76rem; }
+.rescission-extras-heading small, .rescission-saved, .key-handover-status { color: var(--muted); font-size: .76rem; }
 .rescission-extras { display: grid; gap: 8px; margin-bottom: 8px; }
 .rescission-extra { display: grid; grid-template-columns: minmax(0, 1fr) 130px auto; gap: 8px; align-items: end; }
 .rescission-extra .btn { min-width: auto; padding-inline: 10px; }
 .rescission-total { margin-top: 16px; }
 .rescission-total strong { font-size: 1.08rem; color: var(--teal-dark); }
-.rescission-saved { margin-top: 12px; }
+.rescission-saved, .key-handover-status { min-height: 1.25em; margin: 12px 0 0; position: static; }
+.rescission-saved[data-tone="error"], .key-handover-status[data-tone="error"] { color: #b42318; font-weight: 700; }
+.rescission-saved[data-tone="success"], .key-handover-status[data-tone="success"] { color: var(--teal-dark); font-weight: 700; }
 .rescission-options { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .rescission-options summary { cursor: pointer; color: var(--teal-dark); font-weight: 750; }
 .rescission-options .rescission-form-grid { margin-bottom: 8px; }
