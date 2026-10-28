@@ -305,3 +305,9 @@ assert.match(styles, /\.receipt-modal, \.contract-installments-modal, \.rescissi
 assert.match(app, /<span>Unidades vagas<\/span>/, "Visão geral deve acompanhar disponibilidade operacional");
 assert.doesNotMatch(app, /dashboard-card-group-portfolio/, "Dashboard Financeiro não deve repetir a ocupação da Visão geral");
 assert.match(index, /Acompanhamento de cobranças/, "Atrasos devem ser apresentados como acompanhamento operacional");
+assert.match(index, /data-report-destination="documents"/, "Relatórios devem concentrar o acesso aos documentos");
+assert.match(app, /function documentCenterMarkup\(/, "A Central de documentos deve reunir registros recuperáveis");
+assert.match(app, /data-document-receipt/, "A Central deve abrir recibos disponíveis");
+assert.match(app, /data-document-rescission/, "A Central deve abrir demonstrativos de rescisão");
+assert.match(app, /data-document-handover/, "A Central deve abrir termos de entrega de chaves");
+assert.match(styles, /UX v295 — ritmo único para títulos e cartões nas telas móveis/, "Telas móveis devem compartilhar ritmo visual");

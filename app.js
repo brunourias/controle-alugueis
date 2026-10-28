@@ -10863,8 +10863,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function openKeyHandoverTermFor(context) {
         keyHandoverContext = context;
-        var handover = context.record && context.record.keyHandover ? context.record.keyHandover : {};
-        document.getElementById("keyHandoverLabel").textContent = (context.unitName || "Unidade") + (context.tenantName ? " · " + context.tenantName : "") + " · termo independente de rescisão";
+        var handover = context.record && context.record.keyHandover ? context.record.keyHandover : (context.handover || {});
+        document.getElementById("keyHandoverLabel").textContent = (context.unitName || "Unidade") + (context.tenantName ? " · " + context.tenantName : "") + (context.record ? " · termo vinculado à rescisão" : " · termo independente de rescisão");
         document.getElementById("keyHandoverDate").value = handover.date || context.defaultDate || localDateValue(new Date());
         document.getElementById("keyHandoverKeys").value = handover.keys === undefined ? 1 : handover.keys;
         document.getElementById("keyHandoverWater").value = handover.water || "";
@@ -11876,6 +11876,47 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
+    function documentCenterMarkup() {
+        var receipts = [], rescissions = [], handovers = [];
+        state.units.forEach(function (unit) {
+            months.forEach(function (_, month) {
+                var payment = getPaymentRecord(unit, selectedYear, month);
+                var status = displayStatus(unit, month);
+                if (!isActive(unit, month) || !payment || (status !== "pago" && status !== "pago-atrasado")) return;
+                receipts.push({ unitId: unit.id, unitName: unit.name, tenantName: unit.tenantName || "Sem inquilino", month: month, date: payment.paidAt || "" });
+            });
+            (unit.rescissionCalculations || []).forEach(function (record) {
+                rescissions.push({ unitId: unit.id, recordId: record.id, unitName: unit.name, tenantName: record.tenantName || unit.tenantName || "Sem inquilino", date: record.exitDate || record.createdAt || "", status: record.status || "rascunho", hasDeposit: Number(record.depositAvailable || record.depositApplied || 0) > 0 });
+                if (record.keyHandover) handovers.push({ unitId: unit.id, recordId: record.id, unitName: unit.name, tenantName: record.tenantName || unit.tenantName || "Sem inquilino", handover: record.keyHandover, relatedToRescission: true });
+            });
+            (unit.keyHandovers || []).forEach(function (handover) {
+                handovers.push({ unitId: unit.id, handoverId: handover.id, unitName: unit.name, tenantName: handover.tenantName || unit.tenantName || "Sem inquilino", handover: handover, relatedToRescission: false });
+            });
+        });
+        receipts.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
+        rescissions.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
+        handovers.sort(function (a, b) { return String((b.handover || {}).date || "").localeCompare(String((a.handover || {}).date || "")); });
+        function section(title, description, items, empty) {
+            return '<section class="document-center-section"><header><div><h3>' + title + '</h3><p>' + description + '</p></div><b>' + items.length + '</b></header>' +
+                (items.length ? '<div class="document-center-list">' + items.join("") + '</div>' : '<p class="document-center-empty">' + empty + '</p>') + '</section>';
+        }
+        var receiptItems = receipts.map(function (item) {
+            return '<article class="document-center-item"><div><strong>Recibo de aluguel</strong><span>' + escapeHtml(item.unitName) + ' · ' + escapeHtml(item.tenantName) + ' · ' + escapeHtml(months[item.month] + " de " + selectedYear) + '</span></div><button class="btn btn-ghost" type="button" data-document-receipt="' + escapeHtml(item.unitId) + '" data-document-month="' + item.month + '">Abrir</button></article>';
+        });
+        var rescissionItems = rescissions.map(function (item) {
+            var status = { rascunho: "Rascunho", enviado: "Enviado", negociando: "Em negociação", acordado: "Acordado", quitado: "Quitado", encerrado: "Encerrado" }[item.status] || "Rascunho";
+            return '<article class="document-center-item"><div><strong>Demonstrativo de rescisão' + (item.hasDeposit ? " · caução" : "") + '</strong><span>' + escapeHtml(item.unitName) + ' · ' + escapeHtml(item.tenantName) + ' · ' + escapeHtml(status) + '</span></div><button class="btn btn-ghost" type="button" data-document-rescission="' + escapeHtml(item.unitId) + '" data-document-record="' + escapeHtml(item.recordId) + '">Abrir</button></article>';
+        });
+        var handoverItems = handovers.map(function (item) {
+            var handover = item.handover || {};
+            return '<article class="document-center-item"><div><strong>Termo de entrega de chaves</strong><span>' + escapeHtml(item.unitName) + ' · ' + escapeHtml(item.tenantName) + ' · ' + escapeHtml(formatTimelineDate(handover.date)) + (item.relatedToRescission ? " · rescisão" : "") + '</span></div><button class="btn btn-ghost" type="button" data-document-handover="' + escapeHtml(item.unitId) + '" data-document-record="' + escapeHtml(item.recordId || "") + '" data-document-handover-id="' + escapeHtml(item.handoverId || "") + '">Abrir</button></article>';
+        });
+        return '<div class="document-center-intro"><p class="financial-eyebrow">Arquivo do empreendimento</p><h2>Central de documentos</h2><p>Documentos gerados e registros que podem ser recuperados pelo aplicativo.</p></div>' +
+            section("Recibos", "Pagamentos quitados no ano selecionado.", receiptItems, "Ainda não há recibos disponíveis neste ano.") +
+            section("Rescisões e cauções", "Demonstrativos salvos, incluindo caução quando vinculada.", rescissionItems, "Nenhuma simulação de rescisão salva.") +
+            section("Entrega de chaves", "Termos independentes ou vinculados a uma rescisão.", handoverItems, "Nenhum termo de entrega de chaves salvo.");
+    }
+
     function openReportDetail(kind) {
         var existing = document.getElementById("reportDetailModal");
         if (!existing) {
@@ -11888,7 +11929,36 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             existing.querySelectorAll("[data-close-report]").forEach(function (button) { button.addEventListener("click", function () { ModalManager.close(existing); }); });
             existing.addEventListener("click", function (event) { if (event.target === existing) ModalManager.close(existing); });
         }
-        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : "Comparativo entre empreendimentos";
+        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : kind === "documents" ? "Central de documentos" : "Comparativo entre empreendimentos";
+        if (kind === "documents") {
+            existing.querySelector("#reportDetailTitle").textContent = title;
+            existing.querySelector("#reportDetailContent").innerHTML = documentCenterMarkup();
+            existing.querySelectorAll("[data-document-receipt]").forEach(function (button) {
+                button.addEventListener("click", function () { ModalManager.close(existing); openReceipt(button.dataset.documentReceipt, Number(button.dataset.documentMonth)); });
+            });
+            existing.querySelectorAll("[data-document-rescission]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    var unit = state.units.find(function (item) { return item.id === button.dataset.documentRescission; });
+                    var record = unit && (unit.rescissionCalculations || []).find(function (item) { return item.id === button.dataset.documentRecord; });
+                    if (!record) return;
+                    editingId = unit.id;
+                    ModalManager.close(existing);
+                    openRescissionStatement(record);
+                });
+            });
+            existing.querySelectorAll("[data-document-handover]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    var unit = state.units.find(function (item) { return item.id === button.dataset.documentHandover; });
+                    if (!unit) return;
+                    var record = button.dataset.documentRecord && (unit.rescissionCalculations || []).find(function (item) { return item.id === button.dataset.documentRecord; });
+                    var saved = !record && (unit.keyHandovers || []).find(function (item) { return item.id === button.dataset.documentHandoverId; });
+                    ModalManager.close(existing);
+                    openKeyHandoverTermFor({ unitId: unit.id, unitName: unit.name, tenantName: (record || saved || {}).tenantName || unit.tenantName || "", defaultDate: (record && record.exitDate) || (saved && saved.date) || "", record: record || null, handover: saved || null, saved: !!saved });
+                });
+            });
+            ModalManager.open(existing);
+            return;
+        }
         var rows = [];
         if (kind === "tenant") {
             scopedUnits().forEach(function (unit) { rows.push([unit.name, String(unit.tenantName || "").trim() || "Sem inquilino", money(rentForMonth(unit, selectedYear, mobileMonthIndex)), displayStatus(unit, mobileMonthIndex)]); });
@@ -11941,7 +12011,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         button.addEventListener("click", function () {
             var destination = button.dataset.reportDestination;
             if (destination === "energy") { openEnergyRate(); return; }
-            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures") { openReportDetail(destination); return; }
+            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures" || destination === "documents") { openReportDetail(destination); return; }
             if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
             if (destination === "late") { financialReportExpanded = true; activeMobileShortcut = "overview"; showAppView("overview"); render(); return; }
             activeMobileShortcut = "expenses"; showAppView("financial"); expensesExpanded = true; render();
