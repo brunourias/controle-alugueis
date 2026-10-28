@@ -4690,21 +4690,14 @@ var historyRent = document.getElementById("historyRent");
             var days = Math.ceil((end - today) / 86400000);
             return days >= 0 && days <= 60;
         }).length;
-        var overdue = 0;
-        units.forEach(function (unit) {
-            months.forEach(function (_, month) {
-                var key = monthKey(month);
-                var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || ledger[key] === true || ledger[key] === "open") overdue += 1;
-            });
-        });
+        var vacant = Math.max(0, units.length - occupied);
         container.innerHTML =
-            '<div class="overview-heading"><p>EMPREENDIMENTO</p><h2>Visão geral</h2><span>Acompanhe contratos, ocupação e próximos passos.</span></div>' +
+            '<div class="overview-heading"><p>OPERAÇÃO</p><h2>Visão geral</h2><span>Contratos, ocupação e próximos passos do empreendimento.</span></div>' +
             '<div class="overview-grid">' +
                 '<article><span>Ocupação</span><strong>' + occupancy + '%</strong><small>' + occupied + ' de ' + units.length + ' unidades</small></article>' +
                 '<article><span>Vencem em 7 dias</span><strong>' + dueSoon + '</strong><small>parcelas para acompanhar</small></article>' +
-                '<article class="' + (overdue ? 'is-alert' : '') + '"><span>Em atraso</span><strong>' + overdue + '</strong><small>parcelas em aberto</small></article>' +
                 '<article><span>Contratos a vencer</span><strong>' + contractsEnding + '</strong><small>nos próximos 60 dias</small></article>' +
+                '<article><span>Unidades vagas</span><strong>' + vacant + '</strong><small>disponíveis para locação</small></article>' +
             '</div>';
     }
 
@@ -5680,11 +5673,12 @@ function renderSummary() {
 
     var annualNet = annual - annualExpenses;
     var currentNet = received - currentExpenses;
+    // Ocupação fica na Visão geral e no resumo rápido da página inicial;
+    // o dashboard Financeiro mostra apenas indicadores monetários.
     var occupied = current < 0 ? 0 : units.filter(function (unit) {
         return isActive(unit, current) && String(unit.tenantName || "").trim();
     }).length;
     var occupancyRate = units.length ? Math.round((occupied / units.length) * 100) : 0;
-
     // A inadimplência anual usa os encargos estimados; o bloco "Este mês"
     // exibe somente o principal daquele mês para manter a conciliação visível.
     var overdueCount = monthlyMetrics.reduce(function (sum, metric) {
@@ -5750,9 +5744,6 @@ function renderSummary() {
                     '<article class="summary-card summary-year dashboard-card"><div class="summary-label">Total recebido</div><div class="summary-value">' + money(annual) + '</div><div class="summary-detail">Ativos e encerrados</div></article>' +
                     '<article class="summary-card summary-year dashboard-card"><div class="summary-label">Total de gastos</div><div class="summary-value">' + money(annualExpenses) + '</div><div class="summary-detail">Despesas do período</div></article>' +
                     '<article class="summary-card summary-year dashboard-card ' + (annualNet < 0 ? 'summary-negative' : '') + '"><div class="summary-label">Lucro líquido</div><div class="summary-value">' + money(annualNet) + '</div><div class="summary-detail">Recebido menos gastos</div></article>' +
-                '</div></section>' +
-                '<section class="dashboard-card-group dashboard-card-group-portfolio"><div class="dashboard-group-heading"><strong>Carteira</strong><span>ocupação atual</span></div><div class="dashboard-group-cards">' +
-                    '<article class="summary-card dashboard-card dashboard-card-occupancy"><div class="summary-label">Taxa de ocupação</div><div class="summary-value">' + occupancyRate + '%</div><div class="summary-detail">' + occupied + ' de ' + units.length + ' unidades ocupadas</div></article>' +
                 '</div></section>' +
             '</div>';
     }

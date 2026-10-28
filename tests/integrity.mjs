@@ -302,3 +302,6 @@ assert.match(index, /id="closeContractInstallmentsTop"/, "Lista de parcelas deve
 assert.match(styles, /\.action-center\.is-today-mobile/, "Hoje deve receber densidade própria no celular");
 assert.match(styles, /\.charge-modal, \.expense-modal, \.key-handover-modal/, "Formulários curtos devem permanecer proporcionais no celular");
 assert.match(styles, /\.receipt-modal, \.contract-installments-modal, \.rescission-statement-modal/, "Listas e demonstrativos devem ocupar a tela móvel");
+assert.match(app, /<span>Unidades vagas<\/span>/, "Visão geral deve acompanhar disponibilidade operacional");
+assert.doesNotMatch(app, /dashboard-card-group-portfolio/, "Dashboard Financeiro não deve repetir a ocupação da Visão geral");
+assert.match(index, /Acompanhamento de cobranças/, "Atrasos devem ser apresentados como acompanhamento operacional");
