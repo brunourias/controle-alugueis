@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=290" />
+        <link rel="stylesheet" href="styles.css?v=291" />
     
 <style>
     /* Histórico de contratos */
@@ -188,7 +188,7 @@
             </div>
 
             <nav id="appNavigation" class="app-navigation" aria-label="Navegação principal">
-                <button class="app-nav-button desktop-home-nav is-active" type="button" data-app-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10.5 8.5-7 8.5 7v9.5H14v-5.5h-4v5.5H3.5z"></path></svg><span>Início</span></button>
+                <button class="app-nav-button desktop-home-nav is-active" type="button" data-app-view="home" data-app-nav-key="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10.5 8.5-7 8.5 7v9.5H14v-5.5h-4v5.5H3.5z"></path></svg><span class="desktop-nav-label">Início</span><span class="mobile-nav-label">Hoje</span></button>
 
                 <button class="app-nav-button mobile-only-nav mobile-overview-nav" type="button" data-app-view="overview" data-app-nav-key="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4zM7.5 9h4M7.5 13h8M7.5 16h5"></path></svg><span>Visão geral</span></button>
                 <button class="app-nav-button mobile-only-nav" type="button" data-app-view="units" data-app-nav-key="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8 8h3M8 12h3M8 16h3M14 8h2M14 12h2M14 16h2"></path></svg><span>Unidades</span></button>
@@ -197,7 +197,7 @@
                 <button id="mobileExpensesNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="expenses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8 8h8M8 12h5M8 16h6"></path></svg><span>Gastos</span></button>
                 <button id="mobileTaxNav" class="app-nav-button mobile-shortcut-nav" type="button" data-app-nav-key="tax" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3v14H6zM15 3.5v3h3M9 11h6M9 15h6M9 19h4"></path></svg><span>Imposto de Renda</span></button>
                 <button class="app-nav-button" type="button" data-app-view="reports" data-app-nav-key="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5V13M12 19.5V8M19 19.5V4.5"></path></svg><span>Relatórios</span></button>
-                <button id="mobileSettingsNav" class="app-nav-button mobile-settings-nav" type="button" data-app-nav-key="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.12 15a1.65 1.65 0 0 0-1.51-1H5.5v-3h.11a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.85 6l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V4.8h3v.08a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33L17.62 6l2.12 2.12-.06.06A1.65 1.65 0 0 0 19.35 10v.01a1.65 1.65 0 0 0 1.51 1h.09v3h-.09a1.65 1.65 0 0 0-1.46 1Z"></path></svg><span>Configurações</span></button>
+                <button id="mobileSettingsNav" class="app-nav-button mobile-settings-nav" type="button" data-app-nav-key="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.12 15a1.65 1.65 0 0 0-1.51-1H5.5v-3h.11a1.65 1.65 0 0 0 1-1.51V4.8h3v.08a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33L17.62 6l2.12 2.12-.06.06A1.65 1.65 0 0 0 19.35 10v.01a1.65 1.65 0 0 0 1.51 1h.09v3h-.09a1.65 1.65 0 0 0-1.46 1Z"></path></svg><span class="desktop-nav-label">Configurações</span><span class="mobile-nav-label">Mais</span></button>
                 <button id="mobileEnergyRateNav" class="app-nav-button mobile-shortcut-nav mobile-energy-rate-nav" type="button">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2.8 6.8 13h4.7l-1 8.2L17.2 11h-4.7z"></path></svg>
                     <span>Rateio de energia</span>
@@ -1119,7 +1119,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=290"></script>
-    <script src="app.js?v=290"></script>
+    <script src="energy-calculations.js?v=291"></script>
+    <script src="app.js?v=291"></script>
     </body>
 </html>

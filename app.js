@@ -8817,7 +8817,9 @@ function saveExpense() {
                 return;
             }
             activeMobileShortcut = requestedView;
-            actionCenterExpanded = false;
+            // "Hoje" é o ponto de entrada operacional no celular: apresenta
+            // as prioridades sem exigir outro atalho exclusivo para ações.
+            actionCenterExpanded = isMobileNavigation() && requestedView === "home";
             showAppView(requestedView);
             renderActionCenter();
         });

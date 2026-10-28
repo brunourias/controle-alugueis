@@ -169,6 +169,9 @@ assert.match(styles, /data-app-nav-key="charges"\][^{]*\{ order: 5;/, "Cobrança
 
 assert.match(app, /function paymentOccursAfterDueDay\(/, "Atraso deve comparar apenas o dia civil");
 assert.match(app, /return paidDay > dueDay;/, "Pagamento no próprio vencimento não pode ser marcado como atrasado");
+assert.match(index, /data-app-nav-key="home"/, "A navegação móvel deve ter um ponto de entrada Hoje");
+assert.match(styles, /fundação única da navegação móvel/, "A navegação móvel deve ter uma camada final padronizada");
+assert.match(styles, /grid-template-rows: 58px repeat\(2, 76px\)/, "O menu móvel deve usar uma grade compacta previsível");
 assert.doesNotMatch(app, /date > due/, "A classificação não deve comparar o horário do pagamento com o início do vencimento");
 assert.match(index, /id="openRescissionCalculator"/, "Ações do contrato devem abrir o cálculo de multa rescisória");
 assert.match(index, /id="rescissionExtras"/, "O cálculo rescisório deve permitir itens adicionais");

@@ -6626,27 +6626,6 @@ body.modal-open {
 }
 
 
-/* Grade inicial mobile: alvos de toque mais altos e ritmo visual mais fechado. */
-@media (max-width: 680px) {
-    .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, 98px);
-        gap: 5px;
-    }
-
-    .app-navigation.is-launcher .app-nav-button,
-    .app-navigation.is-launcher .app-nav-alert {
-        min-height: 0;
-        padding: 11px 9px;
-    }
-}
-
-@media (max-height: 660px) and (max-width: 680px) {
-    .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, 86px);
-        gap: 5px;
-    }
-}
-
 
 /* Pendências na navegação desktop: mantém o escudo inteiro dentro da área de toque. */
 @media (min-width: 681px) {
@@ -6681,48 +6660,6 @@ body.modal-open {
 }
 
 
-/* Menu inicial: cartões mais altos e colunas mais próximas. */
-@media (max-width: 680px) {
-    .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, 108px);
-        column-gap: 3px;
-        row-gap: 5px;
-    }
-}
-
-@media (max-height: 660px) and (max-width: 680px) {
-    .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, 94px);
-        column-gap: 3px;
-        row-gap: 5px;
-    }
-}
-
-
-/* Grade inicial uniforme: vãos iguais e cartões próximos de quadrados. */
-@media (max-width: 680px) {
-    .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, 112px);
-        gap: 5px;
-    }
-
-    .app-navigation.is-launcher .app-nav-button,
-    .app-navigation.is-launcher .app-nav-alert {
-        min-height: 112px;
-    }
-}
-
-@media (max-height: 660px) and (max-width: 680px) {
-    .app-navigation.is-launcher {
-        grid-template-rows: repeat(4, 96px);
-        gap: 5px;
-    }
-
-    .app-navigation.is-launcher .app-nav-button,
-    .app-navigation.is-launcher .app-nav-alert {
-        min-height: 96px;
-    }
-}
 
 
 /* Tamanho compacto de referência para os oito atalhos do menu inicial. */
@@ -8766,5 +8703,58 @@ input[data-money="true"] {
 
     .app-navigation.is-launcher #actionAlertNav .action-alert-nav-label {
         text-align: center;
+    }
+}
+
+/* UX v291 — fundação única da navegação móvel.
+   Esta camada final substitui atalhos e dimensões acumulados acima. */
+.mobile-nav-label { display: none; }
+
+@media (max-width: 680px) {
+    .desktop-nav-label { display: none; }
+    .mobile-nav-label { display: inline; }
+
+    .app-navigation.is-launcher {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: 58px repeat(2, 76px);
+        gap: 6px;
+        align-items: stretch;
+    }
+
+    .app-navigation.is-launcher .app-nav-button,
+    .app-navigation.is-launcher .app-nav-alert {
+        min-height: 0 !important;
+        padding: 9px 8px;
+    }
+
+    .app-navigation.is-launcher .desktop-home-nav {
+        display: grid !important;
+        order: 0;
+        grid-column: 1 / -1;
+        min-height: 58px !important;
+    }
+
+    .app-navigation.is-launcher [data-app-nav-key="units"] { order: 1; }
+    .app-navigation.is-launcher [data-app-nav-key="financial"] { order: 2; }
+    .app-navigation.is-launcher [data-app-nav-key="reports"] { order: 3; }
+    .app-navigation.is-launcher [data-app-nav-key="settings"] { order: 4; }
+
+    /* Atalhos repetidos continuam acessíveis dentro da área responsável. */
+    .app-navigation.is-launcher [data-app-nav-key="overview"],
+    .app-navigation.is-launcher [data-app-nav-key="charges"],
+    .app-navigation.is-launcher [data-app-nav-key="expenses"],
+    .app-navigation.is-launcher [data-app-nav-key="tax"],
+    .app-navigation.is-launcher #mobileEnergyRateNav,
+    .app-navigation.is-launcher #actionAlertNav {
+        display: none !important;
+    }
+
+    .app-view { gap: 10px; }
+
+    .mobile-view-back {
+        margin-bottom: 7px;
+        padding: 6px 9px;
+        font-size: .78rem;
     }
 }
