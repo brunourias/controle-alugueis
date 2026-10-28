@@ -4438,6 +4438,21 @@ var historyRent = document.getElementById("historyRent");
         scrollPageToTop();
     }
 
+    function openMobileToday() {
+        activeMobileShortcut = "home";
+        actionCenterExpanded = true;
+        showAppView("home", { fromHistory: true });
+        renderActionCenter();
+        var next = Object.assign({}, history.state || {}, mobileNavigationState());
+        // Se já estamos em uma tela do app, Hoje a substitui. Assim o Voltar
+        // retorna ao menu, e não reabre uma tela antiga de forma inesperada.
+        if (history.state && history.state.controleAlugueisNavigation) {
+            history.replaceState(next, "");
+        } else {
+            history.pushState(next, "");
+        }
+    }
+
     function mobileNavigationState() {
         return {
             controleAlugueisNavigation: true,
@@ -4870,6 +4885,8 @@ var historyRent = document.getElementById("historyRent");
             (attentionCount ? '' : '<path d="m8.6 12.1 2.1 2.1 4.7-4.7"></path>') + '</svg>';
         var navAlert = document.getElementById("actionAlertNav");
         var navAlertBadge = document.getElementById("actionAlertNavBadge");
+        var homeNav = document.querySelector('[data-app-nav-key="home"]');
+        var homeBadge = document.getElementById("homeAlertBadge");
         if (navAlert) {
             navAlert.classList.toggle("has-alert", attentionCount > 0);
             navAlert.classList.toggle("is-clear", attentionCount === 0);
@@ -4879,6 +4896,14 @@ var historyRent = document.getElementById("historyRent");
         if (navAlertBadge) {
             navAlertBadge.hidden = attentionCount === 0;
             navAlertBadge.textContent = attentionCount || "";
+        }
+        if (homeNav) {
+            homeNav.classList.toggle("has-alert", attentionCount > 0);
+            homeNav.setAttribute("aria-label", attentionCount ? compactSummary + ". Abrir Hoje." : "Hoje. Sem pendências.");
+        }
+        if (homeBadge) {
+            homeBadge.hidden = attentionCount === 0;
+            homeBadge.textContent = attentionCount || "";
         }
 
         container.classList.remove("is-compact");
@@ -8812,6 +8837,10 @@ function saveExpense() {
     document.querySelectorAll("[data-app-view]").forEach(function (button) {
         button.addEventListener("click", function () {
             var requestedView = button.dataset.appView;
+            if (isMobileNavigation() && requestedView === "home") {
+                openMobileToday();
+                return;
+            }
             if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === requestedView) {
                 closeMobileShortcut();
                 return;

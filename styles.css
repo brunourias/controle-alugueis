@@ -8708,7 +8708,9 @@ input[data-money="true"] {
 
 /* UX v291 — fundação única da navegação móvel.
    Esta camada final substitui atalhos e dimensões acumulados acima. */
-.mobile-nav-label { display: none; }
+.mobile-nav-label,
+.home-alert-badge { display: none; }
+.home-alert-badge[hidden] { display: none !important; }
 
 @media (max-width: 680px) {
     .desktop-nav-label { display: none; }
@@ -8733,6 +8735,31 @@ input[data-money="true"] {
         order: 0;
         grid-column: 1 / -1;
         min-height: 58px !important;
+        position: relative;
+    }
+
+    .app-navigation.is-launcher .desktop-home-nav.has-alert {
+        color: #9e3341;
+        border-color: #efb6be;
+        background: #fff3f4;
+        box-shadow: 0 4px 12px rgba(158, 51, 65, .12);
+    }
+
+    .home-alert-badge {
+        position: absolute;
+        top: 7px;
+        right: 9px;
+        display: grid;
+        min-width: 18px;
+        height: 18px;
+        place-items: center;
+        padding: 0 4px;
+        border-radius: 999px;
+        background: #c93647;
+        color: #fff;
+        font-size: .62rem;
+        font-weight: 850;
+        line-height: 1;
     }
 
     .app-navigation.is-launcher [data-app-nav-key="units"] { order: 1; }
