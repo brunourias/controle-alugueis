@@ -4540,6 +4540,7 @@ var historyRent = document.getElementById("historyRent");
         filterEmpty.hidden = !hasUnits || visibleUnits.length > 0;
         renderActionCenter();
         renderOverview();
+        renderContractsDashboard();
         renderGrid(visibleUnits);
         renderRolePermissions();
         if (didInitialScroll && visibleUnits.length > 0)
@@ -4699,6 +4700,55 @@ var historyRent = document.getElementById("historyRent");
                 '<article><span>Contratos a vencer</span><strong>' + contractsEnding + '</strong><small>nos próximos 60 dias</small></article>' +
                 '<article><span>Unidades vagas</span><strong>' + vacant + '</strong><small>disponíveis para locação</small></article>' +
             '</div>';
+    }
+
+    function renderContractsDashboard() {
+        var container = document.getElementById("contractsDashboard");
+        if (!container) return;
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var currentMonth = today.getMonth();
+        var active = [], renewals = [], pending = [], closed = [];
+        scopedUnits().forEach(function (unit) {
+            if (isActive(unit, currentMonth)) {
+                active.push(unit);
+                var end = chargeLogDate(unit.endDate);
+                var endDays = end ? Math.ceil((end - today) / 86400000) : null;
+                if (endDays !== null && endDays >= 0 && endDays <= 60) renewals.push({ unit: unit, days: endDays });
+                var status = displayStatus(unit, currentMonth);
+                var partial = partialPaymentInfo(unit, currentMonth);
+                if (status === "atrasado" || partial) pending.push({ unit: unit, status: status, partial: partial });
+            }
+            (unit.contractHistory || []).forEach(function (contract) {
+                closed.push({ unit: unit, contract: contract });
+            });
+        });
+        renewals.sort(function (a, b) { return a.days - b.days; });
+        closed.sort(function (a, b) { return String(b.contract.endDate || b.contract.endYm || "").localeCompare(String(a.contract.endDate || a.contract.endYm || "")); });
+        function row(label, name, detail, button, attributes, tone) {
+            return '<article class="contract-panel-row ' + (tone || "") + '"><div><strong>' + escapeHtml(label) + '</strong><span>' + escapeHtml(name) + '</span></div><em>' + escapeHtml(detail) + '</em><button class="btn ' + (tone === "is-pending" ? "btn-primary" : "btn-ghost") + '" type="button" ' + attributes + '>' + button + '</button></article>';
+        }
+        function section(title, items, empty) {
+            return '<section class="contract-panel-section"><h3>' + title + '</h3>' + (items.length ? items.join("") : '<p>' + empty + '</p>') + '</section>';
+        }
+        var renewalRows = renewals.slice(0, 3).map(function (item) {
+            return row(item.unit.name, item.unit.tenantName || "Sem inquilino", "Vence em " + item.days + " dia" + (item.days === 1 ? "" : "s"), "Revisar", 'data-contract-review="' + escapeHtml(item.unit.id) + '"', "is-renewal");
+        });
+        var pendingRows = pending.slice(0, 4).map(function (item) {
+            var detail = item.partial ? "Saldo " + money(item.partial.balanceWithCharges) : "Parcela em atraso";
+            return row(item.unit.name, item.unit.tenantName || "Sem inquilino", detail, item.partial ? "Ver" : "Cobrar", 'data-contract-collect="' + escapeHtml(item.unit.id) + '" data-contract-month="' + currentMonth + '"', "is-pending");
+        });
+        var closedRows = closed.slice(0, 3).map(function (item) {
+            var endDate = item.contract.endDate || (item.contract.endYm ? item.contract.endYm + "-01" : "");
+            return row(item.unit.name, item.contract.tenantName || "Inquilino anterior", endDate ? "Encerrado em " + formatTimelineDate(endDate) : "Contrato encerrado", "Documentos", 'data-contract-documents="' + escapeHtml(item.unit.id) + '"', "is-closed");
+        });
+        container.innerHTML = '<header class="contracts-dashboard-heading"><div><p>ACOMPANHAMENTO</p><h2>Contratos</h2><span>Renovações, pendências e encerramentos em um só lugar.</span></div></header>' +
+            '<div class="contracts-summary"><span><small>Ativos</small><b>' + active.length + '</b></span><span class="is-renewal"><small>Renovação</small><b>' + renewals.length + '</b></span><span class="is-pending"><small>Pendências</small><b>' + pending.length + '</b></span><span class="is-closed"><small>Encerrados</small><b>' + closed.length + '</b></span></div>' +
+            section("Renovação nos próximos 60 dias", renewalRows, "Nenhum contrato próximo do vencimento.") +
+            section("Com pendências", pendingRows, "Nenhuma pendência contratual no momento.") +
+            section("Encerrados recentemente", closedRows, "Nenhum contrato encerrado registrado.");
+        container.querySelectorAll("[data-contract-review]").forEach(function (button) { button.addEventListener("click", function () { openModal(button.dataset.contractReview); }); });
+        container.querySelectorAll("[data-contract-collect]").forEach(function (button) { button.addEventListener("click", function () { openPaymentAdjust(button.dataset.contractCollect, Number(button.dataset.contractMonth), true); }); });
+        container.querySelectorAll("[data-contract-documents]").forEach(function (button) { button.addEventListener("click", function () { openReportDetail("documents"); }); });
     }
 
     function renderActionCenter() {
@@ -12048,6 +12098,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         button.addEventListener("click", function () {
             var destination = button.dataset.reportDestination;
             if (destination === "energy") { openEnergyRate(); return; }
+            if (destination === "contracts") { activeMobileShortcut = "overview"; showAppView("overview"); window.setTimeout(function () { var panel = document.getElementById("contractsDashboard"); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0); return; }
             if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures" || destination === "documents") { openReportDetail(destination); return; }
             if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
             if (destination === "late") { financialReportExpanded = true; activeMobileShortcut = "overview"; showAppView("overview"); render(); return; }

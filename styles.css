@@ -5392,6 +5392,28 @@ textarea:focus-visible {
     }
 }
 
+/* UX v297 — painel de contratos operacional. */
+.contracts-dashboard { padding: 16px; border: 1px solid #d7e8e5; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(15, 77, 73, .06); }
+.contracts-dashboard-heading p { margin: 0 0 4px; color: #167268; font-size: .67rem; font-weight: 850; letter-spacing: .06em; }
+.contracts-dashboard-heading h2 { margin: 0; color: #0d5c58; font-size: 1.1rem; }
+.contracts-dashboard-heading span { display: block; margin-top: 4px; color: #637d79; font-size: .76rem; }
+.contracts-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+.contracts-summary span { min-width: 0; padding: 10px; border: 1px solid #dcebea; border-radius: 11px; background: #f3f9f8; }
+.contracts-summary small, .contracts-summary b { display: block; }
+.contracts-summary small { color: #63807d; font-size: .68rem; }
+.contracts-summary b { margin-top: 3px; color: #075f5b; font-size: 1.15rem; }
+.contracts-summary .is-renewal { background: #fff9ec; border-color: #f2deaf; }.contracts-summary .is-renewal b { color: #9b5b00; }
+.contracts-summary .is-pending { background: #fff4f5; border-color: #f4d1d7; }.contracts-summary .is-pending b { color: #ae293c; }
+.contracts-summary .is-closed { background: #f5f7f7; }.contracts-summary .is-closed b { color: #536d69; }
+.contract-panel-section { margin-top: 10px; border: 1px solid #dcebea; border-radius: 12px; overflow: hidden; }
+.contract-panel-section h3 { margin: 0; padding: 10px 12px; color: #075f5b; background: #f3faf8; font-size: .8rem; }
+.contract-panel-section > p { margin: 0; padding: 12px; color: #667f7c; font-size: .74rem; }
+.contract-panel-row { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(120px, .8fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #e7f0ee; }
+.contract-panel-row > div { min-width: 0; }.contract-panel-row strong, .contract-panel-row span { display: block; }.contract-panel-row strong { color: #234f4b; font-size: .78rem; }.contract-panel-row span { margin-top: 2px; color: #667f7c; font-size: .69rem; }
+.contract-panel-row em { justify-self: start; padding: 4px 7px; border-radius: 999px; background: #edf5f4; color: #4d6864; font-size: .68rem; font-style: normal; }.contract-panel-row.is-renewal em { background: #fff0cf; color: #8c5907; }.contract-panel-row.is-pending em { background: #ffe4e7; color: #ad293c; }.contract-panel-row.is-closed em { background: #edf0f1; color: #5b6c70; }
+.contract-panel-row .btn { min-height: 32px; padding: 5px 9px; font-size: .68rem; }
+@media (max-width: 680px) { .contracts-dashboard { padding: 13px; border-radius: 14px; }.contracts-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 12px 0; }.contracts-summary span { padding: 9px; }.contract-panel-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 9px; }.contract-panel-row em { grid-column: 1; }.contract-panel-row .btn { grid-column: 2; grid-row: 1 / span 2; align-self: center; min-width: 70px; }.contracts-dashboard-heading h2 { font-size: 1.02rem; } }
+
 
 /* Coluna fixa mais compacta, preservando leitura dos dados da unidade. */
 .table-wrap thead th:first-child,

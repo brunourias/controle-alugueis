@@ -317,3 +317,9 @@ assert.match(app, /data-document-receipt/, "A Central deve abrir recibos dispon�
 assert.match(app, /function openCollectionWhatsapp\(/, "A parcela deve permitir cobrar pelo WhatsApp no mesmo fluxo");
 assert.match(app, /handledLateKeys: \[key\]/, "A cobrança pelo WhatsApp deve ficar vinculada à parcela");
 assert.match(styles, /UX v296 — painel Financeiro no mesmo sistema visual/, "Financeiro deve receber acabamento visual próprio e consistente");
+assert.match(index, /id="contractsDashboard"/, "Visão geral deve conter o painel de contratos");
+assert.match(index, /data-report-destination="contracts"/, "Relatórios devem levar ao painel de contratos");
+assert.match(app, /function renderContractsDashboard\(/, "Contratos devem ser agrupados em painel operacional");
+assert.match(app, /Renovação nos próximos 60 dias/, "Painel deve destacar renovações próximas");
+assert.match(app, /data-contract-collect/, "Pendências contratuais devem abrir a cobrança da parcela");
+assert.match(styles, /UX v297 — painel de contratos operacional/, "Painel de contratos deve ter layout próprio responsivo");
