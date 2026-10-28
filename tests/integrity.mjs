@@ -225,6 +225,8 @@ assert.match(app, /expensesPreview\.hidden = true;/, "A prévia redundante de ga
 assert.match(app, /if \(!yearExpenses\.length\)[\s\S]{0,100}expensesPreview\.hidden = false;/, "O estado vazio de gastos deve continuar visível");
 
 assert.match(app, /function paidLateOccurrenceIsValid\(/, "Contador de atrasos deve revalidar ocorrências históricas");
+assert.match(app, /function lateReportBreakdown\(/, "Relatório de inadimplência deve separar o contrato atual do histórico");
+assert.match(app, /em atraso \(" \+ item\.tenantName \+ "\)/, "Atrasos devem indicar o inquilino ao qual pertencem");
 assert.match(app, /history\[key\] === true && paidLateOccurrenceIsValid\(unit, y, m\)/, "Marcador antigo não pode criar atraso sem validar o pagamento");
 assert.match(app, /new Date\(paid\.getFullYear\(\), paid\.getMonth\(\), paid\.getDate\(\)\)\.getTime\(\)/, "Recorrência deve comparar somente o dia civil do pagamento");
 

@@ -5528,45 +5528,62 @@ var historyRent = document.getElementById("historyRent");
         centerGridMonthCell(grid.querySelector("thead th.month-current"), "auto");
     }
 
-    function overdueTenantName(unit) {
+    function lateReportBreakdown(unit) {
         var history = Array.isArray(unit.contractHistory)
             ? unit.contractHistory.slice()
             : [];
         var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object"
             ? unit.lateLedger
             : {};
+        var current = { tenantName: unit.tenantName || "", openLate: 0, paidLate: 0 };
+        var historical = {};
 
-        // Atrasos guardados no histórico pertencem ao contrato encerrado,
-        // nunca ao inquilino que ocupa a unidade hoje.
-        var historicalLateKeys = Object.keys(lateLedger).filter(function (key) {
-            return lateLedger[key] === true ||
-                lateLedger[key] === "open" ||
-                lateLedger[key] === "paid";
-        });
-        if (historicalLateKeys.length && history.length) {
-            var matchingContracts = history.filter(function (contract) {
-                return historicalLateKeys.some(function (key) {
-                    return (!contract.startYm || key >= contract.startYm) &&
-                        (!contract.endYm || key <= contract.endYm);
-                });
-            });
-            var candidates = matchingContracts.length ? matchingContracts : history;
-            candidates.sort(function (left, right) {
-                return String(right.endYm || right.startYm || "").localeCompare(
-                    String(left.endYm || left.startYm || "")
-                );
-            });
-            if (candidates[0] && candidates[0].tenantName)
-                return candidates[0].tenantName;
+        function historicalEntry(contract) {
+            var name = String(contract.tenantName || "Contrato anterior");
+            if (!historical[name]) historical[name] = { tenantName: name, openLate: 0, paidLate: 0 };
+            return historical[name];
         }
 
-        if (unit.tenantName) return unit.tenantName;
-        history.sort(function (left, right) {
-            return String(right.endYm || right.startYm || "").localeCompare(
-                String(left.endYm || left.startYm || "")
-            );
+        months.forEach(function (_, month) {
+            var key = monthKey(month);
+            var recordedLate = lateLedger[key];
+            if (isActive(unit, month)) {
+                if (effectiveStatus(unit, month) === "atrasado" || statusFor(unit, month) === "atrasado" || recordedLate === true || recordedLate === "open") current.openLate += 1;
+                if (isPaidLate(unit, month) || recordedLate === "paid") current.paidLate += 1;
+                return;
+            }
+
+            // Depois que um contrato muda, os marcadores do contrato anterior
+            // continuam no ledger. Eles só podem aparecer sob o antigo inquilino.
+            var contract = history.slice().reverse().find(function (item) {
+                var start = item && (item.startYm || contractMonthValue(item.startDate));
+                var end = item && (item.endYm || contractMonthValue(item.endDate));
+                return isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
+            });
+            if (!contract) return;
+            var entry = historicalEntry(contract);
+            if (recordedLate === true || recordedLate === "open" || statusFor(unit, month) === "atrasado") entry.openLate += 1;
+            if (recordedLate === "paid" || unit.paidLate && unit.paidLate[key] === true) entry.paidLate += 1;
         });
-        return history.length ? history[0].tenantName : "";
+
+        var records = [];
+        if (current.openLate || current.paidLate) records.push(current);
+        Object.keys(historical).forEach(function (name) {
+            if (historical[name].openLate || historical[name].paidLate) records.push(historical[name]);
+        });
+        var openLate = records.reduce(function (sum, item) { return sum + item.openLate; }, 0);
+        var paidLate = records.reduce(function (sum, item) { return sum + item.paidLate; }, 0);
+        var detail = [];
+        records.forEach(function (item) {
+            if (item.openLate) detail.push(item.openLate + " em atraso (" + item.tenantName + ")");
+            if (item.paidLate) detail.push(item.paidLate + " pago" + (item.paidLate === 1 ? "" : "s") + " com atraso (" + item.tenantName + ")");
+        });
+        return {
+            tenantName: current.openLate || current.paidLate ? current.tenantName : (records[0] && records[0].tenantName) || "",
+            openLate: openLate,
+            paidLate: paidLate,
+            detail: detail.join(" · ")
+        };
     }
 
 function renderCashForecast() {
@@ -5644,21 +5661,15 @@ function renderSummary() {
     var openLateSnapshot = openLateSnapshotMetrics(units);
 
     var reportRows = units.map(function (unit) {
-        var openLate = 0;
-        var paidLate = 0;
-        months.forEach(function (_, i) {
-            var lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
-            var recordedLate = lateLedger[monthKey(i)];
-            if (effectiveStatus(unit, i) === "atrasado" || statusFor(unit, i) === "atrasado" || recordedLate === true || recordedLate === "open") openLate += 1;
-            if (isPaidLate(unit, i) || recordedLate === "paid") paidLate += 1;
-        });
+        var lateBreakdown = lateReportBreakdown(unit);
         return {
             name: unit.name,
-            tenantName: overdueTenantName(unit),
+            tenantName: lateBreakdown.tenantName,
             enterprise: empreendimentoName(unit.empreendimentoId),
-            openLate: openLate,
-            paidLate: paidLate,
-            total: openLate + paidLate
+            openLate: lateBreakdown.openLate,
+            paidLate: lateBreakdown.paidLate,
+            detail: lateBreakdown.detail,
+            total: lateBreakdown.openLate + lateBreakdown.paidLate
         };
     }).filter(function (row) {
         return row.total > 0;
@@ -5674,11 +5685,10 @@ function renderSummary() {
         '</div></header>' +
         (reportRows.length
             ? '<div class="late-list">' + reportRows.map(function (row) {
-                var detail = row.openLate + " em atraso " + row.paidLate + " pago" + (row.paidLate === 1 ? "" : "s") + " com atraso";
                 var rowEnterprise = selectedEmpreendimentoId === "todos" ? " <small>(" + escapeHtml(row.enterprise) + ")</small>" : "";
                 return '<div class="late-row"><div><strong>' + escapeHtml(row.name) + rowEnterprise + '</strong>' +
                     (row.tenantName ? '<div class="tenant-name">' + escapeHtml(row.tenantName) + '</div>' : '') +
-                    '<span>' + detail + '</span></div><b class="late-count">' + row.total + '</b></div>';
+                    '<span>' + escapeHtml(row.detail) + '</span></div><b class="late-count">' + row.total + '</b></div>';
             }).join("") + '</div>'
             : '<p class="summary-report-empty">Nenhum atraso no ano - todas as unidades em dia.</p>') +
         '</section>';
