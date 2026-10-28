@@ -5573,16 +5573,11 @@ var historyRent = document.getElementById("historyRent");
         });
         var openLate = records.reduce(function (sum, item) { return sum + item.openLate; }, 0);
         var paidLate = records.reduce(function (sum, item) { return sum + item.paidLate; }, 0);
-        var detail = [];
-        records.forEach(function (item) {
-            if (item.openLate) detail.push(item.openLate + " em atraso (" + item.tenantName + ")");
-            if (item.paidLate) detail.push(item.paidLate + " pago" + (item.paidLate === 1 ? "" : "s") + " com atraso (" + item.tenantName + ")");
-        });
         return {
             tenantName: current.openLate || current.paidLate ? current.tenantName : (records[0] && records[0].tenantName) || "",
             openLate: openLate,
             paidLate: paidLate,
-            detail: detail.join(" · ")
+            records: records
         };
     }
 
@@ -5668,7 +5663,7 @@ function renderSummary() {
             enterprise: empreendimentoName(unit.empreendimentoId),
             openLate: lateBreakdown.openLate,
             paidLate: lateBreakdown.paidLate,
-            detail: lateBreakdown.detail,
+            records: lateBreakdown.records,
             total: lateBreakdown.openLate + lateBreakdown.paidLate
         };
     }).filter(function (row) {
@@ -5681,14 +5676,18 @@ function renderSummary() {
         '<header class="late-dashboard-header"><div>' +
         '<p class="late-eyebrow">Controle financeiro</p>' +
         '<h3>Atrasos no ano</h3>' +
-        '<p class="summary-report-intro">Acompanhe os atrasos em aberto e os pagamentos feitos depois do vencimento.</p>' +
+        '<p class="summary-report-intro">Unidades ordenadas por mais ocorrências. Cada linha identifica o contrato responsável.</p>' +
         '</div></header>' +
         (reportRows.length
             ? '<div class="late-list">' + reportRows.map(function (row) {
                 var rowEnterprise = selectedEmpreendimentoId === "todos" ? " <small>(" + escapeHtml(row.enterprise) + ")</small>" : "";
                 return '<div class="late-row"><div><strong>' + escapeHtml(row.name) + rowEnterprise + '</strong>' +
-                    (row.tenantName ? '<div class="tenant-name">' + escapeHtml(row.tenantName) + '</div>' : '') +
-                    '<span>' + escapeHtml(row.detail) + '</span></div><b class="late-count">' + row.total + '</b></div>';
+                    '<div class="late-contracts">' + row.records.map(function (contract) {
+                        var detail = [];
+                        if (contract.openLate) detail.push(contract.openLate + " em atraso");
+                        if (contract.paidLate) detail.push(contract.paidLate + " pago" + (contract.paidLate === 1 ? "" : "s") + " com atraso");
+                        return '<span class="late-contract-line' + (contract.openLate ? ' is-open' : '') + '"><b>' + escapeHtml(contract.tenantName || "Sem inquilino") + '</b> · ' + escapeHtml(detail.join(" · ")) + '</span>';
+                    }).join("") + '</div></div><b class="late-count">' + row.total + '</b></div>';
             }).join("") + '</div>'
             : '<p class="summary-report-empty">Nenhum atraso no ano - todas as unidades em dia.</p>') +
         '</section>';
