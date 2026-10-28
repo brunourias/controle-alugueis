@@ -15,7 +15,7 @@
         <link rel="manifest" href="manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
         <link rel="apple-touch-icon" href="icons/icon-192.png" />
-        <link rel="stylesheet" href="styles.css?v=292" />
+        <link rel="stylesheet" href="styles.css?v=293" />
     
 <style>
     /* Histórico de contratos */
@@ -809,6 +809,7 @@
         <!-- Modal de Recibo -->
         <div class="modal-backdrop" id="receiptModal" hidden>
             <div class="modal receipt-modal">
+                <button id="cancelReceiptTop" class="mobile-modal-back" type="button">← Voltar</button>
                 <h2 id="receiptTitle"></h2>
 
                 <div id="receiptPreview"></div>
@@ -930,6 +931,7 @@
         <!-- Parcelas de contrato encerrado -->
         <div class="modal-backdrop" id="contractInstallmentsModal" hidden>
             <div class="modal contract-installments-modal">
+                <button id="closeContractInstallmentsTop" class="mobile-modal-back" type="button">← Voltar</button>
                 <h2 id="contractInstallmentsTitle">Parcelas do contrato</h2>
                 <p id="contractInstallmentsSummary" class="settings-note"></p>
                 <div id="contractInstallmentsList" class="contract-installments-list"></div>
@@ -978,6 +980,7 @@
         <!-- Demonstrativo compartilhável da rescisão -->
         <div class="modal-backdrop" id="rescissionStatementModal" hidden>
             <div class="modal rescission-statement-modal">
+                <button id="closeRescissionStatementTop" class="mobile-modal-back" type="button">← Voltar</button>
                 <div id="rescissionStatementContent" class="rescission-statement" aria-live="polite"></div>
                 <div class="modal-actions settings-footer">
                     <button id="closeRescissionStatement" class="btn btn-ghost" type="button">Voltar</button>
@@ -1119,7 +1122,7 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
         <button id="mobileAddUnit" class="mobile-fab" type="button" aria-label="Nova unidade" title="Nova unidade">+</button>
 
-    <script src="energy-calculations.js?v=292"></script>
-    <script src="app.js?v=292"></script>
+    <script src="energy-calculations.js?v=293"></script>
+    <script src="app.js?v=293"></script>
     </body>
 </html>

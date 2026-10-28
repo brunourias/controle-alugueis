@@ -4877,6 +4877,21 @@ var historyRent = document.getElementById("historyRent");
             '<section class="action-priority-section"><h3>Esta semana</h3>' + rows(week, "Nenhuma ação prevista para os próximos 7 dias.", "is-week") + completedMarkup + '</section>' +
             '<section class="action-priority-section"><h3>Decisões de contrato</h3>' + rows(decisions, "Nenhuma decisão de contrato pendente.", "is-decision") + '</section>' +
             '</div><section class="action-tasks-panel"><h3>Tarefas manuais</h3>' + taskForm + '</section>';
+        var isMobileToday = isMobileNavigation() && activeAppView === "home";
+        function mobileSection(title, items, empty, tone) {
+            var visible = items.slice(0, 3);
+            var more = items.length > visible.length
+                ? '<details class="action-today-more"><summary>Ver mais ' + (items.length - visible.length) + '</summary>' + rows(items.slice(visible.length), "", tone) + '</details>'
+                : "";
+            return '<section class="action-today-section ' + tone + '"><header><h3>' + title + '</h3><b>' + items.length + '</b></header>' + rows(visible, empty, tone) + more + '</section>';
+        }
+        var mobileDetail = '<div class="action-today-groups">' +
+            mobileSection("Urgente", urgent, "Nada urgente hoje.", "is-urgent") +
+            mobileSection("Próximos 7 dias", week, "Nenhuma ação para esta semana.", "is-week") +
+            mobileSection("Contratos", decisions, "Nenhuma decisão pendente.", "is-decision") +
+            '</div>' +
+            (completedCharges.length ? '<details class="action-today-more action-today-completed"><summary>Cobranças registradas (' + completedCharges.length + ')</summary>' + rows(completedCharges, "", "is-completed") + '</details>' : '') +
+            '<details class="action-today-tasks"><summary>Tarefas manuais</summary>' + taskForm + '</details>';
 
         var compactSummary = attentionCount
             ? attentionCount + " " + (attentionCount === 1 ? "ação pendente" : "ações pendentes")
@@ -4907,9 +4922,10 @@ var historyRent = document.getElementById("historyRent");
         }
 
         container.classList.remove("is-compact");
+        container.classList.toggle("is-today-mobile", isMobileToday);
         container.hidden = !actionCenterExpanded;
         container.innerHTML = actionCenterExpanded
-            ? '<div class="action-center-heading"><div class="action-title"><h2>O que precisa de ação</h2><p>Prioridades, cobranças e decisões do portfólio.</p></div><div class="action-heading-controls">' + badge + '</div></div><div class="action-center-detail">' + detail + '</div>'
+            ? '<div class="action-center-heading"><div class="action-title"><h2>' + (isMobileToday ? "Hoje" : "O que precisa de ação") + '</h2><p>' + (isMobileToday ? "Prioridades para agir agora." : "Prioridades, cobranças e decisões do portfólio.") + '</p></div><div class="action-heading-controls">' + badge + '</div></div><div class="action-center-detail">' + (isMobileToday ? mobileDetail : detail) + '</div>'
             : "";
 
         var toggleActionCenter = document.getElementById("toggleActionCenter");
@@ -9041,6 +9057,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document
         .getElementById("cancelReceipt")
         .addEventListener("click", closeReceipt);
+    document
+        .getElementById("cancelReceiptTop")
+        .addEventListener("click", closeReceipt);
 
     document
         .getElementById("downloadReceipt")
@@ -10928,6 +10947,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("saveRescission").addEventListener("click", saveRescissionCalculation);
     viewSavedRescission.addEventListener("click", recoverLatestRescission);
     document.getElementById("closeRescissionStatement").addEventListener("click", function () { ModalManager.close(rescissionStatementModal); });
+    document.getElementById("closeRescissionStatementTop").addEventListener("click", function () { ModalManager.close(rescissionStatementModal); });
     document.getElementById("shareRescissionStatement").addEventListener("click", shareRescissionStatement);
     document.getElementById("printRescissionStatement").addEventListener("click", printRescissionStatement);
     document.getElementById("printDepositReturn").addEventListener("click", printDepositReturnReceipt);
@@ -10937,6 +10957,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("endContractWithRescission").addEventListener("click", function () { requireSensitiveAccess("encerrar contrato com rescisão", endContractWithRescissionNow); });
     document.getElementById("startNewContract").addEventListener("click", prepareNewContractForm);
     document.getElementById("closeContractInstallments").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });
+    document.getElementById("closeContractInstallmentsTop").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });
     document.getElementById("paymentAdjustFine").addEventListener("input", updatePaymentAdjustTotal);
     document.getElementById("createBackupNow").addEventListener("click", function () {
         createVersionedBackup("Backup manual", "");
@@ -11871,9 +11892,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             existing.id = "reportDetailModal";
             existing.className = "modal-backdrop";
             existing.hidden = true;
-            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><div class="settings-heading"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2></div></div><div id="reportDetailContent" class="report-detail-content"></div><div class="modal-actions settings-footer"><span class="modal-footer-title">Relatório detalhado</span><button class="btn btn-ghost" type="button" data-close-report>Fechar</button></div></div>';
+            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><button class="mobile-modal-back" type="button" data-close-report>← Voltar</button><div class="settings-heading"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2></div></div><div id="reportDetailContent" class="report-detail-content"></div><div class="modal-actions settings-footer"><span class="modal-footer-title">Relatório detalhado</span><button class="btn btn-ghost" type="button" data-close-report>Fechar</button></div></div>';
             document.body.appendChild(existing);
-            existing.querySelector("[data-close-report]").addEventListener("click", function () { ModalManager.close(existing); });
+            existing.querySelectorAll("[data-close-report]").forEach(function (button) { button.addEventListener("click", function () { ModalManager.close(existing); }); });
             existing.addEventListener("click", function (event) { if (event.target === existing) ModalManager.close(existing); });
         }
         var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : "Comparativo entre empreendimentos";

@@ -8289,6 +8289,39 @@ input[data-money="true"] {
 .mobile-month-list { display: none; }
 .mobile-month-list[hidden] { display: none !important; }
 
+/* UX v293 — Hoje compacto e modais móveis proporcionais */
+.mobile-modal-back { display: none; }
+
+@media (max-width: 680px) {
+    .action-center.is-today-mobile { padding: 11px; border-radius: 14px; }
+    .action-center.is-today-mobile .action-center-heading { align-items: center; margin-bottom: 8px; }
+    .action-center.is-today-mobile .action-title h2 { font-size: 1rem; }
+    .action-center.is-today-mobile .action-title p { font-size: .72rem; }
+    .action-today-groups { display: grid; gap: 7px; }
+    .action-today-section { padding: 8px 9px; border: 1px solid #d8e7e4; border-radius: 11px; background: #fff; }
+    .action-today-section > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 1px; }
+    .action-today-section > header h3 { margin: 0; color: #075f5b; font-size: .78rem; }
+    .action-today-section > header b { min-width: 20px; padding: 2px 6px; border-radius: 999px; background: #edf5f4; color: #075f5b; font-size: .68rem; text-align: center; }
+    .action-today-section.is-urgent { border-color: #ffd3d8; background: #fffafa; }
+    .action-today-section.is-urgent > header b { background: #ffe1e5; color: #ae263d; }
+    .action-center.is-today-mobile .operations-row { display: flex; flex-direction: row; align-items: center; gap: 7px; padding: 7px 0; }
+    .action-center.is-today-mobile .operations-row > div:first-child { flex: 1 1 auto; width: auto; min-width: 0; }
+    .action-center.is-today-mobile .operations-row .action-row-actions { flex: 0 0 auto; width: auto !important; }
+    .action-center.is-today-mobile .operations-row .btn { min-width: 62px; min-height: 30px; padding: 5px 8px; font-size: .68rem; }
+    .action-today-more, .action-today-tasks { margin-top: 7px; border: 1px solid #d8e7e4; border-radius: 10px; background: #fbfdfd; }
+    .action-today-more summary, .action-today-tasks summary { padding: 8px 9px; color: #176c66; font-size: .72rem; font-weight: 800; cursor: pointer; }
+    .action-today-more[open] summary, .action-today-tasks[open] summary { border-bottom: 1px solid #e1ecea; }
+    .action-today-more .operations-row { margin-inline: 9px; }
+    .action-today-tasks .operational-task-form { padding: 0 9px 9px; }
+
+    /* Formulários curtos continuam como diálogos; demonstrativos e listas usam tela inteira. */
+    .modal-backdrop:has(.charge-modal), .modal-backdrop:has(.expense-modal), .modal-backdrop:has(.key-handover-modal) { padding: 12px; align-items: center; }
+    .charge-modal, .expense-modal, .key-handover-modal { width: min(calc(100vw - 24px), 520px); height: auto; max-height: 78dvh; margin: 0; border-radius: 18px; }
+    .modal-backdrop:has(.receipt-modal), .modal-backdrop:has(.contract-installments-modal), .modal-backdrop:has(.rescission-statement-modal) { padding: 0; align-items: stretch; }
+    .receipt-modal, .contract-installments-modal, .rescission-statement-modal { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; }
+    .mobile-modal-back { display: inline-flex; align-items: center; min-height: 36px; margin: -2px 0 10px; padding: 5px 0; border: 0; background: transparent; color: #08756d; font: inherit; font-size: .84rem; font-weight: 800; }
+}
+
 @media (max-width: 680px) {
     .app-navigation.is-launcher {
         grid-template-columns: repeat(2, minmax(0, 1fr));
