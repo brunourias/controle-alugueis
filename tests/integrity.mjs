@@ -311,3 +311,9 @@ assert.match(app, /data-document-receipt/, "A Central deve abrir recibos dispon�
 assert.match(app, /data-document-rescission/, "A Central deve abrir demonstrativos de rescisão");
 assert.match(app, /data-document-handover/, "A Central deve abrir termos de entrega de chaves");
 assert.match(styles, /UX v295 — ritmo único para títulos e cartões nas telas móveis/, "Telas móveis devem compartilhar ritmo visual");
+assert.match(index, /id="paymentCollectionPanel"/, "A baixa deve concentrar cobrança e acompanhamento da parcela");
+assert.match(app, /Cobrança e acompanhamento/, "O fluxo de pagamento deve exibir contato, acordo, baixa e recibo juntos");
+assert.match(app, /data-document-receipt/, "A Central deve abrir recibos disponíveis");
+assert.match(app, /function openCollectionWhatsapp\(/, "A parcela deve permitir cobrar pelo WhatsApp no mesmo fluxo");
+assert.match(app, /handledLateKeys: \[key\]/, "A cobrança pelo WhatsApp deve ficar vinculada à parcela");
+assert.match(styles, /UX v296 — painel Financeiro no mesmo sistema visual/, "Financeiro deve receber acabamento visual próprio e consistente");

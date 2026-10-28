@@ -6370,6 +6370,43 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
             });
         });
 
+        var collectionPanel = document.getElementById("paymentCollectionPanel");
+        var chargeEntries = (unit.chargeLog || []).filter(function (entry) {
+            return Array.isArray(entry.handledLateKeys) && entry.handledLateKeys.indexOf(key) >= 0;
+        }).sort(function (a, b) { return String(b.createdAt || "").localeCompare(String(a.createdAt || "")); });
+        var canOpenReceipt = (displayStatus(unit, month) === "pago" || displayStatus(unit, month) === "pago-atrasado");
+        collectionPanel.innerHTML = '<header><div><strong>Cobrança e acompanhamento</strong><small>Contato, acordo, baixa e recibo desta parcela.</small></div></header>' +
+            '<div class="payment-collection-actions"><button id="paymentCollectionContact" class="btn btn-ghost" type="button">Registrar contato</button><button id="paymentCollectionWhatsapp" class="btn btn-primary" type="button">WhatsApp</button>' +
+            (canOpenReceipt ? '<button id="paymentCollectionReceipt" class="btn btn-ghost" type="button">Abrir recibo</button>' : '') + '</div>' +
+            '<div class="payment-collection-history">' + (chargeEntries.length ? chargeEntries.slice(0, 3).map(function (entry) {
+                var details = [entry.date ? formatTimelineDate(entry.date) : "", entry.promisedDate ? "prometeu pagar em " + formatTimelineDate(entry.promisedDate) : "", entry.nextActionDate ? "retorno " + formatTimelineDate(entry.nextActionDate) : ""].filter(Boolean).join(" · ");
+                return '<span><b>' + escapeHtml(chargeKindLabel(entry.kind)) + '</b>' + escapeHtml(details ? " · " + details : "") + (entry.note ? " · " + escapeHtml(entry.note) : "") + '</span>';
+            }).join("") : '<span>Nenhum contato registrado para esta parcela.</span>') + '</div>';
+        function openCollectionContact() {
+            ModalManager.close(document.getElementById("paymentAdjustModal"));
+            openChargeModal(id, key);
+        }
+        function openCollectionWhatsapp() {
+            if (!requireWorkspacePermission("manageCollections")) return;
+            var entry = {
+                id: "charge-" + Date.now().toString(36), createdAt: new Date().toISOString(),
+                date: localDateValue(new Date()), kind: "whatsapp", note: "Mensagem de cobrança aberta pelo fluxo da parcela.",
+                promisedDate: "", nextActionDate: "", handledLateKeys: [key]
+            };
+            unit.chargeLog = [entry].concat(unit.chargeLog || []).slice(0, 40);
+            createVersionedBackup("Cobrança por WhatsApp", unit.name + " · " + key);
+            recordOperation("Cobrança por WhatsApp", unit.name + " · " + key);
+            saveState();
+            render();
+            var url = chargeUrl(unit) || whatsappUrl(unit.tenantPhone);
+            if (url) window.open(url, "_blank", "noopener");
+            openPaymentAdjust(id, month, registerPayment, editEntryIndex);
+        }
+        document.getElementById("paymentCollectionContact").addEventListener("click", openCollectionContact);
+        document.getElementById("paymentCollectionWhatsapp").addEventListener("click", openCollectionWhatsapp);
+        var receiptButton = document.getElementById("paymentCollectionReceipt");
+        if (receiptButton) receiptButton.addEventListener("click", function () { openReceipt(id, month); });
+
         document.getElementById("savePaymentAdjust").textContent =
             editingEntry ? "Salvar correção" : (registerPayment ? "Registrar pagamento" : "Salvar ajuste");
         updatePaymentAdjustTotal();
