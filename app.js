@@ -12264,6 +12264,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     });
 
     document.getElementById("mobileEnergyRateNav").addEventListener("click", openEnergyRate);
+    document.getElementById("mobileWaterRateNav").addEventListener("click", openWaterRate);
     document.getElementById("desktopEnergyRateNav").addEventListener("click", openEnergyRate);
     document.getElementById("desktopWaterRateNav").addEventListener("click", openWaterRate);
     document.getElementById("cancelEnergyRate").addEventListener("click", function () { ModalManager.close(energyRateModalElements().modal); });
