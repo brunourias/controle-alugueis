@@ -5343,7 +5343,7 @@ var historyRent = document.getElementById("historyRent");
                               escapeHtml(unit.id) +
                               '" data-receipt-month="' +
                               i +
-                              '" aria-label="Gerar recibo">🧾</button>'
+                              '" aria-label="Gerar recibo" title="Gerar recibo do aluguel">🧾</button>'
                             : "";
 
                     // ==================================================
@@ -5360,7 +5360,7 @@ var historyRent = document.getElementById("historyRent");
                               escapeHtml(unit.id) +
                               '" data-adjust-month="' +
                               i +
-                              '" aria-label="Ajustar pagamento">✏️</button>'
+                              '" aria-label="Ajustar pagamento" title="Ajustar pagamento">✏️</button>'
                             : "";
 
                     var energyIndicator = energyPaidIndicator(unit.id, i);

@@ -350,3 +350,5 @@ assert.match(app, /utility-proof energy-proof/, "Energia paga deve exibir atalho
 assert.match(app, /utility-proof water-proof/, "Água paga deve exibir atalho rápido para o comprovante");
 assert.match(styles, /energy-proof \{ grid-column: 4/, "Comprovante de energia deve ficar ao lado do raio");
 assert.match(styles, /water-rate-indicator \{\s*grid-column: 5/, "Gota deve iniciar seu próprio par de ações");
+assert.match(app, /title="Gerar recibo do aluguel"/, "Ícone de recibo deve ter dica de uso");
+assert.match(app, /title="Ajustar pagamento"/, "Ícone de ajuste deve ter dica de uso");
