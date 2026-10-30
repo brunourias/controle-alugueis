@@ -5155,7 +5155,7 @@ var historyRent = document.getElementById("historyRent");
             return item.unitId === unitId;
         });
         if (reading && reading.paid === true) {
-            return '<button class="energy-paid-indicator" type="button" data-energy-image="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="Energia paga — abrir comprovante" aria-label="Energia paga — abrir comprovante">⚡</button>';
+            return '<button class="energy-paid-indicator" type="button" data-energy-open="' + escapeHtml(allocation.id) + '" title="Energia paga — abrir rateio" aria-label="Energia paga — abrir rateio">⚡</button>';
         }
         return '<span class="energy-paid-indicator is-pending" title="Energia ainda não paga" aria-label="Energia ainda não paga">⚡</span>';
     }
@@ -5166,7 +5166,7 @@ var historyRent = document.getElementById("historyRent");
             return item.reference === reference && (item.readings || []).some(function (reading) { return reading.unitId === unitId; });
         });
         if (!allocation) return "";
-        return '<button class="energy-paid-indicator water-rate-indicator" type="button" data-water-image="' + escapeHtml(allocation.id) + '" data-water-unit="' + escapeHtml(unitId) + '" title="Rateio de água — abrir demonstrativo" aria-label="Rateio de água — abrir demonstrativo">💧</button>';
+        return '<button class="energy-paid-indicator water-rate-indicator" type="button" data-water-open="' + escapeHtml(allocation.id) + '" title="Rateio de água — abrir rateio" aria-label="Rateio de água — abrir rateio">💧</button>';
     }
 
     function archivedMonthCell(unit, month, currentMonth) {
@@ -11938,15 +11938,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderEnergyBillingSummary();
     }
 
-    function openEnergyRate() {
+    function openEnergyRate(reference, enterpriseId) {
         if (!requireWorkspacePermission("manageExpenses")) return;
-        if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === selectedEmpreendimentoId; })) {
+        var targetEnterpriseId = enterpriseId || selectedEmpreendimentoId;
+        if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === targetEnterpriseId; })) {
             notifyUser("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio.");
             return;
         }
         var el = energyRateModalElements(), now = new Date();
-        el.reference.value = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
-        el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id===selectedEmpreendimentoId?" selected":"") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
+        el.reference.value = reference || (now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0"));
+        el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id===targetEnterpriseId?" selected":"") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
         loadEnergyRateReference(); renderEnergyHistory(); ModalManager.open(el.modal);
     }
 
@@ -12108,12 +12109,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var list = (state.waterAllocations || []).filter(function (item) { return item.enterpriseId === el.enterprise.value; }).sort(function (a, b) { return String(b.reference).localeCompare(String(a.reference)); }).slice(0, 12);
         el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + (item.dueDate ? ' · vence ' + formatDate(item.dueDate) : '') + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.m3 || 0).toFixed(2).replace(".", ",") + ' m³ · ' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio de água salvo ainda.</p>';
     }
-    function openWaterRate() {
+    function openWaterRate(reference, enterpriseId) {
         if (!requireWorkspacePermission("manageExpenses")) return;
-        if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === selectedEmpreendimentoId; })) { notifyUser("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio."); return; }
+        var targetEnterpriseId = enterpriseId || selectedEmpreendimentoId;
+        if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === targetEnterpriseId; })) { notifyUser("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio."); return; }
         var el = waterRateModalElements(), now = new Date();
-        el.reference.value = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
-        el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id === selectedEmpreendimentoId ? " selected" : "") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
+        el.reference.value = reference || (now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0"));
+        el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id === targetEnterpriseId ? " selected" : "") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
         loadWaterRateReference(); renderWaterHistory(); ModalManager.open(el.modal);
     }
     function saveWaterRate() {
@@ -12349,6 +12351,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderEnergyHistory();
         renderEnergyHistoricalComparison();
         render();
+    });
+
+    document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-energy-open]"); if (!button) return;
+        var record = (state.energyAllocations || []).find(function (item) { return item.id === button.dataset.energyOpen; });
+        if (record) openEnergyRate(record.reference, record.enterpriseId);
+    });
+    document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-water-open]"); if (!button) return;
+        var record = (state.waterAllocations || []).find(function (item) { return item.id === button.dataset.waterOpen; });
+        if (record) openWaterRate(record.reference, record.enterpriseId);
     });
 
     document.addEventListener("click", function (event) {

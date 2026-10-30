@@ -8521,13 +8521,13 @@ input[data-money="true"] {
 }
 
 
-/* v243: mantém as ações mensais compactas dentro das colunas estreitas */
+/* Ações mensais compactas, incluindo os dois rateios. */
 @media (max-width: 680px) {
     .status-cell {
-        grid-template-columns: repeat(3, 22px) !important;
+        grid-template-columns: repeat(4, 22px) !important;
         grid-template-rows: auto 22px !important;
         column-gap: 3px !important;
-        min-width: 72px !important;
+        min-width: 97px !important;
     }
     .status-cell .cell-payment-actions,
     .status-cell.is-actions-open .cell-payment-actions {
@@ -8540,7 +8540,8 @@ input[data-money="true"] {
     }
     .status-cell .payment-adjust-btn,
     .status-cell .receipt-btn,
-    .status-cell .energy-paid-indicator {
+    .status-cell .energy-paid-indicator,
+    .status-cell .water-rate-indicator {
         width: 22px !important;
         height: 22px !important;
         min-width: 22px !important;
@@ -8553,6 +8554,12 @@ input[data-money="true"] {
     }
     .status-cell .energy-paid-indicator {
         grid-column: 3;
+        grid-row: 2;
+        align-self: center;
+        justify-self: center;
+    }
+    .status-cell .water-rate-indicator {
+        grid-column: 4;
         grid-row: 2;
         align-self: center;
         justify-self: center;

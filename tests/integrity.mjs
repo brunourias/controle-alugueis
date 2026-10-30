@@ -338,6 +338,7 @@ assert.match(app, /mobileWaterRateNav.*openWaterRate/, "O atalho de água deve a
 assert.match(styles, /#desktopEnergyRateNav > svg/, "O atalho de energia deve exibir o símbolo de raio no desktop");
 assert.match(styles, /#mobileEnergyRateNav,\s*[\s\S]{0,80}#mobileWaterRateNav/, "Os dois rateios devem permanecer visíveis na tela inicial móvel");
 assert.match(app, /function waterRateIndicator\(/, "A grade mensal deve exibir o indicador do rateio de água");
-assert.match(app, /data-water-image=/, "O indicador de água deve abrir o demonstrativo individual");
+assert.match(app, /data-water-open=/, "O indicador de água deve abrir o rateio individual");
 assert.match(app, /function waterShareImage\(/, "O rateio de água deve gerar um demonstrativo compartilhável");
 assert.match(app, /cancel\.textContent = "Fechar"/, "Os modais de rateio devem usar Fechar em vez de Cancelar");
+assert.match(styles, /grid-template-columns: repeat\(4, 22px\) !important/, "O celular deve reservar espaço para energia e água");
