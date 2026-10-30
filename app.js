@@ -12011,12 +12011,14 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             existing.id = "reportDetailModal";
             existing.className = "modal-backdrop";
             existing.hidden = true;
-            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><button class="mobile-modal-back" type="button" data-close-report>← Voltar</button><div class="settings-heading"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2></div></div><div id="reportDetailContent" class="report-detail-content"></div><div class="modal-actions settings-footer"><span class="modal-footer-title">Relatório detalhado</span><button class="btn btn-ghost" type="button" data-close-report>Fechar</button></div></div>';
+            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><button class="mobile-modal-back" type="button" data-close-report>← Voltar</button><div class="settings-heading"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2><p id="reportDetailDescription" class="financial-summary-description"></p></div></div><div id="reportDetailContent" class="report-detail-content"></div><div class="modal-actions settings-footer"><span class="modal-footer-title">Relatório detalhado</span><button class="btn btn-ghost" type="button" data-close-report>Voltar</button></div></div>';
             document.body.appendChild(existing);
             existing.querySelectorAll("[data-close-report]").forEach(function (button) { button.addEventListener("click", function () { ModalManager.close(existing); }); });
             existing.addEventListener("click", function (event) { if (event.target === existing) ModalManager.close(existing); });
         }
-        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : kind === "documents" ? "Central de documentos" : "Comparativo entre empreendimentos";
+        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : kind === "documents" ? "Central de documentos" : kind === "late" ? "Inadimplência" : kind === "contracts" ? "Contratos" : kind === "expenses" ? "Gastos por categoria" : "Comparativo entre empreendimentos";
+        var description = kind === "tenant" ? "Situação atual de cada contrato e valor mensal." : kind === "partial" ? "Baixas parciais e o saldo ainda em aberto." : kind === "closures" ? "Rescisões, acordos e saldos registrados." : kind === "documents" ? "Recupere recibos, termos e demonstrativos salvos." : kind === "late" ? "Parcelas vencidas e pagamentos realizados após o vencimento." : kind === "contracts" ? "Contratos ativos, renovações próximas e encerramentos." : kind === "expenses" ? "Despesas agrupadas pela categoria no ano selecionado." : "Comparação financeira entre empreendimentos.";
+        existing.querySelector("#reportDetailDescription").textContent = description;
         if (kind === "documents") {
             existing.querySelector("#reportDetailTitle").textContent = title;
             existing.querySelector("#reportDetailContent").innerHTML = documentCenterMarkup();
@@ -12057,6 +12059,25 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                     rows.push([unit.name, record.tenantName || "—", record.exitDate ? formatTimelineDate(record.exitDate) : "—", money(record.total), money(record.balanceDue === undefined ? Math.max(0, record.total - (record.depositApplied || 0)) : record.balanceDue), { rascunho: "Rascunho", enviado: "Enviado", negociando: "Negociando", acordado: "Acordado", quitado: "Quitado", encerrado: "Encerrado" }[record.status] || "Rascunho"]);
                 });
             });
+        } else if (kind === "late") {
+            scopedUnits().forEach(function (unit) {
+                var breakdown = lateReportBreakdown(unit);
+                if (breakdown.openLate || breakdown.paidLate) rows.push([unit.name, breakdown.tenantName || "Sem inquilino", breakdown.openLate + " em atraso", breakdown.paidLate + " pago(s) com atraso"]);
+            });
+        } else if (kind === "contracts") {
+            var today = new Date(); today.setHours(0, 0, 0, 0);
+            scopedUnits().forEach(function (unit) {
+                if (String(unit.tenantName || "").trim()) {
+                    var end = chargeLogDate(unit.endDate);
+                    var days = end ? Math.ceil((end - today) / 86400000) : null;
+                    rows.push([unit.name, unit.tenantName, "Ativo", days !== null && days >= 0 && days <= 60 ? "Renovação em " + days + " dia(s)" : "Sem renovação próxima"]);
+                }
+                (unit.contractHistory || []).slice(0, 2).forEach(function (contract) { rows.push([unit.name, contract.tenantName || "Inquilino anterior", "Encerrado", contract.endDate ? formatTimelineDate(contract.endDate) : "Histórico"]); });
+            });
+        } else if (kind === "expenses") {
+            var categories = {};
+            scopedExpenses().forEach(function (expense) { if (String(expense.ym || "").slice(0, 4) === String(selectedYear)) categories[expense.category || "Outros"] = (categories[expense.category || "Outros"] || 0) + Number(expense.amount || 0); });
+            Object.keys(categories).sort(function (a, b) { return categories[b] - categories[a]; }).forEach(function (category) { rows.push([category, money(categories[category]), selectedYear]); });
         } else {
             state.empreendimentos.forEach(function (enterprise) {
                 var units = state.units.filter(function (unit) { return unit.empreendimentoId === enterprise.id; });
@@ -12064,11 +12085,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 rows.push([enterprise.name, String(units.length), money(metrics.received), money(metrics.pending)]);
             });
         }
-        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : kind === "closures" ? ["Unidade","Inquilino","Saída","Total","Saldo","Situação"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
+        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : kind === "closures" ? ["Unidade","Inquilino","Saída","Total","Saldo","Situação"] : kind === "late" ? ["Unidade","Inquilino","Em aberto","Histórico"] : kind === "contracts" ? ["Unidade","Inquilino","Situação","Próximo passo"] : kind === "expenses" ? ["Categoria","Total","Ano"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
         existing.querySelector("#reportDetailTitle").textContent = title;
-        existing.querySelector("#reportDetailContent").innerHTML = rows.length ? '<div class="report-table-wrap"><table><thead><tr>' + headings.map(function (item) { return "<th>" + escapeHtml(item) + "</th>"; }).join("") + '</tr></thead><tbody>' + rows.map(function (row) { return "<tr>" + row.map(function (cell) { return "<td>" + escapeHtml(String(cell)) + "</td>"; }).join("") + "</tr>"; }).join("") + '</tbody></table></div>' : '<div class="empty empty-inline"><p>Nenhum encerramento registrado.</p><button class="btn btn-primary" type="button" data-report-empty-action>Ir para unidades</button></div>';
+        existing.querySelector("#reportDetailContent").innerHTML = rows.length ? '<div class="report-result-list">' + rows.map(function (row) { return '<article class="report-result-row">' + row.map(function (cell, index) { return '<span><small>' + escapeHtml(headings[index]) + '</small><strong>' + escapeHtml(String(cell)) + '</strong></span>'; }).join("") + '</article>'; }).join("") + '</div>' : '<div class="empty empty-inline"><p>Nenhum registro encontrado para este relatório.</p></div>';
         var emptyAction = existing.querySelector("[data-report-empty-action]");
-        if (emptyAction) emptyAction.addEventListener("click", function () { ModalManager.close(existing); activeMobileShortcut = "units"; showAppView("units"); });
         ModalManager.open(existing);
     }
 
@@ -12098,11 +12118,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         button.addEventListener("click", function () {
             var destination = button.dataset.reportDestination;
             if (destination === "energy") { openEnergyRate(); return; }
-            if (destination === "contracts") { activeMobileShortcut = "overview"; showAppView("overview"); window.setTimeout(function () { var panel = document.getElementById("contractsDashboard"); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" }); }, 0); return; }
-            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures" || destination === "documents") { openReportDetail(destination); return; }
+            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures" || destination === "documents" || destination === "contracts" || destination === "late" || destination === "expenses") { openReportDetail(destination); return; }
             if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
-            if (destination === "late") { financialReportExpanded = true; activeMobileShortcut = "overview"; showAppView("overview"); render(); return; }
-            activeMobileShortcut = "expenses"; showAppView("financial"); expensesExpanded = true; render();
         });
     });
 

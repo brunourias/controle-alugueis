@@ -323,3 +323,8 @@ assert.match(app, /function renderContractsDashboard\(/, "Contratos devem ser ag
 assert.match(app, /Renovação nos próximos 60 dias/, "Painel deve destacar renovações próximas");
 assert.match(app, /data-contract-collect/, "Pendências contratuais devem abrir a cobrança da parcela");
 assert.match(styles, /UX v297 — painel de contratos operacional/, "Painel de contratos deve ter layout próprio responsivo");
+assert.match(app, /kind === "late" \? "Inadimplência"/, "Inadimplência deve ter relatório próprio");
+assert.match(app, /kind === "contracts" \? "Contratos"/, "Contratos deve ter relatório próprio");
+assert.match(app, /kind === "expenses" \? "Gastos por categoria"/, "Gastos por categoria deve abrir no padrão de relatório");
+assert.match(app, /report-result-list/, "Relatórios devem usar lista de resultados padronizada em vez de tabelas inconsistentes");
+assert.match(app, /destination === "contracts" \|\| destination === "late" \|\| destination === "expenses"/, "Destinos de relatório não devem redirecionar para telas operacionais duplicadas");
