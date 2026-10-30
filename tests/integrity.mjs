@@ -356,3 +356,4 @@ assert.match(app, /report-detail-metrics/, "Relatórios detalhados devem exibir 
 assert.match(styles, /Relatórios detalhados seguem o mesmo sistema visual do resumo anual/, "Relatórios devem compartilhar a mesma identidade visual");
 assert.match(app, /data-print-report/, "Relatórios detalhados devem oferecer impressão no cabeçalho");
 assert.match(styles, /report-detail-modal \{ width: min\(1040px, 96vw\); max-height: min\(92dvh, 900px\); padding: 0;/, "Modal detalhado deve usar o mesmo encaixe do resumo anual");
+assert.match(styles, /\.pwa-status \{\s*position: relative;/, "Aviso do aplicativo não deve sobrepor o conteúdo");

@@ -5192,14 +5192,14 @@ textarea:focus-visible {
 
 
 .pwa-status {
-    position: fixed;
-    z-index: 80;
-    right: 18px;
-    bottom: calc(18px + env(safe-area-inset-bottom));
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 9px;
+    width: fit-content;
     max-width: min(420px, calc(100vw - 36px));
+    margin: 12px auto 0;
     padding: 10px 11px 10px 14px;
     border: 1px solid #bfe2da;
     border-radius: 14px;
@@ -5231,8 +5231,6 @@ textarea:focus-visible {
 
 @media (max-width: 520px) {
     .pwa-status {
-        right: 12px;
-        bottom: calc(78px + env(safe-area-inset-bottom));
         max-width: calc(100vw - 24px);
         padding: 10px;
     }
