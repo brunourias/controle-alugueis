@@ -5154,10 +5154,8 @@ var historyRent = document.getElementById("historyRent");
         var reading = (allocation.readings || []).find(function (item) {
             return item.unitId === unitId;
         });
-        if (reading && reading.paid === true) {
-            return '<button class="energy-paid-indicator" type="button" data-energy-open="' + escapeHtml(allocation.id) + '" title="Energia paga — abrir rateio" aria-label="Energia paga — abrir rateio">⚡</button>';
-        }
-        return '<span class="energy-paid-indicator is-pending" title="Energia ainda não paga" aria-label="Energia ainda não paga">⚡</span>';
+        var paid = reading && reading.paid === true;
+        return '<button class="energy-paid-indicator' + (paid ? '' : ' is-pending') + '" type="button" data-energy-toggle="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="' + (paid ? 'Energia paga — toque para desfazer' : 'Marcar energia como paga') + '" aria-label="' + (paid ? 'Energia paga — toque para desfazer' : 'Marcar energia como paga') + '">⚡</button>';
     }
 
     function waterRateIndicator(unitId, month) {
@@ -12338,12 +12336,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var value = moneyInputValue(event.target);
         if (Number.isFinite(value)) { setMoneyInput(event.target, Math.max(0, value)); renderWaterRate(); }
     });
-    document.addEventListener("click", function (event) {
-        var paidButton = event.target.closest("[data-energy-paid]");
-        if (!paidButton) return;
+    function toggleEnergyPayment(allocationId, unitId) {
         if (!requireWorkspacePermission("manageExpenses")) return;
-        var allocation = (state.energyAllocations || []).find(function (item) { return item.id === paidButton.dataset.energyPaid; });
-        var reading = allocation && (allocation.readings || []).find(function (item) { return item.unitId === paidButton.dataset.energyUnit; });
+        var allocation = (state.energyAllocations || []).find(function (item) { return item.id === allocationId; });
+        var reading = allocation && (allocation.readings || []).find(function (item) { return item.unitId === unitId; });
         if (!reading) return;
         reading.paid = reading.paid !== true;
         reading.paidAt = reading.paid ? new Date().toISOString().slice(0, 10) : "";
@@ -12351,6 +12347,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderEnergyHistory();
         renderEnergyHistoricalComparison();
         render();
+        notifyUser(reading.paid ? "Energia marcada como paga. Para enviar o comprovante, abra o rateio e use Imagem no Histórico." : "Baixa de energia desfeita.");
+    }
+    document.addEventListener("click", function (event) {
+        var paidButton = event.target.closest("[data-energy-paid]");
+        if (!paidButton) return;
+        toggleEnergyPayment(paidButton.dataset.energyPaid, paidButton.dataset.energyUnit);
+    });
+    document.addEventListener("click", function (event) {
+        var toggleButton = event.target.closest("[data-energy-toggle]");
+        if (!toggleButton) return;
+        toggleEnergyPayment(toggleButton.dataset.energyToggle, toggleButton.dataset.energyUnit);
     });
 
     document.addEventListener("click", function (event) {

@@ -342,3 +342,5 @@ assert.match(app, /data-water-open=/, "O indicador de água deve abrir o rateio 
 assert.match(app, /function waterShareImage\(/, "O rateio de água deve gerar um demonstrativo compartilhável");
 assert.match(app, /cancel\.textContent = "Fechar"/, "Os modais de rateio devem usar Fechar em vez de Cancelar");
 assert.match(styles, /grid-template-columns: repeat\(4, 22px\) !important/, "O celular deve reservar espaço para energia e água");
+assert.match(app, /function toggleEnergyPayment\(/, "O raio deve alternar a baixa de energia");
+assert.match(app, /data-energy-toggle=/, "Energia pendente deve poder ser marcada como paga pela grade");
