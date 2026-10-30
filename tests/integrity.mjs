@@ -354,3 +354,4 @@ assert.match(app, /title="Gerar recibo do aluguel"/, "Ícone de recibo deve ter 
 assert.match(app, /title="Ajustar pagamento"/, "Ícone de ajuste deve ter dica de uso");
 assert.match(app, /report-detail-metrics/, "Relatórios detalhados devem exibir um resumo no padrão visual comum");
 assert.match(styles, /Relatórios detalhados seguem o mesmo sistema visual do resumo anual/, "Relatórios devem compartilhar a mesma identidade visual");
+assert.match(app, /data-print-report/, "Relatórios detalhados devem oferecer impressão no cabeçalho");
