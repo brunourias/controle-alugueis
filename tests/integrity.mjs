@@ -328,3 +328,10 @@ assert.match(app, /kind === "contracts" \? "Contratos"/, "Contratos deve ter rel
 assert.match(app, /kind === "expenses" \? "Gastos por categoria"/, "Gastos por categoria deve abrir no padrão de relatório");
 assert.match(app, /report-result-list/, "Relatórios devem usar lista de resultados padronizada em vez de tabelas inconsistentes");
 assert.match(app, /destination === "contracts" \|\| destination === "late" \|\| destination === "expenses"/, "Destinos de relatório não devem redirecionar para telas operacionais duplicadas");
+assert.match(index, /id="waterRateModal"/, "O rateio de água deve possuir uma tela própria");
+assert.match(index, /data-report-destination="water"/, "Relatórios deve oferecer acesso ao rateio de água");
+assert.match(app, /function openWaterRate\(/, "O rateio de água deve abrir a tela de lançamento");
+assert.match(app, /function saveWaterRate\(/, "O rateio de água deve salvar a competência calculada");
+assert.match(app, /state\.waterAllocations/, "As leituras de água devem permanecer separadas das leituras de energia");
+assert.match(app, /Consumo calculado[\s\S]{0,180}m³/, "O rateio de água deve exibir consumo em metros cúbicos");
+assert.match(app, /destination === "water"/, "O cartão de água deve abrir o módulo correspondente");
