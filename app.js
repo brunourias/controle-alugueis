@@ -5160,6 +5160,15 @@ var historyRent = document.getElementById("historyRent");
         return '<span class="energy-paid-indicator is-pending" title="Energia ainda não paga" aria-label="Energia ainda não paga">⚡</span>';
     }
 
+    function waterRateIndicator(unitId, month) {
+        var reference = selectedYear + "-" + String(month + 1).padStart(2, "0");
+        var allocation = (state.waterAllocations || []).find(function (item) {
+            return item.reference === reference && (item.readings || []).some(function (reading) { return reading.unitId === unitId; });
+        });
+        if (!allocation) return "";
+        return '<button class="energy-paid-indicator water-rate-indicator" type="button" data-water-image="' + escapeHtml(allocation.id) + '" data-water-unit="' + escapeHtml(unitId) + '" title="Rateio de água — abrir demonstrativo" aria-label="Rateio de água — abrir demonstrativo">💧</button>';
+    }
+
     function archivedMonthCell(unit, month, currentMonth) {
         var contract = archivedContractForMonth(unit, month);
         if (!contract) return null;
@@ -5171,7 +5180,7 @@ var historyRent = document.getElementById("historyRent");
             '<div class="status-cell is-inactive"><div class="status-inactive" aria-label="Contrato arquivado">' +
             '<span>Contrato arquivado</span>' +
             "</div>" +
-            energyPaidIndicator(unit.id, month) +
+            energyPaidIndicator(unit.id, month) + waterRateIndicator(unit.id, month) +
             "</div></td>"
         );
     }
@@ -5249,7 +5258,7 @@ var historyRent = document.getElementById("historyRent");
 						return (
 							'<td class="' +
 							(i === currentMonth ? "month-current" : "") +
-							'"><div class="status-cell is-inactive"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div>' + energyPaidIndicator(unit.id, i) + '</div></td>'
+                            '"><div class="status-cell is-inactive"><div class="status-inactive" aria-label="Sem contrato"><span>Sem contrato</span></div>' + energyPaidIndicator(unit.id, i) + waterRateIndicator(unit.id, i) + '</div></td>'
 						);
 					}
 
@@ -5257,7 +5266,7 @@ var historyRent = document.getElementById("historyRent");
 						return (
 							'<td class="' +
 							(i === currentMonth ? "month-current" : "") +
-							'"><div class="status-cell is-inactive"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div>' + energyPaidIndicator(unit.id, i) + '</div></td>'
+                            '"><div class="status-cell is-inactive"><div class="status-inactive" aria-label="Fora do período"><span>Fora do período</span></div>' + energyPaidIndicator(unit.id, i) + waterRateIndicator(unit.id, i) + '</div></td>'
 						);
 					}
 
@@ -5353,6 +5362,7 @@ var historyRent = document.getElementById("historyRent");
                             : "";
 
                     var energyIndicator = energyPaidIndicator(unit.id, i);
+                    var waterIndicator = waterRateIndicator(unit.id, i);
                     var hasSecondaryActions = !!(receipt || adjustPayment);
                     var futurePending = status === "pendente" && (
                         selectedYear > new Date().getFullYear() ||
@@ -5393,6 +5403,7 @@ var historyRent = document.getElementById("historyRent");
 
                         secondaryActions +
                         energyIndicator +
+                        waterIndicator +
 
                         "</div>" +
                         "</td>"
@@ -11784,6 +11795,26 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return canvas;
     }
 
+    function waterShareImage(record, reading) {
+        var canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
+        canvas.width = 1080; canvas.height = 820;
+        ctx.fillStyle = "#f5fbfa"; ctx.fillRect(0, 0, 1080, 820);
+        ctx.fillStyle = "#0f766e"; ctx.fillRect(0, 0, 1080, 170);
+        ctx.fillStyle = "#fff"; ctx.font = "700 43px Arial"; ctx.fillText("Rateio de água", 60, 78);
+        ctx.font = "28px Arial"; ctx.fillText(energyReferenceLabel(record.reference), 60, 125);
+        var total = (record.readings || []).reduce(function (sum, item) { return sum + Number(item.m3 || 0); }, 0);
+        var rate = total ? Number(record.invoiceAmount || 0) / total : 0;
+        var share = total ? Number(reading.m3 || 0) / total * 100 : 0;
+        var lines = [["Unidade", reading.unitName], ["Leitura anterior", Number(reading.previousReading || 0).toFixed(2).replace(".", ",") + " m³"], ["Leitura atual", Number(reading.meterReading || 0).toFixed(2).replace(".", ",") + " m³"], ["Consumo do mês", Number(reading.m3 || 0).toFixed(2).replace(".", ",") + " m³"], ["Participação", share.toFixed(1).replace(".", ",") + "% do consumo"], ["Tarifa efetiva", money(rate) + " por m³"], ["Valor a cobrar", money(reading.amount)], ["Vencimento", record.dueDate ? formatDate(record.dueDate) : "Não informado"]];
+        var y = 220;
+        lines.forEach(function (line) {
+            var totalLine = line[0] === "Valor a cobrar";
+            ctx.fillStyle = totalLine ? "#0f766e" : "#355b58"; ctx.font = totalLine ? "700 36px Arial" : "600 27px Arial"; ctx.fillText(line[0], 60, y); ctx.textAlign = "right"; ctx.fillText(line[1], 1020, y); ctx.textAlign = "left"; ctx.strokeStyle = "#d7e8e5"; ctx.beginPath(); ctx.moveTo(60, y + 20); ctx.lineTo(1020, y + 20); ctx.stroke(); y += 68;
+        });
+        ctx.fillStyle = "#607a78"; ctx.font = "22px Arial"; ctx.fillText("Consumo = leitura atual − leitura anterior.", 60, 770);
+        return canvas;
+    }
+
     function renderEnergyBillingSummary() {
         var el = energyRateModalElements();
         if (!el.billing) return;
@@ -12236,6 +12267,18 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!isMobileNavigation() || !event.target.matches(".modal input, .modal select, .modal textarea")) return;
         window.setTimeout(function () { event.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 180);
     });
+    // Rateios são fluxos curtos: o fechamento fica ao lado do salvamento e
+    // não precisam de um segundo atalho de Início no topo do modal.
+    ["energy", "water"].forEach(function (utility) {
+        var back = document.getElementById(utility + "BackHome");
+        if (back) back.remove();
+        var cancel = document.getElementById("cancel" + utility.charAt(0).toUpperCase() + utility.slice(1) + "Rate");
+        if (cancel) cancel.textContent = "Fechar";
+        var modal = document.getElementById(utility + "RateModal");
+        var footer = modal && modal.querySelector(".settings-footer");
+        var spacer = footer && footer.querySelector(".spacer");
+        if (spacer) spacer.remove();
+    });
     var energyBackHome = document.getElementById("energyBackHome");
     if (energyBackHome) energyBackHome.addEventListener("click", function () {
         ModalManager.close(energyRateModalElements().modal);
@@ -12312,6 +12355,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var button = event.target.closest("[data-energy-image]"); if (!button) return;
         var record=(state.energyAllocations||[]).find(function(item){return item.id===button.dataset.energyImage;}), reading=record&&record.readings.find(function(item){return item.unitId===button.dataset.energyUnit;}); if(!record||!reading)return;
         energyShareImage(record,reading).toBlob(function(blob){var file=new File([blob],"rateio-"+record.reference+"-"+reading.unitName.replace(/\s+/g,"-")+".png",{type:"image/png"});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({title:"Rateio de energia",files:[file]}).catch(function(){});return;}var link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download=file.name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},500);},"image/png");
+    });
+    document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-water-image]"); if (!button) return;
+        var record = (state.waterAllocations || []).find(function (item) { return item.id === button.dataset.waterImage; });
+        var reading = record && (record.readings || []).find(function (item) { return item.unitId === button.dataset.waterUnit; });
+        if (!record || !reading) return;
+        waterShareImage(record, reading).toBlob(function (blob) {
+            var file = new File([blob], "rateio-agua-" + record.reference + "-" + reading.unitName.replace(/\s+/g, "-") + ".png", { type: "image/png" });
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ title: "Rateio de água", files: [file] }).catch(function () {}); return; }
+            var link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = file.name; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500);
+        }, "image/png");
     });
 
 })();

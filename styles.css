@@ -6898,6 +6898,7 @@ details.platform-account-manage[open] > summary::after {
     margin-top: 9px;
     padding-top: 9px;
 }
+.energy-rate-modal .settings-footer .modal-footer-title { margin-right: auto; }
 
 @media (max-width: 620px) {
     .energy-rate-modal {
@@ -7211,13 +7212,17 @@ button.energy-paid-indicator:focus-visible {
     opacity: .52;
 }
 
+/* Água usa o mesmo indicador clicável da energia, com identidade azul. */
+.water-rate-indicator { color: #1676a6; border-color: #a7d9ee; background: #e5f6ff; }
+.water-rate-indicator:hover, .water-rate-indicator:focus-visible { border-color: #56a8cf; background: #d4f0fc; box-shadow: 0 0 0 3px rgba(86, 168, 207, .18); }
+
 
 /* Três ações mensais alinhadas: ajuste, recibo e energia. */
 .status-cell {
-    grid-template-columns: repeat(3, 22px);
+    grid-template-columns: repeat(4, 22px);
     grid-template-rows: auto 22px;
     column-gap: 3px;
-    min-width: 72px;
+    min-width: 97px;
 }
 
 .status-cell .status-btn,
@@ -7246,18 +7251,29 @@ button.energy-paid-indicator:focus-visible {
     margin: 0;
 }
 
+.status-cell .water-rate-indicator {
+    grid-column: 4;
+    grid-row: 2;
+    align-self: center;
+    justify-self: center;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+}
+
 @media (max-width: 520px) {
     .status-cell {
-        grid-template-columns: repeat(3, 20px);
+        grid-template-columns: repeat(4, 20px);
         grid-template-rows: auto 20px;
         column-gap: 3px;
-        min-width: 66px;
+        min-width: 89px;
     }
 
     .status-cell .energy-paid-indicator {
         width: 20px;
         height: 20px;
     }
+    .status-cell .water-rate-indicator { width: 20px; height: 20px; }
 }
 
 @media print {
@@ -8458,8 +8474,8 @@ input[data-money="true"] {
     .mobile-status-badge.status-pendente { background: #eef3f4; color: #526a6d; }
     .mobile-unit-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
     .mobile-unit-actions .btn { min-height: 44px; }
-    .mobile-unit-actions .energy-paid-indicator { width: 44px; height: 44px; margin: 0; }
-    .receipt-btn, .payment-adjust-btn, .energy-paid-indicator,
+    .mobile-unit-actions .energy-paid-indicator, .mobile-unit-actions .water-rate-indicator { width: 44px; height: 44px; margin: 0; }
+    .receipt-btn, .payment-adjust-btn, .energy-paid-indicator, .water-rate-indicator,
     .unit-more-btn, .pwa-status-dismiss,
     #previousYear, #nextYear, #mobilePreviousMonth, #mobileNextMonth {
         min-width: 44px !important;
