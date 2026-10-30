@@ -355,3 +355,4 @@ assert.match(app, /title="Ajustar pagamento"/, "Ícone de ajuste deve ter dica d
 assert.match(app, /report-detail-metrics/, "Relatórios detalhados devem exibir um resumo no padrão visual comum");
 assert.match(styles, /Relatórios detalhados seguem o mesmo sistema visual do resumo anual/, "Relatórios devem compartilhar a mesma identidade visual");
 assert.match(app, /data-print-report/, "Relatórios detalhados devem oferecer impressão no cabeçalho");
+assert.match(styles, /report-detail-modal \{ width: min\(1040px, 96vw\); max-height: min\(92dvh, 900px\); padding: 0;/, "Modal detalhado deve usar o mesmo encaixe do resumo anual");
