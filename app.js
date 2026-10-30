@@ -653,7 +653,9 @@ var historyRent = document.getElementById("historyRent");
                         previousReading: hasMeterReading ? Math.max(0, Number(row.previousReading) || 0) : undefined,
                         meterReading: hasMeterReading ? Math.max(0, Number(row.meterReading) || 0) : undefined,
                         m3: Math.max(0, Number(row.m3 !== undefined ? row.m3 : row.kwh) || 0),
-                        amount: Math.max(0, Number(row.amount) || 0)
+                        amount: Math.max(0, Number(row.amount) || 0),
+                        paid: row.paid === true,
+                        paidAt: row.paid === true && typeof row.paidAt === "string" ? row.paidAt : ""
                     };
                 }) : [],
                 createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString(),
@@ -5155,7 +5157,7 @@ var historyRent = document.getElementById("historyRent");
             return item.unitId === unitId;
         });
         var paid = reading && reading.paid === true;
-        return '<button class="energy-paid-indicator' + (paid ? '' : ' is-pending') + '" type="button" data-energy-toggle="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="' + (paid ? 'Energia paga — toque para desfazer' : 'Marcar energia como paga') + '" aria-label="' + (paid ? 'Energia paga — toque para desfazer' : 'Marcar energia como paga') + '">⚡</button>';
+        return '<button class="energy-paid-indicator' + (paid ? '' : ' is-pending') + '" type="button" data-energy-toggle="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="' + (paid ? 'Energia paga — toque para desfazer' : 'Marcar energia como paga') + '" aria-label="' + (paid ? 'Energia paga — toque para desfazer' : 'Marcar energia como paga') + '">⚡</button>' + (paid ? '<button class="utility-proof energy-proof" type="button" data-energy-image="' + escapeHtml(allocation.id) + '" data-energy-unit="' + escapeHtml(unitId) + '" title="Gerar comprovante de energia" aria-label="Gerar comprovante de energia">🧾</button>' : '');
     }
 
     function waterRateIndicator(unitId, month) {
@@ -5164,7 +5166,9 @@ var historyRent = document.getElementById("historyRent");
             return item.reference === reference && (item.readings || []).some(function (reading) { return reading.unitId === unitId; });
         });
         if (!allocation) return "";
-        return '<button class="energy-paid-indicator water-rate-indicator" type="button" data-water-open="' + escapeHtml(allocation.id) + '" title="Rateio de água — abrir rateio" aria-label="Rateio de água — abrir rateio">💧</button>';
+        var reading = (allocation.readings || []).find(function (item) { return item.unitId === unitId; });
+        var paid = reading && reading.paid === true;
+        return '<button class="energy-paid-indicator water-rate-indicator' + (paid ? '' : ' is-pending') + '" type="button" data-water-toggle="' + escapeHtml(allocation.id) + '" data-water-unit="' + escapeHtml(unitId) + '" title="' + (paid ? 'Água paga — toque para desfazer' : 'Marcar água como paga') + '" aria-label="' + (paid ? 'Água paga — toque para desfazer' : 'Marcar água como paga') + '">💧</button>' + (paid ? '<button class="utility-proof water-proof" type="button" data-water-image="' + escapeHtml(allocation.id) + '" data-water-unit="' + escapeHtml(unitId) + '" title="Gerar comprovante de água" aria-label="Gerar comprovante de água">🧾</button>' : '');
     }
 
     function archivedMonthCell(unit, month, currentMonth) {
@@ -12122,7 +12126,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!/^\d{4}-\d{2}$/.test(el.reference.value) || !calc.invoiceAmount || !calc.totalKwh || !el.dueDate.value) { notifyUser("Informe referência, vencimento, valor da fatura e as leituras dos medidores."); return; }
         if (calc.errors.length) { notifyUser(calc.errors[0].message); return; }
         state.waterAllocations = Array.isArray(state.waterAllocations) ? state.waterAllocations : [];
-        var now = new Date().toISOString(), saved = { id: existing ? existing.id : "water-" + Date.now().toString(36), reference: el.reference.value, enterpriseId: el.enterprise.value, dueDate: el.dueDate.value, invoiceAmount: calc.invoiceAmount, readings: calc.readings.map(function (row) { return { unitId: row.unitId, unitName: row.unitName, tenantName: row.tenantName, previousReading: row.previousReading, meterReading: row.meterReading, m3: row.kwh, amount: row.amount }; }), createdAt: existing ? existing.createdAt : now, updatedAt: now };
+        var previousReadings = {};
+        (existing && existing.readings || []).forEach(function (row) { previousReadings[row.unitId] = row; });
+        var now = new Date().toISOString(), saved = { id: existing ? existing.id : "water-" + Date.now().toString(36), reference: el.reference.value, enterpriseId: el.enterprise.value, dueDate: el.dueDate.value, invoiceAmount: calc.invoiceAmount, readings: calc.readings.map(function (row) { var previous = previousReadings[row.unitId] || {}; return { unitId: row.unitId, unitName: row.unitName, tenantName: row.tenantName, previousReading: row.previousReading, meterReading: row.meterReading, m3: row.kwh, amount: row.amount, paid: previous.paid === true, paidAt: previous.paid === true ? String(previous.paidAt || "") : "" }; }), createdAt: existing ? existing.createdAt : now, updatedAt: now };
         if (existing) Object.assign(existing, saved); else state.waterAllocations.unshift(saved);
         var kept = false, key = saved.enterpriseId + "::" + saved.reference;
         state.waterAllocations = state.waterAllocations.filter(function (item) { if (item.enterpriseId + "::" + item.reference !== key) return true; if (!kept) { kept = true; return true; } return false; });
@@ -12358,6 +12364,24 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var toggleButton = event.target.closest("[data-energy-toggle]");
         if (!toggleButton) return;
         toggleEnergyPayment(toggleButton.dataset.energyToggle, toggleButton.dataset.energyUnit);
+    });
+
+    function toggleWaterPayment(allocationId, unitId) {
+        if (!requireWorkspacePermission("manageExpenses")) return;
+        var allocation = (state.waterAllocations || []).find(function (item) { return item.id === allocationId; });
+        var reading = allocation && (allocation.readings || []).find(function (item) { return item.unitId === unitId; });
+        if (!reading) return;
+        reading.paid = reading.paid !== true;
+        reading.paidAt = reading.paid ? new Date().toISOString().slice(0, 10) : "";
+        saveState();
+        renderWaterHistory();
+        render();
+        notifyUser(reading.paid ? "Água marcada como paga. Use o ícone de comprovante ao lado da gota para enviar." : "Baixa de água desfeita.");
+    }
+    document.addEventListener("click", function (event) {
+        var toggleButton = event.target.closest("[data-water-toggle]");
+        if (!toggleButton) return;
+        toggleWaterPayment(toggleButton.dataset.waterToggle, toggleButton.dataset.waterUnit);
     });
 
     document.addEventListener("click", function (event) {

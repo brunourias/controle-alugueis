@@ -7215,14 +7215,16 @@ button.energy-paid-indicator:focus-visible {
 /* Água usa o mesmo indicador clicável da energia, com identidade azul. */
 .water-rate-indicator { color: #1676a6; border-color: #a7d9ee; background: #e5f6ff; }
 .water-rate-indicator:hover, .water-rate-indicator:focus-visible { border-color: #56a8cf; background: #d4f0fc; box-shadow: 0 0 0 3px rgba(86, 168, 207, .18); }
+.utility-proof { display: inline-grid; place-items: center; padding: 0; border: 1px solid #d8e8e6; border-radius: 7px; background: #fffdf5; color: #8a6a16; font: inherit; font-size: .66rem; line-height: 1; cursor: pointer; }
+.utility-proof:hover, .utility-proof:focus-visible { border-color: #d5b349; background: #fff6d9; outline: 0; }
 
 
 /* Três ações mensais alinhadas: ajuste, recibo e energia. */
 .status-cell {
-    grid-template-columns: repeat(4, 22px);
+    grid-template-columns: repeat(6, 22px);
     grid-template-rows: auto 22px;
     column-gap: 3px;
-    min-width: 97px;
+    min-width: 147px;
 }
 
 .status-cell .status-btn,
@@ -7261,12 +7263,16 @@ button.energy-paid-indicator:focus-visible {
     margin: 0;
 }
 
+.status-cell .utility-proof { grid-row: 2; align-self: center; justify-self: center; width: 22px; height: 22px; margin: 0; }
+.status-cell .energy-proof { grid-column: 5; }
+.status-cell .water-proof { grid-column: 6; }
+
 @media (max-width: 520px) {
     .status-cell {
-        grid-template-columns: repeat(4, 20px);
+        grid-template-columns: repeat(6, 20px);
         grid-template-rows: auto 20px;
         column-gap: 3px;
-        min-width: 89px;
+        min-width: 135px;
     }
 
     .status-cell .energy-paid-indicator {
@@ -7274,6 +7280,7 @@ button.energy-paid-indicator:focus-visible {
         height: 20px;
     }
     .status-cell .water-rate-indicator { width: 20px; height: 20px; }
+    .status-cell .utility-proof { width: 20px; height: 20px; }
 }
 
 @media print {
@@ -8524,10 +8531,10 @@ input[data-money="true"] {
 /* Ações mensais compactas, incluindo os dois rateios. */
 @media (max-width: 680px) {
     .status-cell {
-        grid-template-columns: repeat(4, 22px) !important;
+        grid-template-columns: repeat(6, 22px) !important;
         grid-template-rows: auto 22px !important;
         column-gap: 3px !important;
-        min-width: 97px !important;
+        min-width: 147px !important;
     }
     .status-cell .cell-payment-actions,
     .status-cell.is-actions-open .cell-payment-actions {
@@ -8541,7 +8548,8 @@ input[data-money="true"] {
     .status-cell .payment-adjust-btn,
     .status-cell .receipt-btn,
     .status-cell .energy-paid-indicator,
-    .status-cell .water-rate-indicator {
+    .status-cell .water-rate-indicator,
+    .status-cell .utility-proof {
         width: 22px !important;
         height: 22px !important;
         min-width: 22px !important;
@@ -8564,6 +8572,8 @@ input[data-money="true"] {
         align-self: center;
         justify-self: center;
     }
+    .status-cell .energy-proof { grid-column: 5; grid-row: 2; }
+    .status-cell .water-proof { grid-column: 6; grid-row: 2; }
 }
 
 
