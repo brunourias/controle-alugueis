@@ -39,10 +39,16 @@ const invalid = energy.calculateAllocation([
 ], 100);
 assert.equal(invalid.errors.length, 1, "Leitura atual menor deve ser rejeitada");
 
-const incomplete = energy.calculateAllocation([
+const firstReading = energy.calculateAllocation([
     { unitId: "u1", previousReading: "", meterReading: 140 }
 ], 100);
-assert.equal(incomplete.errors.length, 1, "As duas leituras devem ser obrigatórias");
+assert.equal(firstReading.errors.length, 0, "O primeiro rateio deve aceitar somente a leitura atual");
+assert.equal(firstReading.readings[0].kwh, 140, "Sem leitura anterior, o consumo inicial parte de zero");
+
+const missingCurrent = energy.calculateAllocation([
+    { unitId: "u1", previousReading: 100, meterReading: "" }
+], 100);
+assert.equal(missingCurrent.errors.length, 1, "A leitura atual continua obrigatória");
 
 assert.equal(energy.anomaly([100, 110, 90], 150).direction, "above");
 assert.equal(energy.anomaly([100, 110, 90], 105), null);

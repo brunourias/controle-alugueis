@@ -11621,7 +11621,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 card.classList.toggle("is-invalid", invalid);
                 card.classList.toggle("is-empty", !informed);
             }
-            if (consumption) consumption.textContent = !informed ? "Informe a leitura atual" : (invalid ? "Leitura atual menor que a anterior" : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " kWh");
+            var error = calc.errors.find(function (item) { return item.unitId === row.unitId; });
+            if (consumption) consumption.textContent = !informed ? "Informe a leitura atual" : (error ? error.message : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " kWh");
         });
         el.preview.innerHTML = '<div class="energy-metrics"><span><small>Consumo calculado</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' kWh</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/kWh</strong></span><span class="' + (calc.difference !== null && Math.abs(calc.difference) > 5 ? "warning" : "") + '"><small>Diferença da fatura</small><strong>' + (calc.difference === null ? "—" : calc.difference.toFixed(2).replace(".", ",") + " kWh") + '</strong></span></div>' +
             '<div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName) + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' kWh</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.distributedAmount) + '.</p>';
@@ -12045,7 +12046,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var informed = !!(input && String(input.value).trim());
             var invalid = calc.errors.some(function (error) { return error.unitId === row.unitId; });
             if (card) { card.classList.toggle("is-empty", !informed); card.classList.toggle("is-invalid", informed && invalid); }
-            if (consumption) consumption.textContent = !informed ? "Informe a leitura atual" : invalid ? "Leitura atual menor que a anterior" : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " m³";
+            var error = calc.errors.find(function (item) { return item.unitId === row.unitId; });
+            if (consumption) consumption.textContent = !informed ? "Informe a leitura atual" : error ? error.message : "Consumo: " + row.kwh.toFixed(2).replace(".", ",") + " m³";
         });
         el.preview.innerHTML = '<div class="energy-metrics"><span><small>Consumo calculado</small><strong>' + calc.totalKwh.toFixed(2).replace(".", ",") + ' m³</strong></span><span><small>Tarifa efetiva</small><strong>' + money(calc.rate) + '/m³</strong></span><span><small>Fatura de água</small><strong>' + money(calc.invoiceAmount) + '</strong></span></div><div class="energy-results">' + calc.readings.map(function (row) { return '<div><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + escapeHtml(row.tenantName || "Sem inquilino") + ' · ' + row.kwh.toFixed(2).replace(".", ",") + ' m³</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div><p class="energy-check">Valor distribuído proporcionalmente: ' + money(calc.distributedAmount) + '.</p>';
     }

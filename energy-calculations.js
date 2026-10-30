@@ -21,16 +21,17 @@
             var meterReading = Math.max(0, number(row.meterReading));
             var hasPrevious = row.previousReading !== "" && row.previousReading !== null && row.previousReading !== undefined;
             var hasCurrent = row.meterReading !== "" && row.meterReading !== null && row.meterReading !== undefined;
-            var hasValues = hasPrevious && hasCurrent;
-            if (!hasValues) {
-                errors.push({ unitId: row.unitId, message: "Informe a leitura anterior e a leitura atual de todas as unidades." });
-            } else if (meterReading < previousReading) {
+            // No primeiro rateio não há histórico. Nesse caso, a leitura
+            // inicial é zero e basta informar a leitura atual do medidor.
+            if (!hasCurrent) {
+                errors.push({ unitId: row.unitId, message: "Informe a leitura atual de todas as unidades." });
+            } else if (hasPrevious && meterReading < previousReading) {
                 errors.push({ unitId: row.unitId, message: "A leitura atual não pode ser menor que a anterior." });
             }
             return Object.assign({}, row, {
                 previousReading: previousReading,
                 meterReading: meterReading,
-                kwh: hasValues ? Math.max(0, meterReading - previousReading) : 0,
+                kwh: hasCurrent ? Math.max(0, meterReading - previousReading) : 0,
                 amount: 0
             });
         });
