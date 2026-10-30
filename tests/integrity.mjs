@@ -335,3 +335,5 @@ assert.match(app, /function saveWaterRate\(/, "O rateio de água deve salvar a c
 assert.match(app, /state\.waterAllocations/, "As leituras de água devem permanecer separadas das leituras de energia");
 assert.match(app, /Consumo calculado[\s\S]{0,180}m³/, "O rateio de água deve exibir consumo em metros cúbicos");
 assert.match(app, /mobileWaterRateNav.*openWaterRate/, "O atalho de água deve abrir o módulo correspondente");
+assert.match(styles, /#desktopEnergyRateNav > svg/, "O atalho de energia deve exibir o símbolo de raio no desktop");
+assert.match(styles, /#mobileEnergyRateNav,\s*[\s\S]{0,80}#mobileWaterRateNav/, "Os dois rateios devem permanecer visíveis na tela inicial móvel");
