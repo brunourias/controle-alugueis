@@ -11949,6 +11949,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function openEnergyRate(reference, enterpriseId) {
+        if (reference && typeof reference === "object" && typeof reference.preventDefault === "function") reference = null;
         if (!requireWorkspacePermission("manageExpenses")) return;
         var targetEnterpriseId = enterpriseId || selectedEmpreendimentoId;
         if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === targetEnterpriseId; })) {
@@ -12120,6 +12121,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + (item.dueDate ? ' · vence ' + formatDate(item.dueDate) : '') + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.m3 || 0).toFixed(2).replace(".", ",") + ' m³ · ' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio de água salvo ainda.</p>';
     }
     function openWaterRate(reference, enterpriseId) {
+        if (reference && typeof reference === "object" && typeof reference.preventDefault === "function") reference = null;
         if (!requireWorkspacePermission("manageExpenses")) return;
         var targetEnterpriseId = enterpriseId || selectedEmpreendimentoId;
         if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === targetEnterpriseId; })) { notifyUser("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio."); return; }
@@ -12301,16 +12303,6 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var footer = modal && modal.querySelector(".settings-footer");
         var spacer = footer && footer.querySelector(".spacer");
         if (spacer) spacer.remove();
-        var heading = modal && modal.querySelector(".settings-heading");
-        var content = modal && modal.querySelector(".rateio-modal-content");
-        if (modal && heading && footer && !content) {
-            content = document.createElement("div");
-            content.className = "rateio-modal-content";
-            Array.prototype.slice.call(modal.children).forEach(function (child) {
-                if (child !== heading && child !== footer && !child.classList.contains("mobile-view-back")) content.appendChild(child);
-            });
-            modal.insertBefore(content, footer);
-        }
     });
     var energyBackHome = document.getElementById("energyBackHome");
     if (energyBackHome) energyBackHome.addEventListener("click", function () {
@@ -12341,10 +12333,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     });
 
-    document.getElementById("mobileEnergyRateNav").addEventListener("click", openEnergyRate);
-    document.getElementById("mobileWaterRateNav").addEventListener("click", openWaterRate);
-    document.getElementById("desktopEnergyRateNav").addEventListener("click", openEnergyRate);
-    document.getElementById("desktopWaterRateNav").addEventListener("click", openWaterRate);
+    document.getElementById("mobileEnergyRateNav").addEventListener("click", function () { openEnergyRate(); });
+    document.getElementById("mobileWaterRateNav").addEventListener("click", function () { openWaterRate(); });
+    document.getElementById("desktopEnergyRateNav").addEventListener("click", function () { openEnergyRate(); });
+    document.getElementById("desktopWaterRateNav").addEventListener("click", function () { openWaterRate(); });
     document.getElementById("cancelEnergyRate").addEventListener("click", function () { ModalManager.close(energyRateModalElements().modal); });
     document.getElementById("saveEnergyRate").addEventListener("click", saveEnergyRate);
     document.getElementById("energyRateEnterprise").addEventListener("change", function () { loadEnergyRateReference(); renderEnergyHistory(); });

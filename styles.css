@@ -8417,20 +8417,21 @@ input[data-money="true"] {
 
 /* Rateios usam o mesmo cartão de consulta dos relatórios. */
 .energy-rate-modal.workspace-modal {
-    display: flex;
-    flex-direction: column;
+    display: block;
     width: min(1040px, 96vw);
     max-height: min(92dvh, 900px);
     padding: 0;
-    overflow: hidden;
+    overflow: auto;
     border: 1px solid #d7e8e5;
     border-radius: 18px;
     background: #f1f7f6;
     box-shadow: 0 20px 60px rgba(15, 77, 73, .22);
 }
 .energy-rate-modal .settings-heading { margin: 0; padding: 18px 22px; border-bottom: 1px solid #d7e8e5; background: #f8fbfa; }
-.rateio-modal-content { min-height: 0; flex: 1 1 auto; display: grid; align-content: start; gap: 10px; overflow: auto; padding: 20px; background: #f1f7f6; }
-.rateio-modal-content > .settings-panel { margin: 0; background: #fff; }
+.energy-rate-modal > .energy-rate-form,
+.energy-rate-modal > .settings-panel { margin-inline: 20px; }
+.energy-rate-modal > .energy-rate-form { margin-top: 20px; }
+.energy-rate-modal > .settings-panel { margin-block: 10px; background: #fff; }
 .energy-rate-modal .settings-footer { margin: 0; border-top-color: #d7e8e5; background: #f8fbfaf2; }
 
 @media (max-width: 680px) {
@@ -8445,7 +8446,9 @@ input[data-money="true"] {
     .modal-backdrop:has(.energy-rate-modal) { padding: 8px; align-items: center; }
     .energy-rate-modal.workspace-modal { width: calc(100vw - 16px); height: auto; max-height: calc(100dvh - 16px); padding-bottom: 0; border-radius: 15px; }
     .energy-rate-modal .settings-heading { padding: 14px; }
-    .rateio-modal-content { padding: 12px; }
+    .energy-rate-modal > .energy-rate-form,
+    .energy-rate-modal > .settings-panel { margin-inline: 12px; }
+    .energy-rate-modal > .energy-rate-form { margin-top: 12px; }
 }
 
 .mobile-month-list { display: none; }
