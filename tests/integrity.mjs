@@ -374,3 +374,4 @@ assert.match(app, /function syncCriticalPaymentNow\(\)/, "Baixas financeiras dev
 assert.match(app, /saveState\(\);\s*syncCriticalPaymentNow\(\);/, "Registro de pagamento deve enviar à nuvem logo após salvar localmente");
 assert.match(app, /var hideableCompletedMonths = completedMonths\.filter/, "Mês corrente concluído deve continuar visível na grade de unidades");
 assert.match(app, /return index !== currentMonth;/, "Ocultação de meses concluídos só deve ocorrer após a virada do mês");
+assert.match(styles, /\.status-btn\.is-partial \{\s*color: #155a82;\s*background: #e1f1ff;/, "Pagamento parcial deve ter cor própria e distinta de pago com atraso");

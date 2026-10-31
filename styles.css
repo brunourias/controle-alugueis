@@ -8033,13 +8033,13 @@ button.energy-paid-indicator:focus-visible {
 
 /* Pagamentos parciais */
 .status-btn.is-partial {
-    color: #8a5a00;
-    background: #fff1c9;
-    border-color: #e6c36a;
+    color: #155a82;
+    background: #e1f1ff;
+    border-color: #7dbce5;
 }
 .status-btn.is-partial .status-balance {
     display: block;
-    color: #9b3f36;
+    color: #176a97;
     font-size: .58rem;
     font-weight: 800;
     line-height: 1.1;
