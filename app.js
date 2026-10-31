@@ -2583,8 +2583,13 @@ var historyRent = document.getElementById("historyRent");
     }
 
     function chooseLocalData() {
-        // A escolha explícita pelo aparelho atualiza a base de comparação.
-        // Assim a próxima gravação não sobrescreve uma alteração remota sem confirmação.
+        // Esta é uma decisão explícita: a versão deste aparelho deve subir agora,
+        // sem depender do agendamento automático que originou o conflito.
+        if (!firebaseUser || !firebaseDb || !cloudWorkspaceId || !navigator.onLine) {
+            setCloudError("Não foi possível subir os dados agora. Verifique a conexão e tente novamente.");
+            setSyncStatus("Não sincronizado — salvo localmente");
+            return Promise.resolve(false);
+        }
         var localState = state;
         return readGranularState().then(function (remote) {
             cloudGranularBaseline = remote
@@ -2592,14 +2597,31 @@ var historyRent = document.getElementById("historyRent");
                 : { meta: null, units: {}, expenses: {}, contracts: {} };
             state = localState;
             expenseCategories = state.expenseCategories;
-            cloudReconcile.hidden = true;
-            cloudBanner.hidden = true;
-            cloudPendingRemote = null;
             cloudUpdatedAt = Date.now();
-            scheduleCloudWrite();
-            subscribeCloud();
+            clearTimeout(cloudWriteTimer);
+            cloudWriteQueued = false;
+            cloudHasPendingWrite = true;
+            setSyncStatus("Enviando dados deste aparelho…");
+            showSaveFeedback("Enviando para a nuvem…", "saving");
+            return writeGranularState(true).then(function () {
+                cloudHasPendingWrite = false;
+                cloudPendingRemote = null;
+                cloudReconcile.hidden = true;
+                cloudBanner.hidden = true;
+                subscribeCloud();
+                setCloudStatus("Conta conectada. Sincronização automática ativa.");
+                setSyncStatus("Sincronizado");
+                showSaveFeedback("Dados deste aparelho enviados para a nuvem.", "success");
+                notifyUser("Dados enviados para a nuvem.", "success");
+                return true;
+            });
         }).catch(function (error) {
             setCloudError(cloudErrorMessage(error));
+            cloudHasPendingWrite = true;
+            setSyncStatus("Não sincronizado — salvo localmente");
+            if (cloudPendingRemote) setCloudReconcilePrompt(cloudPendingRemote);
+            showSaveFeedback("Não foi possível enviar. Tente novamente.", "error");
+            return false;
         });
     }
 

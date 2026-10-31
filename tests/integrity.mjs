@@ -368,3 +368,5 @@ assert.match(app, /mobileWaterRateNav.*openWaterRate\(\)/, "Atalho de água deve
 assert.match(index, /id="waterRateEnterprise" disabled/, "Rateio de água deve usar o empreendimento selecionado sem permitir troca no formulário");
 assert.match(app, /el\.enterprise\.disabled = true;/, "Rateios devem manter o empreendimento do cabeçalho fixo durante o lançamento");
 assert.match(index, /<label class="energy-rate-due-field">Vencimento<input id="waterRateDueDate"/, "Vencimento da água deve usar a mesma largura responsiva da energia");
+assert.match(app, /writeGranularState\(true\)/, "Subir dados deste aparelho deve gravar a versão escolhida imediatamente");
+assert.match(app, /Dados deste aparelho enviados para a nuvem/, "Envio manual à nuvem deve confirmar o sucesso ao usuário");
