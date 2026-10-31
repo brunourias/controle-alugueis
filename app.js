@@ -1218,6 +1218,26 @@ var historyRent = document.getElementById("historyRent");
         return savedLocally;
     }
 
+    // Baixas alteram o saldo financeiro e precisam sair do aparelho sem aguardar
+    // o intervalo normal de sincronização. O controle de concorrência continua
+    // ativo em writeCloudState para não sobrescrever outra alteração.
+    function syncCriticalPaymentNow() {
+        if (!firebaseUser || !firebaseDb || !cloudWorkspaceReady || !cloudWorkspaceId) return;
+        if (!navigator.onLine) {
+            setSyncStatus("Offline — pagamento salvo neste aparelho");
+            return;
+        }
+        clearTimeout(cloudWriteTimer);
+        cloudHasPendingWrite = true;
+        updateConnectionStatus();
+        setSyncStatus("Enviando pagamento para a nuvem…");
+        if (cloudWriteInFlight) {
+            cloudWriteQueued = true;
+            return;
+        }
+        writeCloudState();
+    }
+
     function setCloudError(message) {
         cloudError.textContent = message || "";
         if (accountGateError) accountGateError.textContent = message || "";
@@ -6339,6 +6359,7 @@ function paymentOccursAfterDueDay(unit, month, paidAt) {
         entries.splice(entryIndex, 1);
         applyPartialPaymentEntries(unit, month, key, entries, payment.balanceDueDate);
         saveState();
+        syncCriticalPaymentNow();
         render();
         openPaymentAdjust(id, month, true);
     }
@@ -10379,6 +10400,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             };
             historicPaymentAdjustContext = null;
             saveState();
+            syncCriticalPaymentNow();
             ModalManager.close(document.getElementById("paymentAdjustModal"));
             ModalManager.close(contractInstallmentsModal);
             openContractInstallments(historyIndex);
@@ -10456,6 +10478,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 (preview.settled ? "Pagamento quitado" : "Pagamento parcial registrado"), paymentAdjustContext.key);
             paymentAdjustContext = null;
             saveState();
+            syncCriticalPaymentNow();
             render();
             ModalManager.close(document.getElementById("paymentAdjustModal"));
             return;
@@ -10471,6 +10494,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         };
         paymentAdjustContext = null;
         saveState();
+        syncCriticalPaymentNow();
         render();
         ModalManager.close(document.getElementById("paymentAdjustModal"));
     }
