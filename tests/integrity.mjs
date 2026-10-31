@@ -357,3 +357,5 @@ assert.match(styles, /Relatórios detalhados seguem o mesmo sistema visual do re
 assert.match(app, /data-print-report/, "Relatórios detalhados devem oferecer impressão no cabeçalho");
 assert.match(styles, /report-detail-modal \{ width: min\(1040px, 96vw\); max-height: min\(92dvh, 900px\); padding: 0;/, "Modal detalhado deve usar o mesmo encaixe do resumo anual");
 assert.match(styles, /\.pwa-status \{\s*position: relative;/, "Aviso do aplicativo não deve sobrepor o conteúdo");
+assert.match(app, /var reportView = view === "reports" \|\| view === "tax";/, "Relatórios não devem repetir o atalho de início no celular");
+assert.doesNotMatch(app, /report-detail-modal workspace-modal"><button class="mobile-modal-back"/, "Relatório detalhado não deve repetir Voltar no topo");

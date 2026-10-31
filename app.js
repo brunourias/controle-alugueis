@@ -4357,7 +4357,9 @@ var historyRent = document.getElementById("historyRent");
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
             var back = panel.querySelector(":scope > .mobile-view-back");
-            if (mobileNavigation && !launcherOnly && view === activeAppView) {
+            // Relatórios possuem ação de Fechar própria; não repetimos Início no topo.
+            var reportView = view === "reports" || view === "tax";
+            if (mobileNavigation && !launcherOnly && view === activeAppView && !reportView) {
                 if (!back) {
                     back = document.createElement("button");
                     back.type = "button";
@@ -12184,7 +12186,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             existing.id = "reportDetailModal";
             existing.className = "modal-backdrop";
             existing.hidden = true;
-            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><button class="mobile-modal-back" type="button" data-close-report>← Voltar</button><div class="settings-heading report-detail-header"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2><p id="reportDetailDescription" class="financial-summary-description"></p></div><div class="modal-actions report-detail-header-actions"><button class="btn btn-primary" type="button" data-print-report>Salvar / imprimir PDF</button><button class="btn btn-ghost" type="button" data-close-report>Fechar</button></div></div><div id="reportDetailContent" class="report-detail-content"></div></div>';
+            existing.innerHTML = '<div class="modal report-detail-modal workspace-modal"><div class="settings-heading report-detail-header"><div><p class="financial-eyebrow">Relatório</p><h2 id="reportDetailTitle"></h2><p id="reportDetailDescription" class="financial-summary-description"></p></div><div class="modal-actions report-detail-header-actions"><button class="btn btn-primary" type="button" data-print-report>Salvar / imprimir PDF</button><button class="btn btn-ghost" type="button" data-close-report>Fechar</button></div></div><div id="reportDetailContent" class="report-detail-content"></div></div>';
             document.body.appendChild(existing);
             existing.querySelectorAll("[data-close-report]").forEach(function (button) { button.addEventListener("click", function () { ModalManager.close(existing); }); });
             existing.querySelector("[data-print-report]").addEventListener("click", function () {
