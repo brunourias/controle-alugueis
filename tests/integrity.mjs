@@ -372,3 +372,5 @@ assert.match(app, /writeGranularState\(true\)/, "Subir dados deste aparelho deve
 assert.match(app, /Dados deste aparelho enviados para a nuvem/, "Envio manual à nuvem deve confirmar o sucesso ao usuário");
 assert.match(app, /function syncCriticalPaymentNow\(\)/, "Baixas financeiras devem iniciar sincronização imediata");
 assert.match(app, /saveState\(\);\s*syncCriticalPaymentNow\(\);/, "Registro de pagamento deve enviar à nuvem logo após salvar localmente");
+assert.match(app, /var hideableCompletedMonths = completedMonths\.filter/, "Mês corrente concluído deve continuar visível na grade de unidades");
+assert.match(app, /return index !== currentMonth;/, "Ocultação de meses concluídos só deve ocorrer após a virada do mês");

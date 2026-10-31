@@ -5247,26 +5247,30 @@ var historyRent = document.getElementById("historyRent");
     
 
     function renderGrid(visibleUnits) {
-    var completedMonths = settledMonthIndexes(scopedUnits());
-    var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
-        return showSettledMonths || completedMonths.indexOf(index) < 0;
-    });
-    if (settledMonthsToolbar) {
-        settledMonthsToolbar.hidden = isMobileNavigation() || completedMonths.length === 0;
-        settledMonthsSummary.textContent = completedMonths.length
-            ? completedMonths.length +
-                (completedMonths.length === 1 ? " mês concluído " : " meses concluídos ") +
-                (showSettledMonths
-                    ? (completedMonths.length === 1 ? "visível" : "visíveis")
-                    : (completedMonths.length === 1 ? "oculto" : "ocultos"))
-            : "";
-        toggleSettledMonths.textContent = showSettledMonths ? "Ocultar meses concluídos" : "Reexibir meses concluídos";
-    }
-
     var currentMonth =
         new Date().getFullYear() === selectedYear
             ? new Date().getMonth()
             : -1;
+    var completedMonths = settledMonthIndexes(scopedUnits());
+    // O mês em andamento continua como contexto principal da grade, mesmo que
+    // todas as parcelas já estejam pagas. Só pode ser ocultado após a virada.
+    var hideableCompletedMonths = completedMonths.filter(function (index) {
+        return index !== currentMonth;
+    });
+    var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
+        return showSettledMonths || hideableCompletedMonths.indexOf(index) < 0;
+    });
+    if (settledMonthsToolbar) {
+        settledMonthsToolbar.hidden = isMobileNavigation() || hideableCompletedMonths.length === 0;
+        settledMonthsSummary.textContent = hideableCompletedMonths.length
+            ? hideableCompletedMonths.length +
+                (hideableCompletedMonths.length === 1 ? " mês concluído " : " meses concluídos ") +
+                (showSettledMonths
+                    ? (hideableCompletedMonths.length === 1 ? "visível" : "visíveis")
+                    : (hideableCompletedMonths.length === 1 ? "oculto" : "ocultos"))
+            : "";
+        toggleSettledMonths.textContent = showSettledMonths ? "Ocultar meses concluídos" : "Reexibir meses concluídos";
+    }
 
     var head =
         '<tr><th scope="col">Unidade</th>' +
