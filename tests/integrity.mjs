@@ -362,3 +362,5 @@ assert.match(app, /var reportView = view === "reports" \|\| view === "tax";/, "R
 assert.doesNotMatch(app, /report-detail-modal workspace-modal"><button class="mobile-modal-back"/, "Relatório detalhado não deve repetir Voltar no topo");
 assert.match(index, /id="closeTaxReport"/, "Imposto de Renda deve ter ação de fechar");
 assert.match(app, /getElementById\("closeTaxReport"\)/, "Fechar Imposto de Renda deve retornar à Central de relatórios");
+assert.match(app, /rateio-modal-content/, "Rateios devem organizar o conteúdo no mesmo padrão de consulta dos relatórios");
+assert.match(styles, /Rateios usam o mesmo cartão de consulta dos relatórios/, "Rateios devem compartilhar o padrão visual dos relatórios");

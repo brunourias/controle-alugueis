@@ -12301,6 +12301,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var footer = modal && modal.querySelector(".settings-footer");
         var spacer = footer && footer.querySelector(".spacer");
         if (spacer) spacer.remove();
+        var heading = modal && modal.querySelector(".settings-heading");
+        var content = modal && modal.querySelector(".rateio-modal-content");
+        if (modal && heading && footer && !content) {
+            content = document.createElement("div");
+            content.className = "rateio-modal-content";
+            Array.prototype.slice.call(modal.children).forEach(function (child) {
+                if (child !== heading && child !== footer && !child.classList.contains("mobile-view-back")) content.appendChild(child);
+            });
+            modal.insertBefore(content, footer);
+        }
     });
     var energyBackHome = document.getElementById("energyBackHome");
     if (energyBackHome) energyBackHome.addEventListener("click", function () {
