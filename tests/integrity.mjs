@@ -367,3 +367,4 @@ assert.match(app, /mobileEnergyRateNav.*openEnergyRate\(\)/, "Atalho de energia 
 assert.match(app, /mobileWaterRateNav.*openWaterRate\(\)/, "Atalho de água deve abrir o rateio sem passar o evento como referência");
 assert.match(index, /id="waterRateEnterprise" disabled/, "Rateio de água deve usar o empreendimento selecionado sem permitir troca no formulário");
 assert.match(app, /el\.enterprise\.disabled = true;/, "Rateios devem manter o empreendimento do cabeçalho fixo durante o lançamento");
+assert.match(index, /<label class="energy-rate-due-field">Vencimento<input id="waterRateDueDate"/, "Vencimento da água deve usar a mesma largura responsiva da energia");
