@@ -11957,6 +11957,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return;
         }
         var el = energyRateModalElements(), now = new Date();
+        el.enterprise.disabled = true;
         el.reference.value = reference || (now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0"));
         el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id===targetEnterpriseId?" selected":"") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
         loadEnergyRateReference(); renderEnergyHistory(); ModalManager.open(el.modal);
@@ -12126,6 +12127,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var targetEnterpriseId = enterpriseId || selectedEmpreendimentoId;
         if (!state.empreendimentos.some(function (enterprise) { return enterprise.id === targetEnterpriseId; })) { notifyUser("Selecione um empreendimento específico no cabeçalho antes de abrir o rateio."); return; }
         var el = waterRateModalElements(), now = new Date();
+        el.enterprise.disabled = true;
         el.reference.value = reference || (now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0"));
         el.enterprise.innerHTML = state.empreendimentos.map(function (enterprise) { return '<option value="' + escapeHtml(enterprise.id) + '"' + (enterprise.id === targetEnterpriseId ? " selected" : "") + '>' + escapeHtml(enterprise.name) + '</option>'; }).join("");
         loadWaterRateReference(); renderWaterHistory(); ModalManager.open(el.modal);
