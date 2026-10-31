@@ -4592,6 +4592,14 @@ textarea:focus-visible {
     flex: 0 0 auto;
 }
 
+.tax-dashboard-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .tax-dashboard-detail {
     margin-top: 14px;
 }

@@ -360,3 +360,5 @@ assert.match(styles, /modal-backdrop:has\(\.report-detail-modal\) \{ padding: 8p
 assert.match(styles, /\.pwa-status \{\s*position: relative;/, "Aviso do aplicativo não deve sobrepor o conteúdo");
 assert.match(app, /var reportView = view === "reports" \|\| view === "tax";/, "Relatórios não devem repetir o atalho de início no celular");
 assert.doesNotMatch(app, /report-detail-modal workspace-modal"><button class="mobile-modal-back"/, "Relatório detalhado não deve repetir Voltar no topo");
+assert.match(index, /id="closeTaxReport"/, "Imposto de Renda deve ter ação de fechar");
+assert.match(app, /getElementById\("closeTaxReport"\)/, "Fechar Imposto de Renda deve retornar à Central de relatórios");

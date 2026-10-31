@@ -9042,6 +9042,12 @@ function saveExpense() {
         }, 0);
     });
 
+    document.getElementById("closeTaxReport").addEventListener("click", function () {
+        activeMobileShortcut = null;
+        showAppView("reports");
+        render();
+    });
+
     document.getElementById("mobileChargesNav").addEventListener("click", function () {
         if (isMobileNavigation() && !mobileLauncherActive && activeMobileShortcut === "charges") {
             closeMobileShortcut();
