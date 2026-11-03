@@ -1065,6 +1065,15 @@ var historyRent = document.getElementById("historyRent");
             !Array.isArray(unit.lateLedger)
                 ? unit.lateLedger
                 : {};
+        unit.lateContractIds =
+            unit.lateContractIds &&
+            typeof unit.lateContractIds === "object" &&
+            !Array.isArray(unit.lateContractIds)
+                ? Object.keys(unit.lateContractIds).reduce(function (result, key) {
+                    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && typeof unit.lateContractIds[key] === "string") result[key] = unit.lateContractIds[key];
+                    return result;
+                }, {})
+                : {};
         // Migra atrasos do contrato anterior quando uma nova locação começa depois dele.
         if (isValidDateValue(unit.startDate)) {
             unit.contractHistory.forEach(function (contract) {
@@ -1072,12 +1081,14 @@ var historyRent = document.getElementById("historyRent");
                 Object.keys(unit.status).forEach(function (key) {
                     if (key <= contract.endYm && unit.status[key] === "atrasado") {
                         unit.lateLedger[key] = "open";
+                        unit.lateContractIds[key] = unit.lateContractIds[key] || contract.id;
                         delete unit.status[key];
                     }
                 });
                 Object.keys(unit.paidLate).forEach(function (key) {
                     if (key <= contract.endYm && unit.paidLate[key] === true) {
                         unit.lateLedger[key] = "paid";
+                        unit.lateContractIds[key] = unit.lateContractIds[key] || contract.id;
                         delete unit.paidLate[key];
                     }
                 });
@@ -10065,6 +10076,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         unit.status = unit.status && typeof unit.status === "object" ? unit.status : {};
         unit.paidLate = unit.paidLate && typeof unit.paidLate === "object" ? unit.paidLate : {};
         unit.lateLedger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        // A competência pode coincidir com a de um contrato novo. Guardar a
+        // origem evita que um débito antigo seja mostrado como do novo inquilino.
+        unit.lateContractIds = unit.lateContractIds && typeof unit.lateContractIds === "object" ? unit.lateContractIds : {};
         unit.paymentHistory = unit.paymentHistory && typeof unit.paymentHistory === "object" ? unit.paymentHistory : {};
     }
 
@@ -10078,23 +10092,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             ? rescission.exitDate
             : unitEndYm.value || localDateValue(new Date());
 
-        months.forEach(function (_, month) {
-            var key = monthKey(month);
-            var currentStatus = effectiveStatus(unit, month);
-            if (currentStatus === "atrasado" || unit.status[key] === "atrasado") {
-                unit.status[key] = "atrasado";
-                unit.lateLedger[key] = "open";
-            }
-            if (unit.status[key] === "pago" && !unit.paymentHistory[key]) {
-                var amount = rentForMonth(unit, selectedYear, month);
-                unit.paymentHistory[key] = {
-                    rentAmount: amount, totalAmount: amount, paidAt: null,
-                    fineAmount: 0, interestAmount: 0, chargesAmount: 0
-                };
-            }
-        });
-
-        pendingContractHistory.push({
+        var archivedContract = {
             id: newContractHistoryId(),
             tenantName: tenantName.value.trim(),
             tenantPhone: tenantPhone.value.trim(),
@@ -10108,7 +10106,31 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             dueDay: unitDueDay.value === "" ? null : Number(unitDueDay.value),
             status: rescission ? "rescisao" : "encerrado",
             reason: rescission ? "Rescisão antecipada · demonstrativo " + money(rescission.total) : ""
+        };
+
+        months.forEach(function (_, month) {
+            var key = monthKey(month);
+            var currentStatus = effectiveStatus(unit, month);
+            if (currentStatus === "atrasado" || unit.status[key] === "atrasado") {
+                unit.status[key] = "atrasado";
+                unit.lateLedger[key] = "open";
+                unit.lateContractIds[key] = archivedContract.id;
+            }
+            if (unit.status[key] === "pago" && !unit.paymentHistory[key]) {
+                var amount = rentForMonth(unit, selectedYear, month);
+                unit.paymentHistory[key] = {
+                    rentAmount: amount, totalAmount: amount, paidAt: null,
+                    fineAmount: 0, interestAmount: 0, chargesAmount: 0
+                };
+            }
         });
+
+        var hasOpenHistoricDebt = Object.keys(unit.lateLedger).some(function (key) {
+            return (unit.lateLedger[key] === true || unit.lateLedger[key] === "open") &&
+                unit.lateContractIds[key] === archivedContract.id;
+        });
+        if (hasOpenHistoricDebt) archivedContract.status = "pendente";
+        pendingContractHistory.push(archivedContract);
         unit.contractHistory = serializeContractHistory(pendingContractHistory);
         unit.tenantName = "";
         unit.tenantPhone = "";
@@ -10186,11 +10208,22 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function historicLateKeysForContract(unit, contract) {
         var ledger = unit && unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        var owners = unit && unit.lateContractIds && typeof unit.lateContractIds === "object" ? unit.lateContractIds : {};
         return Object.keys(ledger).filter(function (key) {
-            return (ledger[key] === true || ledger[key] === "open") &&
-                (!contract.startYm || key >= contract.startYm) &&
+            if (ledger[key] !== true && ledger[key] !== "open") return false;
+            // Registros novos possuem proprietário explícito. Os antigos
+            // continuam sendo reconhecidos pelo período para compatibilidade.
+            if (owners[key]) return owners[key] === contract.id;
+            return (!contract.startYm || key >= contract.startYm) &&
                 (!contract.endYm || key <= contract.endYm);
         });
+    }
+
+    function historicOpenBalanceForContract(unit, contract) {
+        return historicLateKeysForContract(unit, contract).reduce(function (total, key) {
+            var parts = key.split("-").map(Number);
+            return total + lateUpdatedTotalForRecord(unit, key, parts[0], parts[1] - 1);
+        }, 0);
     }
 
     function historicalInstallmentState(unit, key) {
@@ -10213,14 +10246,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var keys = contractInstallmentKeys(contract);
         var openLate = keys.filter(function (key) { return historicalInstallmentState(unit, key) === "atrasado"; }).length;
         var paidLate = keys.filter(function (key) { return historicalInstallmentState(unit, key) === "pago-atrasado"; }).length;
+        var openBalance = historicOpenBalanceForContract(unit, contract);
         contractInstallmentsTitle.textContent = "Parcelas · " + (contract.tenantName || "Contrato encerrado");
         contractInstallmentsSummary.textContent = (openLate ? openLate + " em atraso" : "Nenhuma em atraso") +
             (paidLate ? " · " + paidLate + " paga(s) com atraso" : "") +
-            " · " + money(Number(contract.rent) || 0) + " por parcela";
+            " · " + money(Number(contract.rent) || 0) + " por parcela" +
+            (openLate ? " · saldo atualizado " + money(openBalance) + " (com multa e juros)" : "");
         contractInstallmentsList.innerHTML = keys.length ? keys.map(function (key) {
             var stateName = historicalInstallmentState(unit, key);
             var label = stateName === "atrasado" ? "Em atraso" : stateName === "pago-atrasado" ? "Pago com atraso" : stateName === "pago" ? "Pago" : "Pendente";
             var klass = stateName === "atrasado" ? " is-late" : (stateName.indexOf("pago") === 0 ? " is-paid" : "");
+            var parts = key.split("-").map(Number);
+            var currentTotal = stateName === "atrasado"
+                ? lateUpdatedTotalForRecord(unit, key, parts[0], parts[1] - 1)
+                : Number(contract.rent) || 0;
             var action = stateName === "atrasado"
                 ? '<button class="btn btn-primary" type="button" data-installment-settle="' + key + '">Dar baixa</button>'
                 : (stateName.indexOf("pago") === 0
@@ -10229,6 +10268,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             return '<div class="contract-installment-row' + klass + '"><div><strong>' + escapeHtml(ymLabel(key)) +
                 '</strong><span>Vencimento: ' + String(contract.dueDay || "—") + ' · ' +
                 escapeHtml(label) + ' · ' + money(Number(contract.rent) || 0) +
+                (stateName === "atrasado" ? ' · saldo atualizado ' + money(currentTotal) : '') +
                 '</span></div><div class="contract-installment-actions">' + action + '</div></div>';
         }).join("") : '<p class="rent-changes-empty">Não foi possível identificar o período deste contrato.</p>';
         contractInstallmentsList.querySelectorAll("[data-installment-settle]").forEach(function (button) {
@@ -10588,6 +10628,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
         var cards = pendingContractHistory.map(function (contract, index) {
             var lateCount = unit ? historicLateKeysForContract(unit, contract).length : 0;
+            var openBalance = unit ? historicOpenBalanceForContract(unit, contract) : 0;
             var installmentKeys = contractInstallmentKeys(contract);
             var pendingCount = unit ? installmentKeys.filter(function (key) {
                 return historicalInstallmentState(unit, key) === "pendente";
@@ -10595,7 +10636,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var status = contractHistoryStatusInfo(contract.status);
             var tone = lateCount ? " is-alert" : " is-neutral";
             var summary = lateCount
-                ? '<span class="contract-metric is-late">' + lateCount + ' em atraso</span>'
+                ? '<span class="contract-metric is-late">' + lateCount + ' em atraso · saldo atualizado ' + money(openBalance) + '</span>'
                 : (pendingCount
                     ? '<span class="contract-metric is-pending">' + pendingCount + ' pendente' + (pendingCount === 1 ? '' : 's') + '</span>'
                     : '<span class="contract-metric is-ok">Sem pendências</span>');
@@ -11217,6 +11258,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 status: granularClone(unitCopy.status || {}),
                 paidLate: granularClone(unitCopy.paidLate || {}),
                 lateLedger: granularClone(unitCopy.lateLedger || {}),
+                lateContractIds: granularClone(unitCopy.lateContractIds || {}),
                 paymentHistory: granularClone(unitCopy.paymentHistory || {})
             };
             snapshot.charges[unit.id] = { chargeLog: granularClone(unitCopy.chargeLog || []) };
@@ -11224,6 +11266,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             delete unitCopy.status;
             delete unitCopy.paidLate;
             delete unitCopy.lateLedger;
+            delete unitCopy.lateContractIds;
             delete unitCopy.paymentHistory;
             delete unitCopy.chargeLog;
             snapshot.units[unit.id] = unitCopy;
@@ -11403,7 +11446,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var unitsById = {};
             unitsSnapshot.forEach(function (item) {
                 var raw = item.data() || {};
-                if (raw.status || raw.paidLate || raw.lateLedger || raw.paymentHistory || raw.chargeLog) {
+                if (raw.status || raw.paidLate || raw.lateLedger || raw.lateContractIds || raw.paymentHistory || raw.chargeLog) {
                     cloudFinancialMigrationNeeded = true;
                 }
                 var unit = granularClone(raw); unit.id = unit.id || item.id;
@@ -11416,6 +11459,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 unit.status = granularClone(data.status || {});
                 unit.paidLate = granularClone(data.paidLate || {});
                 unit.lateLedger = granularClone(data.lateLedger || {});
+                unit.lateContractIds = granularClone(data.lateContractIds || {});
                 unit.paymentHistory = granularClone(data.paymentHistory || {});
             });
             chargesSnapshot.forEach(function (item) {
