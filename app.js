@@ -488,6 +488,9 @@ var historyRent = document.getElementById("historyRent");
     var cloudWriteInFlight = false;
     var cloudWriteQueued = false;
     var cloudHasPendingWrite = false;
+    // Baixas são operações pontuais e podem ser mescladas por competência
+    // quando outro aparelho tiver atualizado algum dado não relacionado.
+    var cloudCriticalPaymentPending = false;
     var cloudWriteRevision = 0;
     var cloudUpdatedAt = 0;
     var cloudApplyingRemote = false;
@@ -1240,6 +1243,7 @@ var historyRent = document.getElementById("historyRent");
         }
         clearTimeout(cloudWriteTimer);
         cloudHasPendingWrite = true;
+        cloudCriticalPaymentPending = true;
         updateConnectionStatus();
         setSyncStatus("Enviando pagamento para a nuvem…");
         if (cloudWriteInFlight) {
@@ -11430,6 +11434,69 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             .then(function () { cloudGranularBaseline = current; });
     }
 
+    function mergeChangedPaymentKeys(remoteMap, localMap, baseMap) {
+        var merged = granularClone(remoteMap || {});
+        var keys = {};
+        Object.keys(localMap || {}).forEach(function (key) { keys[key] = true; });
+        Object.keys(baseMap || {}).forEach(function (key) { keys[key] = true; });
+        Object.keys(keys).forEach(function (key) {
+            var localValue = (localMap || {})[key];
+            var baseValue = (baseMap || {})[key];
+            if (granularEqual(localValue === undefined ? null : localValue, baseValue === undefined ? null : baseValue)) return;
+            if (localValue === undefined) delete merged[key];
+            else merged[key] = granularClone(localValue);
+        });
+        return merged;
+    }
+
+    // Em uma baixa, o que importa é a competência alterada. Ao receber uma
+    // versão nova da nuvem, reaplicamos apenas as chaves financeiras que este
+    // aparelho mudou desde a última base conhecida, sem sobrescrever contratos,
+    // gastos ou alterações feitas em outro aparelho.
+    function mergeCriticalPaymentChange(remoteValue, localValue) {
+        var remote = normalizeState(granularClone(remoteValue || {}));
+        var localSnapshot = granularSnapshot(localValue || state);
+        var base = cloudGranularBaseline || { payments: {} };
+        var financialFields = ["status", "paidLate", "lateLedger", "lateContractIds", "paymentHistory"];
+        (remote.units || []).forEach(function (remoteUnit) {
+            var localPayment = localSnapshot.payments[remoteUnit.id];
+            var basePayment = (base.payments || {})[remoteUnit.id] || {};
+            if (!localPayment) return;
+            financialFields.forEach(function (field) {
+                remoteUnit[field] = mergeChangedPaymentKeys(
+                    remoteUnit[field] || {},
+                    localPayment[field] || {},
+                    basePayment[field] || {}
+                );
+            });
+        });
+        remote.lastUpdatedAt = Date.now();
+        return normalizeState(remote);
+    }
+
+    function recoverCriticalPaymentConflict() {
+        var localBeforeRecovery = granularClone(state);
+        return readGranularState().then(function (remote) {
+            if (!remote) throw granularConflictError();
+            state = mergeCriticalPaymentChange(remote, localBeforeRecovery);
+            expenseCategories = state.expenseCategories;
+            cloudGranularBaseline = granularSnapshot(remote);
+            writeLocalStateSnapshot(state);
+            render();
+            setSyncStatus("Mesclando pagamento com a nuvem…");
+            return writeGranularState(false);
+        }).then(function () {
+            cloudCriticalPaymentPending = false;
+            cloudHasPendingWrite = false;
+            cloudPendingRemote = null;
+            cloudReconcile.hidden = true;
+            cloudBanner.hidden = true;
+            setCloudStatus("Conta conectada. Sincronização automática ativa.");
+            setSyncStatus("Pagamento sincronizado");
+            showSaveFeedback("Pagamento salvo e sincronizado.", "success");
+        });
+    }
+
     function readGranularState() {
         cloudFinancialMigrationNeeded = false;
         var meta = granularMetaRef(), units = granularUnitsRef(), expenses = granularExpensesRef();
@@ -11609,12 +11676,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         cloudWriteInFlight = true; cloudWriteQueued = false;
         writeGranularState(false).then(function () {
             cloudHasPendingWrite = revision < cloudWriteRevision;
+            if (!cloudHasPendingWrite) cloudCriticalPaymentPending = false;
             cloudPendingRemote = null; cloudReconcile.hidden = true; cloudBanner.hidden = true;
             setCloudStatus("Conta conectada. Sincronização automática ativa.");
             setSyncStatus(cloudHasPendingWrite ? "Sincronizando..." : "Sincronizado");
         }).catch(function (error) {
             cloudHasPendingWrite = true;
             if (error && error.code === "app/cloud-conflict") {
+                if (cloudCriticalPaymentPending) {
+                    return recoverCriticalPaymentConflict().catch(function (recoveryError) {
+                        cloudCriticalPaymentPending = false;
+                        setCloudError(cloudErrorMessage(recoveryError));
+                        setSyncStatus("Não sincronizado — pagamento salvo neste aparelho");
+                    });
+                }
                 return readGranularState().then(function (remote) {
                     if (remote) {
                         cloudPendingRemote = remote;
