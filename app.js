@@ -10172,7 +10172,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function archiveCurrentContract(rescission) {
         if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
-        if (!unit || !tenantName.value.trim()) { tenantName.focus(); return false; }
+        if (!unit) return false;
+        // A ação pode ser acionada com os painéis recolhidos; nesse caso,
+        // preserva os dados já salvos da unidade em vez de abortar em silêncio.
+        if (!tenantName.value.trim() && unit.tenantName) {
+            tenantName.value = unit.tenantName;
+            tenantPhone.value = tenantPhone.value || unit.tenantPhone || "";
+            tenantEmail.value = tenantEmail.value || unit.tenantEmail || "";
+            tenantNotes.value = tenantNotes.value || unit.tenantNotes || "";
+            if (!unitRent.value) setMoneyInput(unitRent, unit.rent || 0);
+            unitDueDay.value = unitDueDay.value || (unit.dueDay || "");
+            unitStartYm.value = unitStartYm.value || unit.startDate || "";
+            unitEndYm.value = unitEndYm.value || unit.endDate || "";
+        }
+        if (!tenantName.value.trim()) { notifyUser("Não foi possível identificar o inquilino deste contrato.", "error"); return false; }
         ensureFinancialHistory(unit);
         var startDate = unitStartYm.value || unit.startDate || null;
         var endDate = rescission && isValidDateValue(rescission.exitDate)
@@ -10765,12 +10778,12 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function endCurrentContractOnlyNow() {
         if (!requireWorkspacePermission("manageContracts")) return;
         var unit = editingId ? state.units.find(function (item) { return item.id === editingId; }) : null;
-        if (!unit || !String(tenantName.value || "").trim()) { tenantName.focus(); return; }
-        var previousTenant = tenantName.value.trim();
+        var previousTenant = String(tenantName.value || unit && unit.tenantName || "").trim();
+        if (!unit || !previousTenant) { notifyUser("Não foi possível identificar o contrato a encerrar.", "error"); return; }
         if (!window.confirm("Encerrar o contrato de " + previousTenant + "? A unidade poderá ficar vaga.")) return;
         createVersionedBackup("Encerramento de contrato", unit.name + " · " + previousTenant);
         recordOperation("Contrato encerrado", unit.name + " · " + previousTenant);
-        if (!archiveCurrentContract()) return;
+        if (!archiveCurrentContract()) { notifyUser("O contrato não foi encerrado. Confira os dados da unidade e tente novamente.", "error"); return; }
         document.getElementById("modalTitle").textContent = "Unidade vaga · " + unit.name;
         startNewContractButton.hidden = false;
     }
@@ -11265,7 +11278,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     document.getElementById("openKeyHandoverTerm").addEventListener("click", openKeyHandoverTerm);
     document.getElementById("closeKeyHandover").addEventListener("click", function () { ModalManager.close(keyHandoverModal); });
     document.getElementById("printKeyHandover").addEventListener("click", printKeyHandoverTerm);
-    document.getElementById("endContractWithRescission").addEventListener("click", function () { requireSensitiveAccess("encerrar contrato com rescisão", endContractWithRescissionNow); });
+    document.getElementById("endContractWithRescission").addEventListener("click", endContractWithRescissionNow);
     document.getElementById("startNewContract").addEventListener("click", prepareNewContractForm);
     document.getElementById("closeContractInstallments").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });
     document.getElementById("closeContractInstallmentsTop").addEventListener("click", function () { ModalManager.close(contractInstallmentsModal); });
@@ -11280,7 +11293,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     /* Integrações de interface da auditoria. */
     function endCurrentContractOnly() {
-        requireSensitiveAccess("encerrar este contrato", endCurrentContractOnlyNow);
+        endCurrentContractOnlyNow();
     }
 
     function deleteUnit() {
