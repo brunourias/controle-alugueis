@@ -491,6 +491,7 @@ var historyRent = document.getElementById("historyRent");
     // Baixas são operações pontuais e podem ser mescladas por competência
     // quando outro aparelho tiver atualizado algum dado não relacionado.
     var cloudCriticalPaymentPending = false;
+    var cloudCriticalContractPending = false;
     var cloudWriteRevision = 0;
     var cloudUpdatedAt = 0;
     var cloudApplyingRemote = false;
@@ -1246,6 +1247,24 @@ var historyRent = document.getElementById("historyRent");
         cloudCriticalPaymentPending = true;
         updateConnectionStatus();
         setSyncStatus("Enviando pagamento para a nuvem…");
+        if (cloudWriteInFlight) {
+            cloudWriteQueued = true;
+            return;
+        }
+        writeCloudState();
+    }
+
+    function syncCriticalContractNow() {
+        if (!firebaseUser || !firebaseDb || !cloudWorkspaceReady || !cloudWorkspaceId) return;
+        if (!navigator.onLine) {
+            setSyncStatus("Offline — contrato encerrado salvo neste aparelho");
+            return;
+        }
+        clearTimeout(cloudWriteTimer);
+        cloudHasPendingWrite = true;
+        cloudCriticalContractPending = true;
+        updateConnectionStatus();
+        setSyncStatus("Enviando encerramento para a nuvem…");
         if (cloudWriteInFlight) {
             cloudWriteQueued = true;
             return;
@@ -10245,6 +10264,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         unit.rentChanges = [];
         pendingRentChanges = [];
         saveState();
+        syncCriticalContractNow();
 
         tenantName.value = "";
         tenantPhone.value = "";
@@ -11252,9 +11272,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         if (!window.confirm(confirmation)) return;
         createVersionedBackup("Encerramento com multa rescisória", unit.name);
         recordOperation("Contrato encerrado com multa rescisória", unit.name + " · " + money(activeRescissionStatement.total));
-        if (!archiveCurrentContract(activeRescissionStatement)) return;
         activeRescissionStatement.status = "encerrado";
-        saveState();
+        if (!archiveCurrentContract(activeRescissionStatement)) return;
         ModalManager.close(rescissionStatementModal);
         ModalManager.close(rescissionModal);
         notifyUser("Contrato encerrado e demonstrativo de rescisão preservado.", "success");
@@ -11570,6 +11589,57 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return normalizeState(remote);
     }
 
+    function mergeChangedObjectFields(remoteObject, localObject, baseObject) {
+        var merged = granularClone(remoteObject || {}), keys = {};
+        Object.keys(localObject || {}).forEach(function (key) { keys[key] = true; });
+        Object.keys(baseObject || {}).forEach(function (key) { keys[key] = true; });
+        Object.keys(keys).forEach(function (key) {
+            if (key === "id") return;
+            var localValue = (localObject || {})[key];
+            var baseValue = (baseObject || {})[key];
+            if (granularEqual(localValue === undefined ? null : localValue, baseValue === undefined ? null : baseValue)) return;
+            if (localValue === undefined) delete merged[key];
+            else merged[key] = granularClone(localValue);
+        });
+        return merged;
+    }
+
+    // O encerramento altera o cadastro da unidade, o histórico do contrato e
+    // possíveis parcelas em atraso. Em caso de versão remota mais recente,
+    // reaplica somente esses campos que mudaram neste aparelho.
+    function mergeCriticalContractChange(remoteValue, localValue) {
+        var remote = normalizeState(granularClone(remoteValue || {}));
+        var localSnapshot = granularSnapshot(localValue || state);
+        var base = cloudGranularBaseline || { units: {}, contracts: {}, payments: {} };
+        var paymentFields = ["status", "paidLate", "lateLedger", "lateContractIds", "paymentHistory"];
+        (remote.units || []).forEach(function (remoteUnit) {
+            var localUnit = localSnapshot.units[remoteUnit.id];
+            var baseUnit = (base.units || {})[remoteUnit.id] || {};
+            if (localUnit) {
+                var mergedUnit = mergeChangedObjectFields(remoteUnit, localUnit, baseUnit);
+                Object.keys(mergedUnit).forEach(function (key) { if (key !== "contractHistory") remoteUnit[key] = mergedUnit[key]; });
+            }
+            var localPayment = localSnapshot.payments[remoteUnit.id];
+            var basePayment = (base.payments || {})[remoteUnit.id] || {};
+            if (localPayment) paymentFields.forEach(function (field) {
+                remoteUnit[field] = mergeChangedPaymentKeys(remoteUnit[field] || {}, localPayment[field] || {}, basePayment[field] || {});
+            });
+        });
+        Object.keys(localSnapshot.contracts || {}).forEach(function (key) {
+            var localContract = localSnapshot.contracts[key];
+            var baseContract = (base.contracts || {})[key];
+            if (baseContract && granularEqual(localContract.data, baseContract.data)) return;
+            var unit = (remote.units || []).find(function (item) { return item.id === localContract.unitId; });
+            if (!unit) return;
+            unit.contractHistory = Array.isArray(unit.contractHistory) ? unit.contractHistory : [];
+            var index = unit.contractHistory.findIndex(function (item) { return item && item.id === localContract.id; });
+            var data = granularClone(localContract.data); delete data.order;
+            if (index >= 0) unit.contractHistory[index] = data; else unit.contractHistory.push(data);
+        });
+        remote.lastUpdatedAt = Date.now();
+        return normalizeState(remote);
+    }
+
     function recoverCriticalPaymentConflict() {
         var localBeforeRecovery = granularClone(state);
         return readGranularState().then(function (remote) {
@@ -11590,6 +11660,29 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             setCloudStatus("Conta conectada. Sincronização automática ativa.");
             setSyncStatus("Pagamento sincronizado");
             showSaveFeedback("Pagamento salvo e sincronizado.", "success");
+        });
+    }
+
+    function recoverCriticalContractConflict() {
+        var localBeforeRecovery = granularClone(state);
+        return readGranularState().then(function (remote) {
+            if (!remote) throw granularConflictError();
+            state = mergeCriticalContractChange(remote, localBeforeRecovery);
+            expenseCategories = state.expenseCategories;
+            cloudGranularBaseline = granularSnapshot(remote);
+            writeLocalStateSnapshot(state);
+            render();
+            setSyncStatus("Mesclando encerramento com a nuvem…");
+            return writeGranularState(false);
+        }).then(function () {
+            cloudCriticalContractPending = false;
+            cloudHasPendingWrite = false;
+            cloudPendingRemote = null;
+            cloudReconcile.hidden = true;
+            cloudBanner.hidden = true;
+            setCloudStatus("Conta conectada. Sincronização automática ativa.");
+            setSyncStatus("Encerramento sincronizado");
+            showSaveFeedback("Contrato encerrado e sincronizado.", "success");
         });
     }
 
@@ -11772,7 +11865,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         cloudWriteInFlight = true; cloudWriteQueued = false;
         writeGranularState(false).then(function () {
             cloudHasPendingWrite = revision < cloudWriteRevision;
-            if (!cloudHasPendingWrite) cloudCriticalPaymentPending = false;
+            if (!cloudHasPendingWrite) {
+                cloudCriticalPaymentPending = false;
+                cloudCriticalContractPending = false;
+            }
             cloudPendingRemote = null; cloudReconcile.hidden = true; cloudBanner.hidden = true;
             setCloudStatus("Conta conectada. Sincronização automática ativa.");
             setSyncStatus(cloudHasPendingWrite ? "Sincronizando..." : "Sincronizado");
@@ -11784,6 +11880,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                         cloudCriticalPaymentPending = false;
                         setCloudError(cloudErrorMessage(recoveryError));
                         setSyncStatus("Não sincronizado — pagamento salvo neste aparelho");
+                    });
+                }
+                if (cloudCriticalContractPending) {
+                    return recoverCriticalContractConflict().catch(function (recoveryError) {
+                        cloudCriticalContractPending = false;
+                        setCloudError(cloudErrorMessage(recoveryError));
+                        setSyncStatus("Não sincronizado — contrato encerrado salvo neste aparelho");
                     });
                 }
                 return readGranularState().then(function (remote) {
