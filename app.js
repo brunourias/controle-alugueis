@@ -5599,10 +5599,8 @@ var historyRent = document.getElementById("historyRent");
             .map(function (i) {
                 var totals = scopedUnits().reduce(
                     function (sum, unit) {
-                        receivedCashBreakdownForMonth([unit], selectedYear, i).forEach(function (row) {
-                            sum.interest += Math.max(0, Number(row.interest) || 0);
-                            sum.fine += Math.max(0, Number(row.fine) || 0);
-                        });
+                        sum.interest += historicalInterestAmount(unit, selectedYear, i);
+                        sum.fine += historicalFineAmount(unit, selectedYear, i);
                         return sum;
                     },
                     { interest: 0, fine: 0 }
@@ -10007,7 +10005,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                     addOpenLate(historicRent);
                     historicLateCounted = true;
                 } else if (historicPaid && !historicReceivedCounted) {
-                    metrics.received += Math.max(0, Number(payment && payment.rentAmount) || historicRent);
+                    // A baixa continua disponível no histórico do contrato
+                    // encerrado, mas não reaparece no total da grade do
+                    // contrato atual da unidade.
                     historicReceivedCounted = true;
                 }
             });
@@ -10025,83 +10025,60 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             }
         });
 
-        // "Recebido" é caixa do mês: cada baixa entra na competência da sua
-        // data de pagamento, não no mês original da parcela. Dessa forma, uma
-        // parcela antiga paga parcialmente hoje soma somente a nova baixa e
-        // não repete os pagamentos anteriores.
-        metrics.received = receivedCashBreakdownForMonth(units, year, month).reduce(function (sum, row) {
-            return sum + row.principal;
-        }, 0);
         return metrics;
-    }
-
-    function paymentDateIsInMonth(value, year, month) {
-        if (!value) return false;
-        var date = new Date(value);
-        return !isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month;
-    }
-
-    function paymentBelongsToActiveContract(unit, payment) {
-        if (!payment || payment.historicContractId) return false;
-        var start = isValidDateValue(unit && unit.startDate) ? new Date(unit.startDate + "T00:00:00") : null;
-        var paid = payment.paidAt ? new Date(payment.paidAt) : null;
-        return !start || (paid && !isNaN(paid.getTime()) && paid >= start);
-    }
-
-    // Fonte de verdade para caixa recebido. Contratos encerrados continuam no
-    // histórico e nos seus recibos, mas não reaparecem no total mensal do
-    // inquilino atual. Para baixas parciais, cada entrada é individual.
-    function receivedCashBreakdownForMonth(units, year, month) {
-        var rows = [];
-        (units || []).forEach(function (unit) {
-            var payments = unit && unit.paymentHistory && typeof unit.paymentHistory === "object" ? unit.paymentHistory : {};
-            Object.keys(payments).forEach(function (key) {
-                var payment = payments[key];
-                if (!paymentBelongsToActiveContract(unit, payment)) return;
-                var entries = Array.isArray(payment.partialPayments) ? payment.partialPayments : [];
-                if (entries.length) {
-                    entries.forEach(function (entry) {
-                        if (!entry || !paymentDateIsInMonth(entry.paidAt, year, month)) return;
-                        rows.push({ unit: unit, tenant: unit.tenantName || "Inquilino", kind: "Baixa parcial", principal: Math.max(0, Number(entry.rentAmount) || 0), interest: Math.max(0, Number(entry.interestAmount) || 0), fine: Math.max(0, Number(entry.fineAmount) || 0), paidAt: entry.paidAt, historic: false });
-                    });
-                    return;
-                }
-                if (!paymentDateIsInMonth(payment.paidAt, year, month)) return;
-                rows.push({ unit: unit, tenant: unit.tenantName || "Inquilino", kind: "Contrato atual", principal: Math.max(0, Number(payment.rentAmount) || 0), interest: Math.max(0, Number(payment.interestAmount) || 0), fine: Math.max(0, Number(payment.fineAmount) || 0), paidAt: payment.paidAt, historic: false });
-            });
-
-            // Compatibilidade com parcelas antigas marcadas como pagas sem
-            // registro de pagamento. Só entram na própria competência.
-            var currentKey = String(year) + "-" + String(month + 1).padStart(2, "0");
-            if (isActive(unit, month) && effectiveStatus(unit, month) === "pago" && !payments[currentKey]) {
-                rows.push({ unit: unit, tenant: unit.tenantName || "Inquilino", kind: "Parcela ativa", principal: Math.max(0, Number(rentForMonth(unit, year, month)) || 0), interest: 0, fine: 0, paidAt: "", historic: false });
-            }
-        });
-        return rows;
     }
 
     // Detalha a mesma regra usada em monthlyFinancialMetrics para que o total
     // da grade possa ser auditado sem obrigar o usuário a procurar recibos.
     function receivedBreakdownForMonth(units, year, month) {
-        return receivedCashBreakdownForMonth(units, year, month);
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        var rows = [];
+        (units || []).forEach(function (unit) {
+            if (!isActive(unit, month)) return;
+            var payment = getPaymentRecord(unit, year, month);
+            var activeRent = Math.max(0, Number(rentForMonth(unit, year, month)) || 0);
+            var activeStatus = effectiveStatus(unit, month);
+            var partial = partialPaymentInfo(unit, month);
+            if (partial && partial.received > 0) {
+                var partialEntries = payment && Array.isArray(payment.partialPayments) ? payment.partialPayments.slice() : [];
+                var latestPartial = partialEntries.sort(function (left, right) { return String(left.paidAt || "").localeCompare(String(right.paidAt || "")); }).pop();
+                var latestText = latestPartial && Number(latestPartial.totalAmount) > 0
+                    ? "Última baixa: " + money(Number(latestPartial.totalAmount)) + (latestPartial.paidAt ? " em " + formatDate(new Date(latestPartial.paidAt)) : "")
+                    : "Valor acumulado das baixas parciais";
+                rows.push({ unit: unit, tenant: unit.tenantName || "Inquilino", kind: "Baixas parciais acumuladas", principal: partial.received, payment: payment, detail: latestText, historic: false });
+            } else if (activeStatus === "pago") {
+                var paidDate = payment && payment.paidAt ? new Date(payment.paidAt) : null;
+                var contractStart = isValidDateValue(unit.startDate) ? new Date(unit.startDate + "T00:00:00") : null;
+                var currentPayment = payment && !payment.historicContractId && (!contractStart || (paidDate && !isNaN(paidDate.getTime()) && paidDate >= contractStart));
+                rows.push({ unit: unit, tenant: unit.tenantName || "Inquilino", kind: currentPayment ? "Contrato atual" : "Parcela ativa", principal: currentPayment ? Math.max(0, Number(payment.rentAmount) || activeRent) : activeRent, payment: currentPayment ? payment : null, historic: false });
+            }
+        });
+        return rows;
     }
 
     var receivedBreakdownModal = document.getElementById("receivedBreakdownModal");
     function openReceivedBreakdown(month) {
         if (!receivedBreakdownModal || !Number.isInteger(month) || month < 0 || month > 11) return;
         var rows = receivedBreakdownForMonth(scopedUnits(), selectedYear, month);
-        var interest = 0, fine = 0, principal = 0;
+        var interest = 0, fine = 0, principal = 0, chargedUnits = {};
         rows.forEach(function (row) {
             principal += row.principal;
-            interest += Math.max(0, Number(row.interest) || 0);
-            fine += Math.max(0, Number(row.fine) || 0);
+            var chargeKey = row.unit.id + "|" + month;
+            if (row.payment && !chargedUnits[chargeKey]) {
+                chargedUnits[chargeKey] = true;
+                interest += Math.max(0, Number(row.payment.interestAmount) || 0);
+                fine += Math.max(0, Number(row.payment.fineAmount) || 0);
+            }
         });
         document.getElementById("receivedBreakdownTitle").textContent = "Total recebido · " + months[month];
         document.getElementById("receivedBreakdownSubtitle").textContent = "Baixas que formam o total desta competência.";
         var list = document.getElementById("receivedBreakdownList");
         list.innerHTML = rows.length ? rows.map(function (row) {
-            var charges = Math.max(0, Number(row.interest) || 0) + Math.max(0, Number(row.fine) || 0);
+            var chargeKey = row.unit.id + "|" + month;
+            var charges = row.payment && chargedUnits[chargeKey] === true ? Math.max(0, Number(row.payment.interestAmount) || 0) + Math.max(0, Number(row.payment.fineAmount) || 0) : 0;
+            chargedUnits[chargeKey] = false;
             return '<article class="received-breakdown-row' + (row.historic ? ' is-historic' : '') + '"><div><strong>' + escapeHtml(row.unit.name) + '</strong><span>' + escapeHtml(row.tenant) + ' · ' + escapeHtml(row.kind) + '</span>' +
+                (row.detail ? '<small>' + escapeHtml(row.detail) + '</small>' : '') +
                 (charges ? '<small>Encargos recebidos: ' + money(charges) + '</small>' : '') + '</div><b>' + money(row.principal) + '</b></article>';
         }).join("") : '<p class="rent-changes-empty">Nenhuma baixa recebida nesta competência.</p>';
         document.getElementById("receivedBreakdownSummary").innerHTML = '<span>Aluguéis recebidos <strong>' + money(principal) + '</strong></span><span>Juros e multa <strong>' + money(interest + fine) + '</strong></span><span>Caixa total <strong>' + money(principal + interest + fine) + '</strong></span>';
