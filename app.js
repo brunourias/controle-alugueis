@@ -5292,7 +5292,11 @@ var historyRent = document.getElementById("historyRent");
         return index !== currentMonth;
     });
     var renderedMonthIndexes = months.map(function (_, index) { return index; }).filter(function (index) {
-        return showSettledMonths || hideableCompletedMonths.indexOf(index) < 0;
+        // No ano em andamento, a grade termina no mês atual. Assim não há
+        // colunas de meses futuros ainda sem movimentação; meses anteriores
+        // com pendências continuam disponíveis normalmente.
+        var isFutureMonth = currentMonth >= 0 && index > currentMonth;
+        return !isFutureMonth && (showSettledMonths || hideableCompletedMonths.indexOf(index) < 0);
     });
     if (settledMonthsToolbar) {
         settledMonthsToolbar.hidden = isMobileNavigation() || hideableCompletedMonths.length === 0;
