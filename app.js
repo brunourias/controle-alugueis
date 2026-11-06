@@ -5588,8 +5588,8 @@ var historyRent = document.getElementById("historyRent");
                 ).received;
 
                 return '<td><button class="received-total-button" type="button" data-received-breakdown="' + i +
-                    '" aria-label="Ver composição do total recebido de ' + escapeHtml(months[i]) + '">' + money(total) +
-                    '<span aria-hidden="true">›</span></button></td>';
+                    '" aria-label="Ver composição do total recebido de ' + escapeHtml(months[i]) + '"><strong>' + money(total) +
+                    '</strong><small>Ver composição</small></button></td>';
             })
             .join("") +
         "</tr>" +

@@ -1324,10 +1324,10 @@ tfoot td {
 
 /* Auditoria do total mensal recebido */
 .received-total-button {
-    display: inline-flex;
+    display: grid;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 2px;
     width: 100%;
     padding: 4px 6px;
     border: 0;
@@ -1340,7 +1340,8 @@ tfoot td {
 }
 .received-total-button:hover,
 .received-total-button:focus-visible { background: #e3f4f1; outline: 2px solid #73cfc3; outline-offset: 1px; }
-.received-total-button span { color: var(--teal); font-size: 1.1em; }
+.received-total-button strong { color: inherit; }
+.received-total-button small { color: var(--teal); font-size: .62rem; font-weight: 800; }
 .received-breakdown-modal { width: min(100%, 520px); }
 .received-breakdown-list { display: grid; gap: 8px; margin: 15px 0; }
 .received-breakdown-row {
