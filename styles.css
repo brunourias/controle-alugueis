@@ -1322,6 +1322,52 @@ tfoot td {
     font-size: 1.25rem;
 }
 
+/* Auditoria do total mensal recebido */
+.received-total-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.received-total-button:hover,
+.received-total-button:focus-visible { background: #e3f4f1; outline: 2px solid #73cfc3; outline-offset: 1px; }
+.received-total-button span { color: var(--teal); font-size: 1.1em; }
+.received-breakdown-modal { width: min(100%, 520px); }
+.received-breakdown-list { display: grid; gap: 8px; margin: 15px 0; }
+.received-breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+}
+.received-breakdown-row.is-historic { border-color: #e3bd73; background: #fffaf0; }
+.received-breakdown-row div { display: grid; gap: 3px; min-width: 0; }
+.received-breakdown-row strong { color: var(--ink); }
+.received-breakdown-row span,
+.received-breakdown-row small { color: var(--muted); font-size: .75rem; line-height: 1.32; }
+.received-breakdown-row small { color: #9a6312; font-weight: 700; }
+.received-breakdown-row b { flex: 0 0 auto; color: var(--teal-dark); white-space: nowrap; }
+.received-breakdown-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.received-breakdown-summary span { display: grid; gap: 4px; padding: 10px; border-radius: 10px; background: #eef8f6; color: var(--muted); font-size: .72rem; }
+.received-breakdown-summary strong { color: var(--teal-dark); font-size: .85rem; }
+@media (max-width: 520px) {
+    .received-breakdown-modal { width: calc(100vw - 24px); padding: 16px; }
+    .received-breakdown-summary { grid-template-columns: 1fr; }
+}
+
 .settings-note {
     margin: -8px 0 17px;
     color: var(--muted);
