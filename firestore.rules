@@ -277,6 +277,12 @@ service cloud.firestore {
         allow create, update, delete: if expenseOperator(workspaceId);
       }
 
+      // Água segue a mesma permissão e estrutura granular da energia.
+      match /waterAllocations/{allocationId} {
+        allow read: if member(workspaceId);
+        allow create, update, delete: if expenseOperator(workspaceId);
+      }
+
       // Registros financeiros separados da unidade permitem permissões
       // reais de cobrança/financeiro sem expor campos de contrato.
       match /payments/{unitId} {

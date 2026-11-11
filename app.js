@@ -11352,6 +11352,10 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
         return workspace ? workspace.collection("energyAllocations") : null;
     }
+    function granularWaterAllocationsRef() {
+        var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
+        return workspace ? workspace.collection("waterAllocations") : null;
+    }
     function granularPaymentsRef() {
         var workspace = firebaseUser && cloudWorkspaceId ? workspaceRef(cloudWorkspaceId) : null;
         return workspace ? workspace.collection("payments") : null;
@@ -11372,8 +11376,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
     function granularSnapshot(value) {
         var copy = granularClone(normalizeState(value));
-        var snapshot = { meta: granularClone(copy), units: {}, expenses: {}, energyAllocations: {}, contracts: {}, payments: {}, charges: {} };
-        delete snapshot.meta.units; delete snapshot.meta.expenses; delete snapshot.meta.energyAllocations;
+        var snapshot = { meta: granularClone(copy), units: {}, expenses: {}, energyAllocations: {}, waterAllocations: {}, contracts: {}, payments: {}, charges: {} };
+        delete snapshot.meta.units; delete snapshot.meta.expenses; delete snapshot.meta.energyAllocations; delete snapshot.meta.waterAllocations;
         (copy.units || []).forEach(function (unit) {
             if (!unit || typeof unit.id !== "string" || !unit.id) return;
             var unitCopy = granularClone(unit), history = Array.isArray(unitCopy.contractHistory) ? unitCopy.contractHistory : [];
@@ -11405,6 +11409,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         (copy.energyAllocations || []).forEach(function (allocation) {
             if (allocation && typeof allocation.id === "string" && allocation.id) snapshot.energyAllocations[allocation.id] = granularClone(allocation);
         });
+        (copy.waterAllocations || []).forEach(function (allocation) {
+            if (allocation && typeof allocation.id === "string" && allocation.id) snapshot.waterAllocations[allocation.id] = granularClone(allocation);
+        });
         return snapshot;
     }
     function granularEqual(left, right) {
@@ -11412,7 +11419,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     }
 
     function granularWriteOperations(current, force) {
-        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, energyAllocations: {}, contracts: {}, payments: {}, charges: {} };
+        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, energyAllocations: {}, waterAllocations: {}, contracts: {}, payments: {}, charges: {} };
         var operations = [];
         if (force || !granularEqual(current.meta, baseline.meta || {})) {
             operations.push({ type: "set", ref: granularMetaRef(), data: { payload: current.meta, updatedAt: Date.now(), schemaVersion: 4 } });
@@ -11421,10 +11428,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             units: granularUnitsRef,
             expenses: granularExpensesRef,
             energyAllocations: granularEnergyAllocationsRef,
+            waterAllocations: granularWaterAllocationsRef,
             payments: granularPaymentsRef,
             charges: granularChargesRef
         };
-        ["units", "expenses", "energyAllocations", "payments", "charges"].forEach(function (kind) {
+        ["units", "expenses", "energyAllocations", "waterAllocations", "payments", "charges"].forEach(function (kind) {
             Object.keys(current[kind] || {}).forEach(function (id) {
                 if (force || !granularEqual(current[kind][id], (baseline[kind] || {})[id])) {
                     operations.push({ type: "set", ref: roots[kind]().doc(id), data: current[kind][id] });
@@ -11456,7 +11464,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
     function verifyGranularWriteBase(current, force) {
         if (force) return Promise.resolve();
-        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, energyAllocations: {}, contracts: {}, payments: {}, charges: {} };
+        var baseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, energyAllocations: {}, waterAllocations: {}, contracts: {}, payments: {}, charges: {} };
         var checks = [];
 
         function check(ref, expected, read) {
@@ -11478,10 +11486,11 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             units: granularUnitsRef,
             expenses: granularExpensesRef,
             energyAllocations: granularEnergyAllocationsRef,
+            waterAllocations: granularWaterAllocationsRef,
             payments: granularPaymentsRef,
             charges: granularChargesRef
         };
-        ["units", "expenses", "energyAllocations", "payments", "charges"].forEach(function (kind) {
+        ["units", "expenses", "energyAllocations", "waterAllocations", "payments", "charges"].forEach(function (kind) {
             var ids = {};
             Object.keys(current[kind] || {}).forEach(function (id) { ids[id] = true; });
             Object.keys(baseline[kind] || {}).forEach(function (id) { ids[id] = true; });
@@ -11500,14 +11509,15 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                             });
                             return normalizedUnit.units[0] || null;
                         }
-                        if (kind !== "energyAllocations") return data;
+                        if (kind !== "energyAllocations" && kind !== "waterAllocations") return data;
                         // Rateios de versões anteriores não possuem os campos de baixa.
                         // Normalize o documento remoto antes de validar a concorrência.
                         var normalized = normalizeState({
                             empreendimentos: granularClone(state.empreendimentos),
-                            energyAllocations: [Object.assign({}, granularClone(data), { id: id })]
+                            energyAllocations: kind === "energyAllocations" ? [Object.assign({}, granularClone(data), { id: id })] : [],
+                            waterAllocations: kind === "waterAllocations" ? [Object.assign({}, granularClone(data), { id: id })] : []
                         });
-                        return normalized.energyAllocations[0] || null;
+                        return kind === "energyAllocations" ? (normalized.energyAllocations[0] || null) : (normalized.waterAllocations[0] || null);
                     });
                 }
             });
@@ -11693,16 +11703,17 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function readGranularState() {
         cloudFinancialMigrationNeeded = false;
         var meta = granularMetaRef(), units = granularUnitsRef(), expenses = granularExpensesRef();
-        var energyAllocations = granularEnergyAllocationsRef();
+        var energyAllocations = granularEnergyAllocationsRef(), waterAllocations = granularWaterAllocationsRef();
         var payments = granularPaymentsRef(), charges = granularChargesRef();
-        if (!meta || !units || !expenses || !energyAllocations || !payments || !charges) return Promise.resolve(null);
-        return Promise.all([meta.get(), units.get(), expenses.get(), payments.get(), charges.get(), energyAllocations.get()]).then(function (results) {
+        if (!meta || !units || !expenses || !energyAllocations || !waterAllocations || !payments || !charges) return Promise.resolve(null);
+        return Promise.all([meta.get(), units.get(), expenses.get(), payments.get(), charges.get(), energyAllocations.get(), waterAllocations.get()]).then(function (results) {
             var metaSnapshot = results[0], unitsSnapshot = results[1], expensesSnapshot = results[2];
-            var paymentsSnapshot = results[3], chargesSnapshot = results[4], energySnapshot = results[5];
+            var paymentsSnapshot = results[3], chargesSnapshot = results[4], energySnapshot = results[5], waterSnapshot = results[6];
             if (!metaSnapshot.exists || !(metaSnapshot.data() || {}).payload) return null;
             var base = granularClone((metaSnapshot.data() || {}).payload);
             var legacyEnergyAllocations = Array.isArray(base.energyAllocations) ? base.energyAllocations : [];
-            base.units = []; base.expenses = []; base.energyAllocations = [];
+            var legacyWaterAllocations = Array.isArray(base.waterAllocations) ? base.waterAllocations : [];
+            base.units = []; base.expenses = []; base.energyAllocations = []; base.waterAllocations = [];
             var unitsById = {};
             unitsSnapshot.forEach(function (item) {
                 var raw = item.data() || {};
@@ -11740,7 +11751,18 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 if (!allocation || energyIds[allocation.id]) return;
                 base.energyAllocations.push(granularClone(allocation));
             });
-            if (legacyEnergyAllocations.length) cloudFinancialMigrationNeeded = true;
+            var waterIds = {};
+            waterSnapshot.forEach(function (item) {
+                var allocation = granularClone(item.data() || {});
+                allocation.id = allocation.id || item.id;
+                waterIds[allocation.id] = true;
+                base.waterAllocations.push(allocation);
+            });
+            legacyWaterAllocations.forEach(function (allocation) {
+                if (!allocation || waterIds[allocation.id]) return;
+                base.waterAllocations.push(granularClone(allocation));
+            });
+            if (legacyEnergyAllocations.length || legacyWaterAllocations.length) cloudFinancialMigrationNeeded = true;
             return Promise.all(base.units.map(function (unit) {
                 return units.doc(unit.id).collection("contracts").get().then(function (contracts) {
                     unit.contractHistory = [];
@@ -11800,7 +11822,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             clearTimeout(cloudGranularReloadTimer);
             cloudGranularReloadTimer = setTimeout(reloadGranularState, 180);
         }
-        [granularMetaRef(), granularUnitsRef(), granularExpensesRef(), granularEnergyAllocationsRef(), granularPaymentsRef(), granularChargesRef()].forEach(function (ref) {
+        [granularMetaRef(), granularUnitsRef(), granularExpensesRef(), granularEnergyAllocationsRef(), granularWaterAllocationsRef(), granularPaymentsRef(), granularChargesRef()].forEach(function (ref) {
             cloudGranularUnsubscribes.push(ref.onSnapshot(scheduleReload, function (error) { setCloudError(cloudErrorMessage(error)); }));
         });
     }
@@ -12354,6 +12376,22 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         });
     }
 
+    function persistWaterAllocationNow(allocation) {
+        if (!firebaseUser || !firebaseDb || !cloudWorkspaceReady || !cloudWorkspaceId || !navigator.onLine) {
+            return Promise.resolve({ cloud: false });
+        }
+        var ref = granularWaterAllocationsRef();
+        if (!ref || !allocation || !allocation.id) return Promise.resolve({ cloud: false });
+        setSyncStatus("Salvando rateio de água na nuvem...");
+        return ref.doc(allocation.id).set(granularClone(allocation)).then(function () {
+            cloudGranularBaseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, energyAllocations: {}, waterAllocations: {}, contracts: {}, payments: {}, charges: {} };
+            cloudGranularBaseline.waterAllocations = cloudGranularBaseline.waterAllocations || {};
+            cloudGranularBaseline.waterAllocations[allocation.id] = granularClone(allocation);
+            setSyncStatus("Rateio de água salvo na nuvem");
+            return { cloud: true };
+        });
+    }
+
     function saveEnergyRate() {
         if (!requireWorkspacePermission("manageExpenses")) return;
         var el = energyRateModalElements(), calc = energyRateCalculate();
@@ -12517,7 +12555,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var kept = false, key = saved.enterpriseId + "::" + saved.reference;
         state.waterAllocations = state.waterAllocations.filter(function (item) { if (item.enterpriseId + "::" + item.reference !== key) return true; if (!kept) { kept = true; return true; } return false; });
         createVersionedBackup(existing ? "Rateio de água atualizado" : "Rateio de água salvo", energyReferenceLabel(el.reference.value)); recordOperation(existing ? "Rateio de água atualizado" : "Rateio de água salvo", energyReferenceLabel(el.reference.value));
-        saveState(); loadWaterRateReference(); renderWaterHistory(); render(); notifyUser(existing ? "Rateio de água atualizado." : "Rateio de água salvo.");
+        saveState(); loadWaterRateReference(); renderWaterHistory(); render();
+        persistWaterAllocationNow(saved).then(function (result) {
+            notifyUser(result.cloud
+                ? (existing ? "Alterações de água salvas e confirmadas na nuvem." : "Rateio de água salvo e confirmado na nuvem.")
+                : "Rateio de água salvo neste aparelho. A nuvem sincronizará quando estiver disponível.");
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+            setSyncStatus("Rateio de água salvo apenas neste aparelho");
+            notifyUser("O rateio de água foi preservado neste aparelho, mas a nuvem não confirmou a alteração.");
+        });
     }
 
     function documentCenterMarkup() {
@@ -12746,7 +12793,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         renderEnergyHistory();
         renderEnergyHistoricalComparison();
         render();
-        notifyUser(reading.paid ? "Energia marcada como paga. Para enviar o comprovante, abra o rateio e use Imagem no Histórico." : "Baixa de energia desfeita.");
+        persistEnergyAllocationNow(allocation).then(function (result) {
+            notifyUser(result.cloud ? (reading.paid ? "Energia marcada como paga e sincronizada." : "Baixa de energia desfeita e sincronizada.") : "Alteração de energia salva neste aparelho.");
+        }).catch(function () { notifyUser("A baixa de energia foi salva neste aparelho, mas a nuvem não confirmou a alteração."); });
     }
     document.addEventListener("click", function (event) {
         var paidButton = event.target.closest("[data-energy-paid]");
@@ -12769,7 +12818,9 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         saveState();
         renderWaterHistory();
         render();
-        notifyUser(reading.paid ? "Água marcada como paga. Use o ícone de comprovante ao lado da gota para enviar." : "Baixa de água desfeita.");
+        persistWaterAllocationNow(allocation).then(function (result) {
+            notifyUser(result.cloud ? (reading.paid ? "Água marcada como paga e sincronizada." : "Baixa de água desfeita e sincronizada.") : "Alteração de água salva neste aparelho.");
+        }).catch(function () { notifyUser("A baixa de água foi salva neste aparelho, mas a nuvem não confirmou a alteração."); });
     }
     document.addEventListener("click", function (event) {
         var toggleButton = event.target.closest("[data-water-toggle]");
