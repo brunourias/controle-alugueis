@@ -12661,8 +12661,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             });
             existing.addEventListener("click", function (event) { if (event.target === existing) ModalManager.close(existing); });
         }
-        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : kind === "documents" ? "Central de documentos" : kind === "late" ? "Inadimplência" : kind === "contracts" ? "Contratos" : kind === "expenses" ? "Gastos por categoria" : "Comparativo entre empreendimentos";
-        var description = kind === "tenant" ? "Situação atual de cada contrato e valor mensal." : kind === "partial" ? "Baixas parciais e o saldo ainda em aberto." : kind === "closures" ? "Rescisões, acordos e saldos registrados." : kind === "documents" ? "Recupere recibos, termos e demonstrativos salvos." : kind === "late" ? "Parcelas vencidas e pagamentos realizados após o vencimento." : kind === "contracts" ? "Contratos ativos, renovações próximas e encerramentos." : kind === "expenses" ? "Despesas agrupadas pela categoria no ano selecionado." : "Comparação financeira entre empreendimentos.";
+        var title = kind === "tenant" ? "Extrato por inquilino" : kind === "partial" ? "Pagamentos parciais" : kind === "closures" ? "Encerramentos" : kind === "documents" ? "Central de documentos" : kind === "late" ? "Inadimplência" : kind === "contracts" ? "Contratos" : kind === "expenses" ? "Gastos por categoria" : kind === "reconciliation" ? "Conferência financeira" : "Comparativo entre empreendimentos";
+        var description = kind === "tenant" ? "Situação atual de cada contrato e valor mensal." : kind === "partial" ? "Baixas parciais e o saldo ainda em aberto." : kind === "closures" ? "Rescisões, acordos e saldos registrados." : kind === "documents" ? "Recupere recibos, termos e demonstrativos salvos." : kind === "late" ? "Parcelas vencidas e pagamentos realizados após o vencimento." : kind === "contracts" ? "Contratos ativos, renovações próximas e encerramentos." : kind === "expenses" ? "Despesas agrupadas pela categoria no ano selecionado." : kind === "reconciliation" ? "Foto mensal de valores previstos, baixados, encargos, saldo aberto e gastos." : "Comparação financeira entre empreendimentos.";
         existing.querySelector("#reportDetailDescription").textContent = description;
         if (kind === "documents") {
             existing.querySelector("#reportDetailTitle").textContent = title;
@@ -12723,6 +12723,13 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var categories = {};
             scopedExpenses().forEach(function (expense) { if (String(expense.ym || "").slice(0, 4) === String(selectedYear)) categories[expense.category || "Outros"] = (categories[expense.category || "Outros"] || 0) + Number(expense.amount || 0); });
             Object.keys(categories).sort(function (a, b) { return categories[b] - categories[a]; }).forEach(function (category) { rows.push([category, money(categories[category]), selectedYear]); });
+        } else if (kind === "reconciliation") {
+            months.forEach(function (_, month) {
+                var metrics = monthlyFinancialMetrics(scopedUnits(), selectedYear, month);
+                var charges = receivedChargesForMonth(scopedUnits(), selectedYear, month);
+                var spent = scopedExpenses().reduce(function (sum, expense) { return sum + (expense.ym === monthKey(month) ? Number(expense.amount || 0) : 0); }, 0);
+                rows.push([months[month], money(metrics.expected), money(metrics.received), money(charges.interest + charges.fine), money(metrics.overdueWithCharges), money(spent)]);
+            });
         } else {
             state.empreendimentos.forEach(function (enterprise) {
                 var units = state.units.filter(function (unit) { return unit.empreendimentoId === enterprise.id; });
@@ -12730,7 +12737,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 rows.push([enterprise.name, String(units.length), money(metrics.received), money(metrics.pending)]);
             });
         }
-        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : kind === "closures" ? ["Unidade","Inquilino","Saída","Total","Saldo","Situação"] : kind === "late" ? ["Unidade","Inquilino","Em aberto","Histórico"] : kind === "contracts" ? ["Unidade","Inquilino","Situação","Próximo passo"] : kind === "expenses" ? ["Categoria","Total","Ano"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
+        var headings = kind === "tenant" ? ["Unidade","Inquilino","Aluguel do mês","Situação"] : kind === "partial" ? ["Unidade","Mês","Recebido","Saldo"] : kind === "closures" ? ["Unidade","Inquilino","Saída","Total","Saldo","Situação"] : kind === "late" ? ["Unidade","Inquilino","Em aberto","Histórico"] : kind === "contracts" ? ["Unidade","Inquilino","Situação","Próximo passo"] : kind === "expenses" ? ["Categoria","Total","Ano"] : kind === "reconciliation" ? ["Mês","Previsto","Aluguel recebido","Juros e multa","Em atraso","Gastos"] : ["Empreendimento","Unidades","Recebido no ano","Em aberto"];
         var enterpriseLabel = selectedEmpreendimentoId === "todos" ? "Todos os empreendimentos" : ((state.empreendimentos.find(function (item) { return item.id === selectedEmpreendimentoId; }) || {}).name || "Empreendimento");
         var periodLabel = kind === "partial" || kind === "tenant" ? months[mobileMonthIndex] + " de " + selectedYear : "Ano de " + selectedYear;
         var summary = '<div class="report-detail-metrics"><article><small>Registros encontrados</small><strong>' + rows.length + '</strong><span>' + escapeHtml(title) + '</span></article><article><small>Período</small><strong>' + escapeHtml(periodLabel) + '</strong><span>Consulta selecionada</span></article><article><small>Escopo</small><strong>' + escapeHtml(enterpriseLabel) + '</strong><span>Dados consolidados</span></article></div>';
@@ -12784,7 +12791,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             var destination = button.dataset.reportDestination;
             if (destination === "energy") { openEnergyRate(); return; }
             if (destination === "water") { openWaterRate(); return; }
-            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures" || destination === "documents" || destination === "contracts" || destination === "late" || destination === "expenses") { openReportDetail(destination); return; }
+            if (destination === "tenant" || destination === "partial" || destination === "enterprises" || destination === "closures" || destination === "documents" || destination === "contracts" || destination === "late" || destination === "expenses" || destination === "reconciliation") { openReportDetail(destination); return; }
             if (destination === "tax") { activeMobileShortcut = "tax"; showAppView("tax"); return; }
         });
     });
