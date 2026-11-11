@@ -9654,6 +9654,22 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         return unit.paymentHistory[key] || null;
     }
 
+    // Identificador estável da origem financeira. Contratos antigos já têm
+    // ID próprio; para o contrato em vigor, a combinação unidade + início
+    // evita que uma baixa nova seja atribuída ao próximo inquilino.
+    function contractIdForInstallment(unit, year, month) {
+        var key = String(year) + "-" + String(month + 1).padStart(2, "0");
+        if (isActive(unit, month)) {
+            return "active-" + String(unit.id || "unit") + "-" + String(unit.startDate || unit.startYm || key);
+        }
+        var contract = (unit.contractHistory || []).slice().reverse().find(function (item) {
+            var start = item && (item.startYm || contractMonthValue(item.startDate));
+            var end = item && (item.endYm || contractMonthValue(item.endDate));
+            return item && isValidStartYm(start) && isValidStartYm(end) && key >= start && key <= end;
+        });
+        return contract && contract.id ? contract.id : "legacy-" + String(unit.id || "unit") + "-" + key;
+    }
+
     /*
      * Um pagamento confirmado não pode depender do contrato que está
      * ativo hoje. A parcela pertence ao mês/contrato em que foi baixada.
@@ -10615,6 +10631,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
 
             var entry = {
                 id: previousEntry && previousEntry.id ? previousEntry.id : "payment-" + Date.now().toString(36),
+                contractId: previousEntry && previousEntry.contractId || contractIdForInstallment(activeUnit, selectedYear, paymentAdjustContext.month),
                 paidAt: paidAt,
                 rentAmount: (paymentAdjustContext.mode === "register" || paymentAdjustContext.mode === "edit-partial") ? principal : rent,
                 fineAmount: fine,
@@ -10664,7 +10681,8 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         activeUnit.paymentHistory[paymentAdjustContext.key] = {
             rentAmount: rent, fineAmount: fine, interestAmount: interest,
             chargesAmount: fine + interest, totalAmount: rent + fine + interest,
-            paidAt: paidAt, notes: notes, fineWaived: fineWaived, interestWaived: interestWaived
+            paidAt: paidAt, notes: notes, fineWaived: fineWaived, interestWaived: interestWaived,
+            contractId: contractIdForInstallment(activeUnit, selectedYear, paymentAdjustContext.month)
         };
         paymentAdjustContext = null;
         saveState();
