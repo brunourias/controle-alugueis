@@ -371,6 +371,8 @@ assert.match(index, /<label class="energy-rate-due-field">Vencimento<input id="w
 assert.match(app, /writeGranularState\(true\)/, "Subir dados deste aparelho deve gravar a versão escolhida imediatamente");
 assert.match(app, /Dados deste aparelho enviados para a nuvem/, "Envio manual à nuvem deve confirmar o sucesso ao usuário");
 assert.match(app, /function syncCriticalPaymentNow\(\)/, "Baixas financeiras devem iniciar sincronização imediata");
+assert.match(app, /localWithoutUtilities\.waterAllocations = \[\]/, "Conflitos exclusivos de água devem ser reconciliados automaticamente");
+assert.match(app, /function persistWaterAllocationNow\(/, "Rateio de água deve confirmar a gravação na nuvem");
 assert.match(app, /saveState\(\);\s*syncCriticalPaymentNow\(\);/, "Registro de pagamento deve enviar à nuvem logo após salvar localmente");
 assert.match(app, /var hideableCompletedMonths = completedMonths\.filter/, "Mês corrente concluído deve continuar visível na grade de unidades");
 assert.match(app, /return index !== currentMonth;/, "Ocultação de meses concluídos só deve ocorrer após a virada do mês");

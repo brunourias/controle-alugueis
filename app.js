@@ -11843,32 +11843,43 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             // Rateios são registros históricos independentes. Quando todo o restante
             // é igual, mescla os dois lados automaticamente para recuperar lançamentos
             // antigos que ainda existiam apenas neste aparelho.
-            var localWithoutEnergy = granularClone(state);
-            var remoteWithoutEnergy = granularClone(remote);
-            localWithoutEnergy.energyAllocations = [];
-            remoteWithoutEnergy.energyAllocations = [];
-            if (cloudStatesEqual(localWithoutEnergy, remoteWithoutEnergy)) {
+            var localWithoutUtilities = granularClone(state);
+            var remoteWithoutUtilities = granularClone(remote);
+            localWithoutUtilities.energyAllocations = [];
+            localWithoutUtilities.waterAllocations = [];
+            remoteWithoutUtilities.energyAllocations = [];
+            remoteWithoutUtilities.waterAllocations = [];
+            if (cloudStatesEqual(localWithoutUtilities, remoteWithoutUtilities)) {
+                function mergeAllocations(remoteItems, localItems) {
+                    var merged = (remoteItems || []).map(granularClone), ids = {};
+                    merged.forEach(function (item) { if (item && item.id) ids[item.id] = true; });
+                    (localItems || []).forEach(function (item) {
+                        if (!item || !item.id || ids[item.id]) return;
+                        ids[item.id] = true;
+                        merged.push(granularClone(item));
+                    });
+                    return merged;
+                }
                 var remoteEnergy = Array.isArray(remote.energyAllocations) ? remote.energyAllocations : [];
-                var mergedEnergy = remoteEnergy.map(granularClone);
-                var energyIds = {};
-                mergedEnergy.forEach(function (item) { if (item && item.id) energyIds[item.id] = true; });
-                (state.energyAllocations || []).forEach(function (item) {
-                    if (!item || !item.id || energyIds[item.id]) return;
-                    energyIds[item.id] = true;
-                    mergedEnergy.push(granularClone(item));
-                });
-                var needsEnergyUpload = mergedEnergy.length !== remoteEnergy.length;
+                var remoteWater = Array.isArray(remote.waterAllocations) ? remote.waterAllocations : [];
+                var mergedEnergy = mergeAllocations(remoteEnergy, state.energyAllocations);
+                var mergedWater = mergeAllocations(remoteWater, state.waterAllocations);
+                var needsUtilityUpload = mergedEnergy.length !== remoteEnergy.length || mergedWater.length !== remoteWater.length;
                 var needsLegacyMigration = cloudFinancialMigrationNeeded;
                 applyRemoteState(remote);
                 state.energyAllocations = normalizeState({
                     empreendimentos: state.empreendimentos,
                     energyAllocations: mergedEnergy
                 }).energyAllocations;
+                state.waterAllocations = normalizeState({
+                    empreendimentos: state.empreendimentos,
+                    waterAllocations: mergedWater
+                }).waterAllocations;
                 writeLocalStateSnapshot(state);
                 render();
                 return migrateSeparatedFinancialDataIfNeeded().then(function () {
                     finishCloudReconciliation();
-                    if (needsEnergyUpload && !needsLegacyMigration) scheduleCloudWrite();
+                    if (needsUtilityUpload && !needsLegacyMigration) scheduleCloudWrite();
                     else setSyncStatus("Sincronizado");
                     updateConnectionStatus();
                 });
