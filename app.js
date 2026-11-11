@@ -9935,14 +9935,20 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             overdueCount: 0
         };
 
-        function addOpenLate(rent) {
+        function addOpenLate(unit, rent) {
             // O marcador "Atrasado" é a fonte de verdade para a quantidade.
             // Se um registro legado não tiver valor recuperável, ele ainda
             // aparece na contagem para nunca passar despercebido.
             rent = Math.max(0, Number(rent) || 0);
             metrics.overdueCount += 1;
             metrics.overdueBase += rent;
-            metrics.overdueWithCharges += rent;
+            // A grade, os cards e o relatório anual precisam apresentar a
+            // mesma fotografia da dívida: principal restante + encargos
+            // incidentes sobre esse saldo na data atual.
+            metrics.overdueWithCharges += Math.max(
+                rent,
+                Number(lateUpdatedTotalForRecord(unit, key, year, month)) || 0
+            );
         }
 
         (units || []).forEach(function (unit) {
@@ -9966,7 +9972,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 if (partialOpen) {
                     metrics.received += partialOpen.received;
                     if (activeStatus === "atrasado") {
-                        addOpenLate(partialOpen.balance);
+                        addOpenLate(unit, partialOpen.balance);
                         activeLateCounted = true;
                     } else {
                         metrics.pending += partialOpen.balance;
@@ -9982,7 +9988,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                         ? Math.max(0, Number(payment.rentAmount) || activeRent)
                         : activeRent;
                 } else if (activeStatus === "atrasado") {
-                    addOpenLate(activeRent);
+                    addOpenLate(unit, activeRent);
                     activeLateCounted = true;
                 } else {
                     metrics.pending += activeRent;
@@ -10026,7 +10032,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                         paymentIsConfirmedForTotals(unit, key, payment)));
 
                 if (ledgerStatus === true || ledgerStatus === "open") {
-                    addOpenLate(historicRent);
+                    addOpenLate(unit, historicRent);
                     historicLateCounted = true;
                 } else if (historicPaid && !historicReceivedCounted) {
                     // A baixa continua disponível no histórico do contrato
@@ -10045,7 +10051,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                 (statusFor(unit, month) === "atrasado" || ledgerStatus === true || ledgerStatus === "open")) {
                 // O status aberto é suficiente para contar a parcela; o valor
                 // é buscado em todas as fontes disponíveis do contrato.
-                addOpenLate(lateRentForRecord(unit, year, month));
+                addOpenLate(unit, lateRentForRecord(unit, year, month));
             }
         });
 
