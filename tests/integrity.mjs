@@ -284,7 +284,7 @@ assert.match(app, /Marco de 30 dias: formalize a renovação ou alinhe a desocup
 assert.match(index, /mobile-overview-nav[\s\S]{0,280}Visão geral/, "A grade móvel deve disponibilizar Visão geral");
 assert.match(styles, /\.app-navigation\.is-launcher #actionAlertNav\s*\{\s*display: none !important;/, "Ações não deve duplicar o atalho Hoje no celular");
 assert.match(styles, /\[data-app-nav-key="overview"\]\s*\{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: 5;/, "Visão geral deve ocupar o lugar de Ações na grade móvel");
-assert.match(styles, /\.desktop-home-nav\.has-alert\s*\{[\s\S]{0,240}background: #fff;/, "Hoje deve sinalizar pendências pelo selo, sem ficar vermelho");
+assert.match(styles, /\.desktop-home-nav\.has-alert\s*\{[\s\S]{0,240}background: #fff3f4;/, "Hoje deve receber um destaque vermelho suave quando houver pendências");
 assert.match(app, /querySelectorAll\("\[data-open-tax-dashboard\]"\)[\s\S]{0,360}showAppView\("tax"\)/, "Revisar a classificação fiscal deve abrir a tela de Imposto de Renda");
 assert.doesNotMatch(app, /\(activeAppView === "units" \|\| activeAppView === "tax"\)/, "A tela fiscal deve poder abrir no desktop");
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");

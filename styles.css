@@ -9166,11 +9166,11 @@ input[data-money="true"] {
     .app-navigation.is-launcher #mobileEnergyRateNav { order: 7; }
     .app-navigation.is-launcher #mobileWaterRateNav { order: 8; }
 
-    /* Pendências merecem o selo; o atalho Hoje mantém a cor neutra do menu. */
+    /* Pendências merecem um destaque suave, preservando o selo como indicador exato. */
     .app-navigation.is-launcher .desktop-home-nav.has-alert {
-        color: #075f5b;
-        border-color: #cfe5e1;
-        background: #fff;
-        box-shadow: 0 4px 12px rgba(15, 77, 73, .08);
+        color: #9e3341;
+        border-color: #efb6be;
+        background: #fff3f4;
+        box-shadow: 0 4px 12px rgba(158, 51, 65, .12);
     }
 }
