@@ -9029,7 +9029,6 @@ input[data-money="true"] {
     /* Atalhos repetidos continuam acessíveis dentro da área responsável. */
     .app-navigation.is-launcher [data-app-nav-key="overview"],
     .app-navigation.is-launcher [data-app-nav-key="charges"],
-    .app-navigation.is-launcher [data-app-nav-key="expenses"],
     .app-navigation.is-launcher [data-app-nav-key="tax"],
     .app-navigation.is-launcher #mobileEnergyRateNav,
     .app-navigation.is-launcher #actionAlertNav {
