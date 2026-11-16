@@ -296,6 +296,7 @@ assert.match(app, /current\.controleAlugueisNavigation/, "Navegação móvel nã
 assert.doesNotMatch(app, /event\.state && event\.state\.controleAlugueisRoot[\s\S]{0,180}history\.back\(\)/, "A raiz não pode forçar um segundo Voltar e fechar o app");
 assert.match(app, /function mobileSection\(title, items, empty, tone\)/, "Hoje deve usar seções compactas no celular");
 assert.match(app, /items\.slice\(0, 3\)/, "Hoje deve limitar as prioridades visíveis por categoria");
+assert.match(app, /Ocupação<\/small><b>' \+ occupancyRate \+ '% \(' \+ occupied \+ ' de ' \+ units\.length/, "A ocupação móvel deve informar percentual e quantidade de unidades");
 assert.match(app, /action-today-groups/, "Hoje deve agrupar prioridades antes de exibir detalhes opcionais");
 assert.match(index, /id="closeRescissionStatementTop"/, "Demonstrativo de rescisão deve ter Voltar no topo móvel");
 assert.match(index, /id="closeContractInstallmentsTop"/, "Lista de parcelas deve ter Voltar no topo móvel");

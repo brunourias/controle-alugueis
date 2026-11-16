@@ -5971,7 +5971,7 @@ function renderSummary() {
                 '<span class="' + (openLateSnapshot.count ? 'is-alert' : '') + '"><small>Em atraso</small><b>' + money(openLateSnapshot.total) + '</b></span>' +
                 '<span><small>Gastos</small><b>' + money(currentExpenses) + '</b></span>' +
                 '<span class="' + (currentNet < 0 ? 'is-alert' : '') + '"><small>Líquido</small><b>' + money(currentNet) + '</b></span>' +
-                '<span><small>Ocupação</small><b>' + occupancyRate + '%</b></span>' +
+                '<span><small>Ocupação</small><b>' + occupancyRate + '% (' + occupied + ' de ' + units.length + ')</b></span>' +
             '</div>';
     }
 
