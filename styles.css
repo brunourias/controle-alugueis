@@ -9142,18 +9142,21 @@ input[data-money="true"] {
     .report-detail-modal .document-center-intro { margin-bottom: 10px; }
 }
 
-/* Ajuste final da ordem do launcher: mantém oito opções em duas colunas. */
+/* Ordem final do launcher: uma única entrada para pendências e atalhos em pares. */
 @media (max-width: 680px) {
     .app-navigation.is-launcher #actionAlertNav {
-        display: grid !important;
-        grid-column: auto !important;
-        min-height: 76px !important;
-        order: 5;
+        display: none !important;
     }
     .app-navigation.is-launcher [data-app-nav-key="units"] { order: 1; }
     .app-navigation.is-launcher [data-app-nav-key="expenses"] { order: 2; }
     .app-navigation.is-launcher [data-app-nav-key="financial"] { order: 3; }
     .app-navigation.is-launcher [data-app-nav-key="reports"] { order: 4; }
+    .app-navigation.is-launcher [data-app-nav-key="overview"] {
+        display: grid !important;
+        grid-column: auto !important;
+        min-height: 76px !important;
+        order: 5;
+    }
     .app-navigation.is-launcher [data-app-nav-key="settings"] { order: 6; }
     .app-navigation.is-launcher #mobileEnergyRateNav,
     .app-navigation.is-launcher #mobileWaterRateNav {
@@ -9162,4 +9165,12 @@ input[data-money="true"] {
     }
     .app-navigation.is-launcher #mobileEnergyRateNav { order: 7; }
     .app-navigation.is-launcher #mobileWaterRateNav { order: 8; }
+
+    /* Pendências merecem o selo; o atalho Hoje mantém a cor neutra do menu. */
+    .app-navigation.is-launcher .desktop-home-nav.has-alert {
+        color: #075f5b;
+        border-color: #cfe5e1;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(15, 77, 73, .08);
+    }
 }

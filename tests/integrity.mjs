@@ -281,10 +281,10 @@ assert.match(app, /function renewalAlert\(endDays\)/, "Contratos próximos do fi
 assert.match(app, /Marco de 60 dias: pergunte sobre o interesse na renovação/, "O alerta de 60 dias deve iniciar a conversa de renovação");
 assert.match(app, /Marco de 45 dias: apresente as condições de renovação e eventual reajuste/, "O alerta de 45 dias deve orientar a apresentação das condições");
 assert.match(app, /Marco de 30 dias: formalize a renovação ou alinhe a desocupação/, "O alerta de 30 dias deve orientar a definição final");
-assert.match(styles, /\.desktop-action-alert\s*\{\s*display: grid !important;/, "O atalho Ações deve permanecer acessível no celular");
-assert.match(index, /action-alert-nav-label">Ações</, "O atalho móvel deve ter um rótulo claro para as pendências");
-assert.match(styles, /\.app-navigation\.is-launcher #actionAlertNav\s*\{[\s\S]{0,160}order: -1;[\s\S]{0,160}grid-column: 1 \/ -1;/, "Ações deve ocupar a primeira faixa completa no celular");
-assert.match(styles, /#actionAlertNav\s*\{[\s\S]{0,260}justify-content: center;/, "O conteúdo de Ações deve ficar centralizado no celular");
+assert.match(index, /mobile-overview-nav[\s\S]{0,280}Visão geral/, "A grade móvel deve disponibilizar Visão geral");
+assert.match(styles, /\.app-navigation\.is-launcher #actionAlertNav\s*\{\s*display: none !important;/, "Ações não deve duplicar o atalho Hoje no celular");
+assert.match(styles, /\[data-app-nav-key="overview"\]\s*\{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: 5;/, "Visão geral deve ocupar o lugar de Ações na grade móvel");
+assert.match(styles, /\.desktop-home-nav\.has-alert\s*\{[\s\S]{0,240}background: #fff;/, "Hoje deve sinalizar pendências pelo selo, sem ficar vermelho");
 assert.match(app, /querySelectorAll\("\[data-open-tax-dashboard\]"\)[\s\S]{0,360}showAppView\("tax"\)/, "Revisar a classificação fiscal deve abrir a tela de Imposto de Renda");
 assert.doesNotMatch(app, /\(activeAppView === "units" \|\| activeAppView === "tax"\)/, "A tela fiscal deve poder abrir no desktop");
 assert.match(app, /userStateStorageKey\(firebaseUser\.uid\)/, "O salvamento local autenticado deve usar uma chave por usuário");
