@@ -8611,6 +8611,28 @@ input[data-money="true"] {
     .report-detail-modal .report-result-row strong { font-size: .72rem; }
 }
 
+/* Grade inicial equilibrada: oito atalhos em quatro linhas no celular. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher #actionAlertNav {
+        display: grid !important;
+        grid-column: auto !important;
+        min-height: 76px !important;
+        order: 5;
+    }
+    .app-navigation.is-launcher [data-app-nav-key="units"] { order: 1; }
+    .app-navigation.is-launcher [data-app-nav-key="expenses"] { order: 2; }
+    .app-navigation.is-launcher [data-app-nav-key="financial"] { order: 3; }
+    .app-navigation.is-launcher [data-app-nav-key="reports"] { order: 4; }
+    .app-navigation.is-launcher [data-app-nav-key="settings"] { order: 6; }
+    .app-navigation.is-launcher #mobileEnergyRateNav,
+    .app-navigation.is-launcher #mobileWaterRateNav {
+        grid-column: auto !important;
+        min-height: 76px !important;
+    }
+    .app-navigation.is-launcher #mobileEnergyRateNav { order: 7; }
+    .app-navigation.is-launcher #mobileWaterRateNav { order: 8; }
+}
+
 
 /* v242: restaura a grade anual com rolagem horizontal no celular */
 @media (max-width: 680px) {
@@ -9118,4 +9140,26 @@ input[data-money="true"] {
     .app-view .report-card strong { font-size: .78rem; }
     .app-view .report-card small { font-size: .66rem; line-height: 1.3; }
     .report-detail-modal .document-center-intro { margin-bottom: 10px; }
+}
+
+/* Ajuste final da ordem do launcher: mantém oito opções em duas colunas. */
+@media (max-width: 680px) {
+    .app-navigation.is-launcher #actionAlertNav {
+        display: grid !important;
+        grid-column: auto !important;
+        min-height: 76px !important;
+        order: 5;
+    }
+    .app-navigation.is-launcher [data-app-nav-key="units"] { order: 1; }
+    .app-navigation.is-launcher [data-app-nav-key="expenses"] { order: 2; }
+    .app-navigation.is-launcher [data-app-nav-key="financial"] { order: 3; }
+    .app-navigation.is-launcher [data-app-nav-key="reports"] { order: 4; }
+    .app-navigation.is-launcher [data-app-nav-key="settings"] { order: 6; }
+    .app-navigation.is-launcher #mobileEnergyRateNav,
+    .app-navigation.is-launcher #mobileWaterRateNav {
+        grid-column: auto !important;
+        min-height: 76px !important;
+    }
+    .app-navigation.is-launcher #mobileEnergyRateNav { order: 7; }
+    .app-navigation.is-launcher #mobileWaterRateNav { order: 8; }
 }
