@@ -4433,8 +4433,10 @@ var historyRent = document.getElementById("historyRent");
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
             var back = panel.querySelector(":scope > .mobile-view-back");
-            // Relatórios possuem ação de Fechar própria; não repetimos Início no topo.
-            var reportView = view === "reports" || view === "tax";
+            // A Central de Relatórios é uma tela completa no celular e precisa
+            // do mesmo retorno explícito para Início que as demais seções.
+            // Imposto de Renda mantém seu próprio botão Fechar.
+            var reportView = view === "tax";
             if (mobileNavigation && !launcherOnly && view === activeAppView && !reportView) {
                 if (!back) {
                     back = document.createElement("button");
