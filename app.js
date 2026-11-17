@@ -4419,6 +4419,13 @@ var historyRent = document.getElementById("historyRent");
         return window.matchMedia && window.matchMedia("(max-width: 680px)").matches;
     }
 
+    function updateMobileMonthToolbar() {
+        if (!mobileMonthToolbar) return;
+        var show = isMobileNavigation() && !mobileLauncherActive && activeAppView === "units";
+        mobileMonthToolbar.hidden = !show;
+        if (mobileMonthLabel) mobileMonthLabel.textContent = fullMonths[mobileMonthIndex] + " de " + selectedYear;
+    }
+
     function renderAppNavigation() {
         var validViews = ["home", "overview", "units", "financial", "reports", "tax"];
         if (validViews.indexOf(activeAppView) < 0) activeAppView = "home";
@@ -4429,6 +4436,7 @@ var historyRent = document.getElementById("historyRent");
         }
         var navigation = document.getElementById("appNavigation");
         if (navigation) navigation.classList.toggle("is-launcher", launcherOnly);
+        updateMobileMonthToolbar();
 
         document.querySelectorAll("[data-app-view-panel]").forEach(function (panel) {
             var view = panel.dataset.appViewPanel;
@@ -5300,6 +5308,10 @@ var historyRent = document.getElementById("historyRent");
         var isFutureMonth = currentMonth >= 0 && index > currentMonth;
         return !isFutureMonth && (showSettledMonths || hideableCompletedMonths.indexOf(index) < 0);
     });
+    // No celular a grade apresenta uma competência por vez. Os controles acima
+    // permitem visitar qualquer mês, inclusive os que já foram concluídos.
+    if (isMobileNavigation()) renderedMonthIndexes = [mobileMonthIndex];
+    updateMobileMonthToolbar();
     if (settledMonthsToolbar) {
         settledMonthsToolbar.hidden = isMobileNavigation() || hideableCompletedMonths.length === 0;
         settledMonthsSummary.textContent = hideableCompletedMonths.length
@@ -9168,6 +9180,18 @@ function saveExpense() {
         render();
     });
 
+    document.querySelectorAll("[data-mobile-month-step]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var step = Number(button.dataset.mobileMonthStep) || 0;
+            if (!step) return;
+            var target = new Date(selectedYear, mobileMonthIndex + step, 1);
+            selectedYear = target.getFullYear();
+            mobileMonthIndex = target.getMonth();
+            didInitialScroll = false;
+            render();
+        });
+    });
+
     var unitSearchRenderTimer = null;
     unitSearch.addEventListener("input", function () {
         clearTimeout(unitSearchRenderTimer);
@@ -12374,7 +12398,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                     var paidDate = row.paid && row.paidAt ? ' · pago em ' + formatDate(row.paidAt) : '';
                     var statusLabel = status === "overdue" ? ' · energia atrasada' : status === "pending" ? ' · energia pendente' : '';
                     return '<div class="energy-history-item is-' + status + '"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.kwh || 0).toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName || "Sem inquilino") + statusLabel + paidDate + '</small></span><b>' + money(row.amount) + '</b><div class="energy-history-actions"><button class="btn ' + (row.paid ? 'btn-energy-paid' : 'btn-ghost') + '" type="button" data-energy-paid="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">' + paidLabel + '</button><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div></div>';
-                }).join("") + '<div class="energy-history-actions"><button class="btn btn-danger" type="button" data-energy-delete="' + escapeHtml(item.id) + '">Excluir competência</button></div></div></details>';
+                }).join("") + '<div class="energy-history-actions"><button class="btn btn-danger utility-history-delete" type="button" data-energy-delete="' + escapeHtml(item.id) + '">Excluir mês</button></div></div></details>';
         }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
         renderEnergyBillingSummary();
     }
@@ -12619,7 +12643,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function renderWaterHistory() {
         var el = waterRateModalElements();
         var list = (state.waterAllocations || []).filter(function (item) { return item.enterpriseId === el.enterprise.value; }).sort(function (a, b) { return String(b.reference).localeCompare(String(a.reference)); }).slice(0, 12);
-        el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + (item.dueDate ? ' · vence ' + formatDate(item.dueDate) : '') + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.m3 || 0).toFixed(2).replace(".", ",") + ' m³ · ' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '<div class="energy-history-actions"><button class="btn btn-danger" type="button" data-water-delete="' + escapeHtml(item.id) + '">Excluir competência</button></div></div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio de água salvo ainda.</p>';
+        el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + (item.dueDate ? ' · vence ' + formatDate(item.dueDate) : '') + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.m3 || 0).toFixed(2).replace(".", ",") + ' m³ · ' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '<div class="energy-history-actions"><button class="btn btn-danger utility-history-delete" type="button" data-water-delete="' + escapeHtml(item.id) + '">Excluir mês</button></div></div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio de água salvo ainda.</p>';
     }
     function openWaterRate(reference, enterpriseId) {
         if (reference && typeof reference === "object" && typeof reference.preventDefault === "function") reference = null;

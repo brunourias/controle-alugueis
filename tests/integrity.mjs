@@ -379,6 +379,10 @@ assert.match(app, /function deleteUtilityAllocationNow\(/, "A exclusão de ratei
 assert.match(app, /ref\.doc\(allocation\.id\)\.delete\(\)/, "Excluir um rateio deve remover o documento granular correspondente");
 assert.match(app, /data-energy-delete/, "O histórico de energia deve permitir excluir uma competência");
 assert.match(app, /data-water-delete/, "O histórico de água deve permitir excluir uma competência");
+assert.match(index, /id="mobileMonthToolbar"/, "Unidades deve oferecer navegação mensal no celular");
+assert.match(app, /data-mobile-month-step/, "A navegação móvel deve permitir avançar e voltar meses");
+assert.match(app, /if \(isMobileNavigation\(\)\) renderedMonthIndexes = \[mobileMonthIndex\]/, "A grade móvel deve exibir a competência selecionada");
+assert.match(styles, /\.utility-history-delete\s*\{[\s\S]{0,180}min-height: 26px/, "Excluir mês deve ser uma ação compacta no histórico");
 assert.match(app, /saveState\(\);\s*syncCriticalPaymentNow\(\);/, "Registro de pagamento deve enviar à nuvem logo após salvar localmente");
 assert.match(app, /var hideableCompletedMonths = completedMonths\.filter/, "Mês corrente concluído deve continuar visível na grade de unidades");
 assert.match(app, /return index !== currentMonth;/, "Ocultação de meses concluídos só deve ocorrer após a virada do mês");

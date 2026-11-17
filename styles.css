@@ -7177,6 +7177,19 @@ details.platform-account-manage[open] > summary::after {
     gap: 5px;
 }
 
+/* A exclusão da competência é uma ação excepcional no histórico; não deve
+   competir visualmente com as ações de pagamento de cada unidade. */
+.utility-history-delete {
+    min-height: 26px;
+    padding: 3px 7px;
+    margin-top: 4px;
+    font-size: .62rem;
+    line-height: 1.1;
+    opacity: .82;
+}
+.utility-history-delete:hover,
+.utility-history-delete:focus-visible { opacity: 1; }
+
 .energy-history-item.is-paid {
     background: #f1faf7;
 }
