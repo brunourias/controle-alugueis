@@ -375,6 +375,10 @@ assert.match(app, /function syncCriticalPaymentNow\(\)/, "Baixas financeiras dev
 assert.match(app, /function contractIdForInstallment\(/, "Cada nova baixa deve registrar o contrato de origem");
 assert.match(app, /localWithoutUtilities\.waterAllocations = \[\]/, "Conflitos exclusivos de água devem ser reconciliados automaticamente");
 assert.match(app, /function persistWaterAllocationNow\(/, "Rateio de água deve confirmar a gravação na nuvem");
+assert.match(app, /function deleteUtilityAllocationNow\(/, "A exclusão de rateio deve confirmar a remoção na nuvem");
+assert.match(app, /ref\.doc\(allocation\.id\)\.delete\(\)/, "Excluir um rateio deve remover o documento granular correspondente");
+assert.match(app, /data-energy-delete/, "O histórico de energia deve permitir excluir uma competência");
+assert.match(app, /data-water-delete/, "O histórico de água deve permitir excluir uma competência");
 assert.match(app, /saveState\(\);\s*syncCriticalPaymentNow\(\);/, "Registro de pagamento deve enviar à nuvem logo após salvar localmente");
 assert.match(app, /var hideableCompletedMonths = completedMonths\.filter/, "Mês corrente concluído deve continuar visível na grade de unidades");
 assert.match(app, /return index !== currentMonth;/, "Ocultação de meses concluídos só deve ocorrer após a virada do mês");

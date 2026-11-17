@@ -12374,7 +12374,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
                     var paidDate = row.paid && row.paidAt ? ' · pago em ' + formatDate(row.paidAt) : '';
                     var statusLabel = status === "overdue" ? ' · energia atrasada' : status === "pending" ? ' · energia pendente' : '';
                     return '<div class="energy-history-item is-' + status + '"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.kwh || 0).toFixed(2).replace(".", ",") + ' kWh · ' + escapeHtml(row.tenantName || "Sem inquilino") + statusLabel + paidDate + '</small></span><b>' + money(row.amount) + '</b><div class="energy-history-actions"><button class="btn ' + (row.paid ? 'btn-energy-paid' : 'btn-ghost') + '" type="button" data-energy-paid="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">' + paidLabel + '</button><button class="btn btn-ghost" type="button" data-energy-image="' + escapeHtml(item.id) + '" data-energy-unit="' + escapeHtml(row.unitId) + '">Imagem</button></div></div>';
-                }).join("") + '</div></details>';
+                }).join("") + '<div class="energy-history-actions"><button class="btn btn-danger" type="button" data-energy-delete="' + escapeHtml(item.id) + '">Excluir competência</button></div></div></details>';
         }).join("") : '<p class="settings-note">Nenhum rateio salvo ainda.</p>';
         renderEnergyBillingSummary();
     }
@@ -12426,6 +12426,59 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
             cloudGranularBaseline.waterAllocations[allocation.id] = granularClone(allocation);
             setSyncStatus("Rateio de água salvo na nuvem");
             return { cloud: true };
+        });
+    }
+
+    // Excluir um rateio remove a competência inteira, inclusive as marcações de
+    // pagamento das unidades. A remoção é confirmada diretamente na coleção
+    // granular para não deixar um lançamento de teste reaparecer ao sincronizar.
+    function deleteUtilityAllocationNow(kind, allocation) {
+        if (!firebaseUser || !firebaseDb || !cloudWorkspaceReady || !cloudWorkspaceId || !navigator.onLine) {
+            return Promise.resolve({ cloud: false });
+        }
+        var ref = kind === "energy" ? granularEnergyAllocationsRef() : granularWaterAllocationsRef();
+        var field = kind === "energy" ? "energyAllocations" : "waterAllocations";
+        if (!ref || !allocation || !allocation.id) return Promise.resolve({ cloud: false });
+        setSyncStatus("Excluindo rateio da nuvem...");
+        return ref.doc(allocation.id).delete().then(function () {
+            cloudGranularBaseline = cloudGranularBaseline || { meta: null, units: {}, expenses: {}, energyAllocations: {}, waterAllocations: {}, contracts: {}, payments: {}, charges: {} };
+            cloudGranularBaseline[field] = cloudGranularBaseline[field] || {};
+            delete cloudGranularBaseline[field][allocation.id];
+            setSyncStatus("Rateio excluído da nuvem");
+            return { cloud: true };
+        });
+    }
+
+    function deleteUtilityAllocation(kind, allocationId) {
+        if (!requireWorkspacePermission("manageExpenses")) return;
+        var field = kind === "energy" ? "energyAllocations" : "waterAllocations";
+        var label = kind === "energy" ? "energia" : "água";
+        var allocation = (state[field] || []).find(function (item) { return item.id === allocationId; });
+        if (!allocation) return;
+        var reference = energyReferenceLabel(allocation.reference);
+        if (!window.confirm("Excluir o rateio de " + label + " de " + reference + "? Esta ação remove toda a competência, inclusive as marcações de pagamento, e não pode ser desfeita.")) return;
+
+        state[field] = state[field].filter(function (item) { return item.id !== allocation.id; });
+        createVersionedBackup("Rateio de " + label + " excluído", reference);
+        recordOperation("Rateio de " + label + " excluído", reference);
+        saveState();
+        if (kind === "energy") {
+            loadEnergyRateReference();
+            renderEnergyHistory();
+            renderEnergyHistoricalComparison();
+        } else {
+            loadWaterRateReference();
+            renderWaterHistory();
+        }
+        render();
+        deleteUtilityAllocationNow(kind, allocation).then(function (result) {
+            notifyUser(result.cloud
+                ? "Rateio de " + label + " excluído e removido da nuvem."
+                : "Rateio de " + label + " excluído neste aparelho. A nuvem sincronizará quando estiver disponível.");
+        }).catch(function (error) {
+            setCloudError(cloudErrorMessage(error));
+            setSyncStatus("Rateio excluído apenas neste aparelho");
+            notifyUser("O rateio foi excluído neste aparelho, mas a nuvem não confirmou a exclusão. Verifique a conexão ou as permissões.");
         });
     }
 
@@ -12566,7 +12619,7 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
     function renderWaterHistory() {
         var el = waterRateModalElements();
         var list = (state.waterAllocations || []).filter(function (item) { return item.enterpriseId === el.enterprise.value; }).sort(function (a, b) { return String(b.reference).localeCompare(String(a.reference)); }).slice(0, 12);
-        el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + (item.dueDate ? ' · vence ' + formatDate(item.dueDate) : '') + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.m3 || 0).toFixed(2).replace(".", ",") + ' m³ · ' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '</div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio de água salvo ainda.</p>';
+        el.history.innerHTML = list.length ? list.map(function (item) { return '<details class="energy-history"><summary><span><strong>' + escapeHtml(energyReferenceLabel(item.reference)) + '</strong><small>' + item.readings.length + ' unidade(s) · ' + money(item.invoiceAmount) + (item.dueDate ? ' · vence ' + formatDate(item.dueDate) : '') + '</small></span></summary><div>' + item.readings.map(function (row) { return '<div class="energy-history-item"><span><strong>' + escapeHtml(row.unitName) + '</strong><small>' + Number(row.m3 || 0).toFixed(2).replace(".", ",") + ' m³ · ' + escapeHtml(row.tenantName || "Sem inquilino") + '</small></span><b>' + money(row.amount) + '</b></div>'; }).join("") + '<div class="energy-history-actions"><button class="btn btn-danger" type="button" data-water-delete="' + escapeHtml(item.id) + '">Excluir competência</button></div></div></details>'; }).join("") : '<p class="settings-note">Nenhum rateio de água salvo ainda.</p>';
     }
     function openWaterRate(reference, enterpriseId) {
         if (reference && typeof reference === "object" && typeof reference.preventDefault === "function") reference = null;
@@ -12881,6 +12934,16 @@ addContractHistory.addEventListener("click", addContractHistoryEntry);
         var button = event.target.closest("[data-water-open]"); if (!button) return;
         var record = (state.waterAllocations || []).find(function (item) { return item.id === button.dataset.waterOpen; });
         if (record) openWaterRate(record.reference, record.enterpriseId);
+    });
+    document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-energy-delete]");
+        if (!button) return;
+        deleteUtilityAllocation("energy", button.dataset.energyDelete);
+    });
+    document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-water-delete]");
+        if (!button) return;
+        deleteUtilityAllocation("water", button.dataset.waterDelete);
     });
 
     document.addEventListener("click", function (event) {
