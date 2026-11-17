@@ -5262,13 +5262,19 @@ var historyRent = document.getElementById("historyRent");
     function archivedMonthCell(unit, month, currentMonth) {
         var contract = archivedContractForMonth(unit, month);
         if (!contract) return null;
+        var key = monthKey(month);
+        var payment = getPaymentRecord(unit, selectedYear, month);
+        var ledger = unit.lateLedger && typeof unit.lateLedger === "object" ? unit.lateLedger : {};
+        var historicStatus = ledger[key] === "open" ? "Em atraso" :
+            (ledger[key] === "paid" || (payment && payment.historicContractId === contract.id) ? "Pago" : "Encerrado");
+        var tenantName = String(contract.tenantName || "").trim() || "Contrato anterior";
 
         return (
             '<td class="' +
             (month === currentMonth ? "month-current" : "") +
             '">' +
-            '<div class="status-cell is-inactive"><div class="status-inactive" aria-label="Contrato arquivado">' +
-            '<span>Contrato arquivado</span>' +
+            '<div class="status-cell is-historical"><div class="status-inactive" aria-label="Contrato anterior de ' + escapeHtml(tenantName) + '">' +
+            '<span>' + escapeHtml(tenantName) + '</span><small>' + historicStatus + ' · ' + money(contract.rent) + '</small>' +
             "</div>" +
             energyPaidIndicator(unit.id, month) + waterRateIndicator(unit.id, month) +
             "</div></td>"
@@ -5513,16 +5519,27 @@ var historyRent = document.getElementById("historyRent");
                 })
                 .join("");
 
-            var hasCurrentContract =
-                !!String(unit.tenantName || "").trim();
+            var historicalMobileContract = isMobileNavigation()
+                ? archivedContractForMonth(unit, mobileMonthIndex)
+                : null;
+            var displayTenantName = historicalMobileContract
+                ? String(historicalMobileContract.tenantName || "").trim()
+                : String(unit.tenantName || "").trim();
+            var displayRent = historicalMobileContract
+                ? Math.max(0, Number(historicalMobileContract.rent) || 0)
+                : 0;
+            var displayDueDay = historicalMobileContract
+                ? Number(historicalMobileContract.dueDay)
+                : Number(unit.dueDay);
+            var hasCurrentContract = !!displayTenantName;
 
             var dueDay =
                 hasCurrentContract &&
-                Number.isInteger(unit.dueDay) &&
-                unit.dueDay >= 1 &&
-                unit.dueDay <= 31
+                Number.isInteger(displayDueDay) &&
+                displayDueDay >= 1 &&
+                displayDueDay <= 31
                     ? '<span class="due-day">Vence dia ' +
-                      unit.dueDay +
+                      displayDueDay +
                       "</span>"
                     : "";
 
@@ -5530,13 +5547,16 @@ var historyRent = document.getElementById("historyRent");
             var recurrenceBadge = recurrence.count
                 ? '<span class="tenant-recurrence ' + (recurrence.reached ? "is-alert" : "") + '" title="' + escapeHtml(recurrence.label) + '">⚠ ' + recurrence.count + (recurrence.count === 1 ? ' atraso' : ' atrasos') + '</span>'
                 : "";
-			var tenant = unit.tenantName
-				? '<span class="tenant-name">' + escapeHtml(unit.tenantName) + "</span>" + recurrenceBadge
+			var tenant = displayTenantName
+				? '<span class="tenant-name">' + escapeHtml(displayTenantName) + "</span>" +
+                  (historicalMobileContract ? '<span class="historical-contract-note">Contrato encerrado</span>' : recurrenceBadge)
 				: '<span class="tenant-name tenant-no-contract">Sem contrato ativo</span>';
 
             var now = new Date();
 
-			var currentRent = String(unit.tenantName || "").trim()
+			var currentRent = historicalMobileContract
+				? displayRent
+				: String(unit.tenantName || "").trim()
 				? rentForMonth(
 					  unit,
 					  now.getFullYear(),
@@ -5551,7 +5571,7 @@ var historyRent = document.getElementById("historyRent");
                 ) +
                 "</span>";
 
-            var reminderDays = dueReminder(unit);
+            var reminderDays = historicalMobileContract ? null : dueReminder(unit);
 
             var dueSoon =
                 reminderDays === null
@@ -5566,7 +5586,7 @@ var historyRent = document.getElementById("historyRent");
                             " dias") +
                       "</span>";
 
-            var compactActions = tenantActions(unit)
+            var compactActions = !historicalMobileContract && tenantActions(unit)
                 ? '<details class="unit-context-menu" data-tenant-action><summary aria-label="Mais ações para ' +
                   escapeHtml(unit.name) +
                   '">⋯</summary><div class="unit-context-actions">' +
@@ -5594,7 +5614,7 @@ var historyRent = document.getElementById("historyRent");
                 dueSoon +
 
                 '<span class="tenant-actions">' +
-                tenantActions(unit) +
+                (!historicalMobileContract ? tenantActions(unit) : "") +
                 "</span>" +
                 compactActions +
 

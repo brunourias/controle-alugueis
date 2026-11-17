@@ -383,6 +383,9 @@ assert.match(index, /id="mobileMonthToolbar"/, "Unidades deve oferecer navegaç�
 assert.match(app, /data-mobile-month-step/, "A navegação móvel deve permitir avançar e voltar meses");
 assert.match(app, /if \(isMobileNavigation\(\)\) renderedMonthIndexes = \[mobileMonthIndex\]/, "A grade móvel deve exibir a competência selecionada");
 assert.match(styles, /\.utility-history-delete\s*\{[\s\S]{0,180}min-height: 26px/, "Excluir mês deve ser uma ação compacta no histórico");
+assert.match(app, /historicalMobileContract = isMobileNavigation\(\)/, "Unidades no celular deve recuperar o contrato histórico da competência selecionada");
+assert.match(app, /Contrato anterior de/, "Células históricas devem identificar o inquilino do contrato encerrado");
+assert.match(styles, /\.status-cell\.is-historical/, "Contrato histórico deve permanecer legível na grade móvel");
 assert.match(app, /saveState\(\);\s*syncCriticalPaymentNow\(\);/, "Registro de pagamento deve enviar à nuvem logo após salvar localmente");
 assert.match(app, /var hideableCompletedMonths = completedMonths\.filter/, "Mês corrente concluído deve continuar visível na grade de unidades");
 assert.match(app, /return index !== currentMonth;/, "Ocultação de meses concluídos só deve ocorrer após a virada do mês");

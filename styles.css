@@ -7804,6 +7804,36 @@ button.energy-paid-indicator:focus-visible {
     content: "—";
     font-size: .75rem;
 }
+
+/* Competências de contratos encerrados continuam consultáveis. Diferente de
+   uma unidade sem contrato, elas mostram o antigo inquilino e a situação
+   financeira daquele mês. */
+.status-cell.is-historical .status-inactive {
+    min-width: 52px;
+    min-height: 42px;
+    border: 1px solid #d9cbed;
+    background: #faf7ff;
+    color: #6c4b8c;
+}
+.status-cell.is-historical .status-inactive::before { content: none; }
+.status-cell.is-historical .status-inactive span,
+.status-cell.is-historical .status-inactive small {
+    display: block;
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.status-cell.is-historical .status-inactive span { color: #6c4b8c; font-size: .56rem; }
+.status-cell.is-historical .status-inactive small { margin-top: 2px; font-size: .48rem; font-weight: 700; }
+
+.historical-contract-note {
+    display: block;
+    margin-top: 2px;
+    color: #7a6594;
+    font-size: .58rem;
+    font-weight: 700;
+}
 @media (hover: hover) and (pointer: fine) {
     .status-cell:hover .cell-actions-trigger {
         display: none;
